@@ -316,7 +316,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .who-tag b{font-weight:400;color:#ffc53d}
 .door-actions{margin-top:14px;min-height:60px}
 .flying{position:fixed;font-size:2.2rem;z-index:50;pointer-events:none;transition:transform .8s cubic-bezier(.3,-.3,.6,1),opacity .8s}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140px);background:var(--paper);color:var(--brown);border:3px solid var(--brown);padding:.5em 1.2em;border-radius:999px;font-size:.95rem;z-index:60;transition:transform .3s,visibility .3s;max-width:90vw;text-align:center;visibility:hidden}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140px);background:var(--paper);color:var(--brown);border:3px solid var(--brown);padding:.5em 1.2em;border-radius:24px;font-size:.95rem;z-index:60;transition:transform .3s,visibility .3s;width:max-content;max-width:min(92vw,460px);line-height:1.45;text-align:center;visibility:hidden}
 .toast.on{transform:translate(-50%,0);visibility:visible}
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} .knock-word span{opacity:1} }
 </style>
