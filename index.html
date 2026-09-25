@@ -243,11 +243,6 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
 .flash.go{animation:flash .9s ease-out}
 @keyframes flash{0%{opacity:0}8%{opacity:1}45%{opacity:1}100%{opacity:0}}
 .photo-note{min-height:1.6em;margin:18px 0 12px;font-family:"Jua",sans-serif;font-size:1.1rem}
-.album-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.5em}
-.album-head h2{margin:0}
-.album-tabs{display:flex;gap:4px;background:var(--soft);padding:3px;border-radius:999px}
-.album-tabs button{font-size:.82rem;padding:.3em .8em;background:transparent;color:var(--brown);box-shadow:none}
-.album-tabs button[aria-pressed="true"]{background:var(--paper);box-shadow:0 2px 0 var(--brown)}
 .album{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .album button{padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 3px 0 rgba(60,26,16,.25);aspect-ratio:900/1080;overflow:hidden}
 .album button:nth-child(odd){transform:rotate(-1.5deg)}.album button:nth-child(even){transform:rotate(1.5deg)}
@@ -365,9 +360,7 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
     </div>
 
     <div class="card">
-      <div class="album-head"><h2>함께 찍은 사진</h2>
-        <div class="album-tabs" role="group" aria-label="사진 범위"><button type="button" data-album="mine" aria-pressed="true">내 사진</button><button type="button" data-album="all" aria-pressed="false">모두</button></div>
-      </div>
+      <h2>우리 집에 온 친구와 찍은 사진</h2>
       <div class="album" id="album"></div>
       <button class="ghost album-more" id="album-more" hidden>더 보기</button>
     </div>
@@ -1461,16 +1454,14 @@ function saveToAlbum(target, self){
   const id = `${target.id}~${comboKey(target)}~${comboKey(self)}`;
   db.doc("players/" + myId).update({ album: { [id]: { with: target.id, a: lookOf(target), b: lookOf(self), at: Date.now() } } }).catch(() => {});
 }
-let albumScope = "mine", albumLimit = 12, albumSig = "";
+let albumLimit = 12, albumSig = null;
 const thumbCache = {};
+// 우리 집 문을 열고 찾아온 친구와 찍은 사진만 보여줘요 (내 album에 저장된 것)
 function albumShots(){
-  const list = [];
-  Object.entries(players).forEach(([owner, p]) => Object.entries(p.album || {}).forEach(([k, v]) => {
-    if (!v || !v.a || !v.b) return;
-    if (albumScope === "mine" && owner !== myId && v.with !== myId) return;
-    list.push({ key: owner + "/" + k + "/" + v.at, ...v });
-  }));
-  return list.sort((x, y) => (y.at || 0) - (x.at || 0));
+  return Object.entries((me && me.album) || {})
+    .filter(([, v]) => v && v.a && v.b)
+    .map(([k, v]) => ({ key: k + "/" + v.at, ...v }))
+    .sort((x, y) => (y.at || 0) - (x.at || 0));
 }
 let thumbQueue = Promise.resolve();
 function thumbFor(s, img){
@@ -1481,12 +1472,12 @@ function thumbFor(s, img){
 }
 function renderAlbum(){
   const list = albumShots(), shown = list.slice(0, albumLimit);
-  const sig = albumScope + "|" + shown.map(s => s.key).join(",");
+  const sig = shown.map(s => s.key).join(",");
   $("album-more").hidden = list.length <= albumLimit;
   if (sig === albumSig) return;
   albumSig = sig;
   const box = $("album"); box.innerHTML = "";
-  if (!list.length) { box.innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">${albumScope === "mine" ? "아직 함께 찍은 사진이 없어요. 사탕을 주고받고 같이 사진을 찍어 보세요!" : "아직 아무도 사진을 찍지 않았어요."}</p>`; return; }
+  if (!list.length) { box.innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">우리 집에 놀러 온 친구에게 사탕을 주고 같이 사진을 찍어 보세요!</p>`; return; }
   shown.forEach(s => {
     const b = document.createElement("button"); b.type = "button";
     b.setAttribute("aria-label", `${s.a.nick}와 ${s.b.nick}의 사진 크게 보기`);
@@ -1495,11 +1486,6 @@ function renderAlbum(){
     box.appendChild(b); thumbFor(s, img);
   });
 }
-document.querySelectorAll("[data-album]").forEach(t => t.onclick = () => {
-  albumScope = t.dataset.album; albumLimit = 12;
-  document.querySelectorAll("[data-album]").forEach(x => x.setAttribute("aria-pressed", x === t));
-  renderAlbum();
-});
 $("album-more").onclick = () => { albumLimit += 12; renderAlbum(); };
 async function openShot(s){
   photoPair = { a: s.a, b: s.b }; photoBlob = null;
