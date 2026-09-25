@@ -869,7 +869,7 @@ const starOn = (p, id) => !!p && (p.char || "cat") === "cat" && (freeMode && id 
 function withStar(svg, look, side){
   if (!look || !look.star) return svg;
   const up = svg.includes('class="ch up"'), c = STAR_ART[look.costume] ? look.costume : "none", [rx, ry, rw, rh] = STAR_ART[c];
-  const w = up ? 72 : 84, bottom = up ? UP_FEET : 230, x = side === "l" ? 0 : 200 - w - (up ? 16 : 0), y = bottom - w * STAR_FRAME_H + 2;
+  const w = up ? 50 : 84, bottom = up ? UP_FEET : 230, x = side === "l" ? 0 : 200 - w - (up ? 24 : 0), y = bottom - w * STAR_FRAME_H + 2;
   const img = `<image class="star" href="data:image/webp;base64,${DECO["star_" + c]}" x="${x + rx * w}" y="${y + ry * w}" width="${rw * w}" height="${rh * w}"/>`;
   const i = svg.lastIndexOf("</svg>");
   return svg.slice(0, i) + img + svg.slice(i);
