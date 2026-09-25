@@ -267,12 +267,12 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .sm-icon img{width:44px;height:44px;border-radius:50%}
 .sm-dot{display:block;width:40px;height:40px;border-radius:50%;background:#d6cedd;border:3px solid #bdb3c6}
 .gallery-title{text-align:center;margin:4px 0 18px}
-.album{display:flex;flex-direction:column;align-items:center;gap:26px;padding-bottom:24px}
-.album button{display:block;width:min(320px,82vw);padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 8px 0 rgba(0,0,0,.25);aspect-ratio:900/1080;overflow:hidden}
-.album button:nth-child(odd){transform:rotate(-2deg)}.album button:nth-child(even){transform:rotate(2deg)}
+.album{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 16px;padding:4px 4px 24px}
+.album button{display:block;width:100%;padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 8px 0 rgba(0,0,0,.25);aspect-ratio:900/1080;overflow:hidden}
+.album button:nth-child(odd){transform:rotate(-1.5deg)}.album button:nth-child(even){transform:rotate(1.5deg)}
 .album button:active{transform:translateY(3px)}
 .album img{display:block;width:100%;height:100%;object-fit:cover}
-.album .muted{text-align:center;margin-top:12vh}
+.album .muted{grid-column:1/-1;text-align:center;margin-top:12vh}
 
 /* 문 장면 */
 .scene{text-align:center;padding-top:6px}
@@ -1652,7 +1652,10 @@ function openGallery(ownerId){
 }
 $("btn-gallery").onclick = () => openGallery(null);
 $("btn-gallery-back").onclick = () => { if (galleryOwner) { const id = galleryOwner; galleryOwner = null; openAdmin(); openMember(id); } else goHome(); };
+// 찰칵 효과는 한 번만: 끝나면 꺼 둬야 갤러리에서 사진 화면을 다시 열 때 재생되지 않아요
+$("flash").addEventListener("animationend", () => $("flash").classList.remove("go"));
 async function openShot(s){
+  $("flash").classList.remove("go");
   galleryScroll = window.scrollY; photoFrom = "gallery";
   photoPair = { a: s.a, b: s.b }; photoBlob = null;
   $("photo-note").textContent = ""; $("polaroid").removeAttribute("src"); $("polaroid").classList.remove("develop");
