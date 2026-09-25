@@ -243,12 +243,15 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
 .flash.go{animation:flash .9s ease-out}
 @keyframes flash{0%{opacity:0}8%{opacity:1}45%{opacity:1}100%{opacity:0}}
 .photo-note{min-height:1.6em;margin:18px 0 12px;font-family:"Jua",sans-serif;font-size:1.1rem}
-.album{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.album button{padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 3px 0 rgba(60,26,16,.25);aspect-ratio:900/1080;overflow:hidden}
-.album button:nth-child(odd){transform:rotate(-1.5deg)}.album button:nth-child(even){transform:rotate(1.5deg)}
+#btn-gallery{margin:0 0 22px}
+#btn-gallery small{font-family:"Gowun Dodum",sans-serif;font-size:.85rem;opacity:.8}
+.gallery-title{text-align:center;margin:4px 0 18px}
+.album{display:flex;flex-direction:column;align-items:center;gap:26px;padding-bottom:24px}
+.album button{display:block;width:min(320px,82vw);padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 8px 0 rgba(0,0,0,.25);aspect-ratio:900/1080;overflow:hidden}
+.album button:nth-child(odd){transform:rotate(-2deg)}.album button:nth-child(even){transform:rotate(2deg)}
+.album button:active{transform:translateY(3px)}
 .album img{display:block;width:100%;height:100%;object-fit:cover}
-.album-more{display:block;margin:12px auto 0}
-.album-more[hidden]{display:none}
+.album .muted{text-align:center;margin-top:12vh}
 
 /* 문 장면 */
 .scene{text-align:center;padding-top:6px}
@@ -352,18 +355,21 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
       <button class="me-char" id="btn-me" aria-label="내 캐릭터 꾸미기"><span class="me-tag">꾸미기 ✨</span><span id="h-char"></span></button>
     </div>
 
+    <button class="big green" id="btn-gallery">📸 갤러리 보기 <small id="gallery-count"></small></button>
+
     <div class="card">
       <h2>사탕 리그</h2>
       <p class="prize">*10월 31일 할로윈날 누적 사탕 순위 1위에게는 특별한 선물이 기다리고 있습니다.</p>
       <p class="muted rules" id="rules">누적 사탕 순위<br>사탕 받으면 +2, 주면 +1<br>*처음 보는 코스튬과 사진 찍으면 +5</p>
       <ol class="league" id="league"></ol>
     </div>
+  </section>
 
-    <div class="card">
-      <h2>우리 집에 온 친구와 찍은 사진</h2>
-      <div class="album" id="album"></div>
-      <button class="ghost album-more" id="album-more" hidden>더 보기</button>
-    </div>
+  <!-- 갤러리 -->
+  <section class="view" id="v-gallery">
+    <div class="topbar"><button class="ghost" id="btn-gallery-back">← 우리 집으로</button><span></span></div>
+    <h2 class="gallery-title">우리 집에 온 친구와 찍은 사진</h2>
+    <div class="album" id="album"></div>
   </section>
 
   <!-- 손님 목록 / 집번호 찾기 -->
@@ -897,7 +903,8 @@ function renderHome(){
     row.appendChild(b); box.appendChild(row);
   });
   renderLeague();
-  renderAlbum();
+  const nShots = albumShots().length;
+  $("gallery-count").textContent = nShots ? `(${nShots}장)` : "";
 }
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
@@ -1424,7 +1431,7 @@ async function takePhoto(){
   if (!me || !doorTarget) return;
   const target = previewMode ? { ...me, ...myLook() } : { id: doorTarget.id, ...players[doorTarget.id] };
   const self = { ...me, ...myLook() };
-  photoPair = { a: target, b: self };
+  photoPair = { a: target, b: self }; photoFrom = null;
   $("photo-note").textContent = ""; $("polaroid").removeAttribute("src"); $("polaroid").classList.remove("develop");
   show("photo");
   const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
@@ -1454,7 +1461,7 @@ function saveToAlbum(target, self){
   const id = `${target.id}~${comboKey(target)}~${comboKey(self)}`;
   db.doc("players/" + myId).update({ album: { [id]: { with: target.id, a: lookOf(target), b: lookOf(self), at: Date.now() } } }).catch(() => {});
 }
-let albumLimit = 12, albumSig = null;
+let albumSig = null, galleryScroll = 0, photoFrom = null;
 const thumbCache = {};
 // 우리 집 문을 열고 찾아온 친구와 찍은 사진만 보여줘요 (내 album에 저장된 것)
 function albumShots(){
@@ -1467,17 +1474,16 @@ let thumbQueue = Promise.resolve();
 function thumbFor(s, img){
   if (thumbCache[s.key]) { img.src = thumbCache[s.key]; return; }
   thumbQueue = thumbQueue.then(async () => {
-    try { const cv = await renderPolaroid(s.a, s.b, s.at, 1/3); thumbCache[s.key] = cv.toDataURL("image/jpeg", .85); img.src = thumbCache[s.key]; } catch {}
+    try { const cv = await renderPolaroid(s.a, s.b, s.at, 1/2); thumbCache[s.key] = cv.toDataURL("image/jpeg", .85); img.src = thumbCache[s.key]; } catch {}
   });
 }
 function renderAlbum(){
-  const list = albumShots(), shown = list.slice(0, albumLimit);
+  const list = albumShots(), shown = list;
   const sig = shown.map(s => s.key).join(",");
-  $("album-more").hidden = list.length <= albumLimit;
   if (sig === albumSig) return;
   albumSig = sig;
   const box = $("album"); box.innerHTML = "";
-  if (!list.length) { box.innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">우리 집에 놀러 온 친구에게 사탕을 주고 같이 사진을 찍어 보세요!</p>`; return; }
+  if (!list.length) { box.innerHTML = `<p class="muted">아직 찍은 사진이 없어요.<br>우리 집에 놀러 온 친구에게 사탕을 주고 같이 사진을 찍어 보세요!</p>`; return; }
   shown.forEach(s => {
     const b = document.createElement("button"); b.type = "button";
     b.setAttribute("aria-label", `${s.a.nick}와 ${s.b.nick}의 사진 크게 보기`);
@@ -1486,8 +1492,11 @@ function renderAlbum(){
     box.appendChild(b); thumbFor(s, img);
   });
 }
-$("album-more").onclick = () => { albumLimit += 12; renderAlbum(); };
+function openGallery(){ renderAlbum(); show("gallery"); }
+$("btn-gallery").onclick = openGallery;
+$("btn-gallery-back").onclick = goHome;
 async function openShot(s){
+  galleryScroll = window.scrollY; photoFrom = "gallery";
   photoPair = { a: s.a, b: s.b }; photoBlob = null;
   $("photo-note").textContent = ""; $("polaroid").removeAttribute("src"); $("polaroid").classList.remove("develop");
   show("photo");
@@ -1505,7 +1514,7 @@ $("btn-save-photo").onclick = async () => {
   try { await downloadsApi.save({ filename: `trick-or-treat_${photoPair.a.nick}_${photoPair.b.nick}.png`, data: photoBlob }); }
   catch (e) { if (e && e.code !== "declined") toast("저장하지 못했어요. 사진을 길게 눌러 저장해 주세요."); }
 };
-$("btn-photo-back").onclick = () => { if (previewMode && leavePreview()) return; if (me) goHome(); else openRegister(false); };
+$("btn-photo-back").onclick = () => { if (photoFrom === "gallery") { photoFrom = null; openGallery(); window.scrollTo(0, galleryScroll); return; } if (previewMode && leavePreview()) return; if (me) goHome(); else openRegister(false); };
 
 // ===== 데이터 흐름 =====
 let ownFixDone = false;
@@ -1531,6 +1540,7 @@ function onData(){
   }
   if (current === "register" && me && pendingNav === "dress") { pendingNav = null; if (knockCode) openDoor(); else goDress(); }
   else if (current === "home") renderHome();
+  else if (current === "gallery") renderAlbum();
   else if (current === "dress") renderDress();
   else if (current === "admin") { renderAdmin(); if (!$("sheet-member").hidden) renderMember(); }
   else if (current === "door" && !previewMode) renderDoorActions();
