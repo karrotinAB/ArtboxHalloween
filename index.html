@@ -243,6 +243,17 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
 .flash.go{animation:flash .9s ease-out}
 @keyframes flash{0%{opacity:0}8%{opacity:1}45%{opacity:1}100%{opacity:0}}
 .photo-note{min-height:1.6em;margin:18px 0 12px;font-family:"Jua",sans-serif;font-size:1.1rem}
+.album-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.5em}
+.album-head h2{margin:0}
+.album-tabs{display:flex;gap:4px;background:var(--soft);padding:3px;border-radius:999px}
+.album-tabs button{font-size:.82rem;padding:.3em .8em;background:transparent;color:var(--brown);box-shadow:none}
+.album-tabs button[aria-pressed="true"]{background:var(--paper);box-shadow:0 2px 0 var(--brown)}
+.album{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.album button{padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 3px 0 rgba(60,26,16,.25);aspect-ratio:900/1080;overflow:hidden}
+.album button:nth-child(odd){transform:rotate(-1.5deg)}.album button:nth-child(even){transform:rotate(1.5deg)}
+.album img{display:block;width:100%;height:100%;object-fit:cover}
+.album-more{display:block;margin:12px auto 0}
+.album-more[hidden]{display:none}
 
 /* 문 장면 */
 .scene{text-align:center;padding-top:6px}
@@ -351,6 +362,14 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
       <p class="prize">*10월 31일 할로윈날 누적 사탕 순위 1위에게는 특별한 선물이 기다리고 있습니다.</p>
       <p class="muted rules" id="rules">누적 사탕 순위<br>사탕 받으면 +2, 주면 +1<br>*처음 보는 코스튬과 사진 찍으면 +5</p>
       <ol class="league" id="league"></ol>
+    </div>
+
+    <div class="card">
+      <div class="album-head"><h2>함께 찍은 사진</h2>
+        <div class="album-tabs" role="group" aria-label="사진 범위"><button type="button" data-album="mine" aria-pressed="true">내 사진</button><button type="button" data-album="all" aria-pressed="false">모두</button></div>
+      </div>
+      <div class="album" id="album"></div>
+      <button class="ghost album-more" id="album-more" hidden>더 보기</button>
     </div>
   </section>
 
@@ -885,6 +904,7 @@ function renderHome(){
     row.appendChild(b); box.appendChild(row);
   });
   renderLeague();
+  renderAlbum();
 }
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
@@ -1390,9 +1410,10 @@ function gardenSVG(a, b){
 function svgToImage(svg){
   return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); });
 }
-async function renderPolaroid(a, b){
-  const cv = document.createElement("canvas"); cv.width = 900; cv.height = 1080;
-  const g = cv.getContext("2d");
+async function renderPolaroid(a, b, at, scale){
+  scale = scale || 1;
+  const cv = document.createElement("canvas"); cv.width = Math.round(900 * scale); cv.height = Math.round(1080 * scale);
+  const g = cv.getContext("2d"); g.scale(scale, scale);
   g.fillStyle = "#fffdf7"; g.fillRect(0, 0, 900, 1080);
   const img = await svgToImage(gardenSVG(a, b));
   g.drawImage(img, 60, 60, 780, 780);
@@ -1401,7 +1422,7 @@ async function renderPolaroid(a, b){
   g.fillStyle = "#3c1a10"; g.textAlign = "center"; g.textBaseline = "middle";
   g.font = '56px "Jua", "Apple SD Gothic Neo", sans-serif';
   g.fillText(`${a.nick} & ${b.nick}`, 450, 940, 800);
-  const d = new Date();
+  const d = at ? new Date(at) : new Date();
   g.fillStyle = "#7d6488"; g.font = '28px "Gowun Dodum", sans-serif';
   g.fillText(`🎃 Trick or Treat · ${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`, 450, 1010);
   return cv;
@@ -1420,6 +1441,7 @@ async function takePhoto(){
   $("polaroid").src = cv.toDataURL("image/png"); $("polaroid").alt = `${target.nick}와 ${self.nick}의 할로윈 사진`;
   $("polaroid").classList.add("develop");
   photoBlob = await new Promise(r => cv.toBlob(r, "image/png"));
+  if (!previewMode && target.id && target.id !== myId) saveToAlbum(target, self);
   const key = comboKey(target);
   if (previewMode) $("photo-note").textContent = "미리보기라 사진 보너스는 기록되지 않아요.";
   else if (target.id === myId) $("photo-note").textContent = "";
@@ -1432,6 +1454,64 @@ async function takePhoto(){
     } catch { $("photo-note").textContent = "사진 보너스를 기록하지 못했어요."; }
   }
 }
+// ===== 함께 찍은 사진 앨범 =====
+// 사진 이미지는 저장하지 않고, 찍을 때의 두 사람 모습만 내 문서(players/{내ID}.album)에 남겨 다시 그려요.
+const lookOf = p => ({ char: p.char || "cat", costume: p.costume || "none", nick: p.nick || "" });
+function saveToAlbum(target, self){
+  const id = `${target.id}~${comboKey(target)}~${comboKey(self)}`;
+  db.doc("players/" + myId).update({ album: { [id]: { with: target.id, a: lookOf(target), b: lookOf(self), at: Date.now() } } }).catch(() => {});
+}
+let albumScope = "mine", albumLimit = 12, albumSig = "";
+const thumbCache = {};
+function albumShots(){
+  const list = [];
+  Object.entries(players).forEach(([owner, p]) => Object.entries(p.album || {}).forEach(([k, v]) => {
+    if (!v || !v.a || !v.b) return;
+    if (albumScope === "mine" && owner !== myId && v.with !== myId) return;
+    list.push({ key: owner + "/" + k + "/" + v.at, ...v });
+  }));
+  return list.sort((x, y) => (y.at || 0) - (x.at || 0));
+}
+let thumbQueue = Promise.resolve();
+function thumbFor(s, img){
+  if (thumbCache[s.key]) { img.src = thumbCache[s.key]; return; }
+  thumbQueue = thumbQueue.then(async () => {
+    try { const cv = await renderPolaroid(s.a, s.b, s.at, 1/3); thumbCache[s.key] = cv.toDataURL("image/jpeg", .85); img.src = thumbCache[s.key]; } catch {}
+  });
+}
+function renderAlbum(){
+  const list = albumShots(), shown = list.slice(0, albumLimit);
+  const sig = albumScope + "|" + shown.map(s => s.key).join(",");
+  $("album-more").hidden = list.length <= albumLimit;
+  if (sig === albumSig) return;
+  albumSig = sig;
+  const box = $("album"); box.innerHTML = "";
+  if (!list.length) { box.innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">${albumScope === "mine" ? "아직 함께 찍은 사진이 없어요. 사탕을 주고받고 같이 사진을 찍어 보세요!" : "아직 아무도 사진을 찍지 않았어요."}</p>`; return; }
+  shown.forEach(s => {
+    const b = document.createElement("button"); b.type = "button";
+    b.setAttribute("aria-label", `${s.a.nick}와 ${s.b.nick}의 사진 크게 보기`);
+    const img = document.createElement("img"); img.alt = ""; b.appendChild(img);
+    b.onclick = () => openShot(s);
+    box.appendChild(b); thumbFor(s, img);
+  });
+}
+document.querySelectorAll("[data-album]").forEach(t => t.onclick = () => {
+  albumScope = t.dataset.album; albumLimit = 12;
+  document.querySelectorAll("[data-album]").forEach(x => x.setAttribute("aria-pressed", x === t));
+  renderAlbum();
+});
+$("album-more").onclick = () => { albumLimit += 12; renderAlbum(); };
+async function openShot(s){
+  photoPair = { a: s.a, b: s.b }; photoBlob = null;
+  $("photo-note").textContent = ""; $("polaroid").removeAttribute("src"); $("polaroid").classList.remove("develop");
+  show("photo");
+  try {
+    const cv = await renderPolaroid(s.a, s.b, s.at);
+    $("polaroid").src = cv.toDataURL("image/png"); $("polaroid").alt = `${s.a.nick}와 ${s.b.nick}의 할로윈 사진`;
+    photoBlob = await new Promise(r => cv.toBlob(r, "image/png"));
+  } catch { $("photo-note").textContent = "사진을 불러오지 못했어요."; }
+}
+
 $("btn-save-photo").onclick = async () => {
   if (!photoBlob) return;
   if (!downloadsApi) downloadsApi = await window.claude?.use?.("downloads");
