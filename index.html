@@ -166,12 +166,8 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .league .who span{font-size:.78rem;color:var(--paper-muted)}
 .league .who{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-width:0}
 .league .who b{flex:none}
-.league .who .say{position:relative;display:block;max-width:calc(100% - 8px);min-width:0;background:#fff;color:var(--brown);border:2px solid var(--brown);border-radius:12px;padding:0 .55em;font-size:.76rem;line-height:1.5;margin-left:8px}
+.league .who .say{display:block;max-width:100%;min-width:0;background:#fff;color:var(--brown);border:2px solid var(--brown);border-radius:12px;padding:0 .55em;font-size:.76rem;line-height:1.5;margin-left:2px}
 .league .who .say span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:inherit;color:inherit}
-/* 말풍선 꼬리: 갈색 테두리 삼각형 위에 흰 삼각형 */
-.league .who .say::before,.league .who .say::after{content:"";position:absolute;top:50%;border-style:solid;border-color:transparent}
-.league .who .say::before{left:-9px;margin-top:-6px;border-width:6px 9px 6px 0;border-right-color:var(--brown)}
-.league .who .say::after{left:-5px;margin-top:-4px;border-width:4px 6px 4px 0;border-right-color:#fff}
 .status-btn{display:block;width:100%;margin:0 0 22px;background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:18px;box-shadow:0 4px 0 var(--brown);font-family:"Gowun Dodum",sans-serif;font-size:.98rem;padding:.6em 1em;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status-btn:active{box-shadow:0 1px 0 var(--brown)}
 .status-btn.empty{color:var(--paper-muted)}
@@ -198,6 +194,7 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .scroller .chip{flex:0 0 92px;width:92px;white-space:nowrap;scroll-snap-align:start}
 .scroller .chip svg{width:62px}
 .chip small{display:block;color:var(--paper-muted);font-family:"Gowun Dodum",sans-serif;font-size:.72rem}
+.chip small.visits{color:#b5611b}
 .chip.locked svg{filter:grayscale(1) brightness(.7)}
 .neighbors .chip{flex-basis:76px;width:76px}
 .neighbors .chip svg{width:48px}
@@ -489,7 +486,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="card">
       <h2>Trick or treat 하러 가기</h2>
       <p class="muted" style="margin-top:-.3em;margin-bottom:0">누구네 문을 두드릴까요?</p>
-      <p class="go-note">*친구네 놀러가야 사탕을 모을 수 있습니다!</p>
+      <p class="go-note">*친구네 놀러가야 사탕을 모을 수 있습니다! 같은 친구네는 하루에 한 번씩 갈 수 있어요.</p>
       <div class="scroller neighbors" id="neighbors"></div>
       <button class="big green" id="btn-knock" style="margin-top:6px">똑똑 두드리기</button>
       <hr class="soft" style="margin:1.4em 0 1em">
@@ -844,15 +841,24 @@ const PRICE_CHAR = { cat: 0, special: 0, boss: 0, monkey: 10 };
 const PRICE_COS = { none: 0, witch: 0, pband: 0, bat: 2, ghost: 4, vamp: 4, clown: 8, princess: 10, mwitch: 3, gws: 3, gamer: 5, surf: 7 };
 const EARN = { receive: 2, give: 1, photo: 5 };
 let givenCount = {};
+// 사탕 기록: 받은 사람 gifts에 "주는사람" (첫 사탕) 또는 "주는사람~날짜번호" (그다음부터, 하루 1개)
 const giverOf = k => k.split("~")[0];
+// 날짜번호: 한국 시간 기준 1970-01-01부터 며칠째인지 (Firebase 규칙도 같은 방식으로 계산)
+const dayNo = t => Math.floor((t + 9 * 3600e3) / 86400e3);
+const todayNo = () => dayNo(Date.now());
+const ymdToDay = s => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)) / 86400e3;
+function giftDay(k, v){ const d = k.split("~")[1]; return d ? (d.length === 8 ? ymdToDay(d) : +d) : dayNo(+v || 0); }
+// 같은 사람·같은 날은 1개로 쳐요
+function giftList(p, id){
+  const seen = new Set(), out = [];
+  Object.entries((p && p.gifts) || {}).forEach(([k, v]) => { const g = giverOf(k), d = giftDay(k, v), key = g + "~" + d; if (g === id || !players[g] || seen.has(key)) return; seen.add(key); out.push({ g, d }); });
+  return out;
+}
 function recount(){
   givenCount = {};
-  Object.entries(players).forEach(([id, p]) => {
-    const seen = new Set();
-    Object.keys(p.gifts || {}).forEach(k => { const g = giverOf(k); if (g === id || !players[g] || seen.has(g)) return; seen.add(g); givenCount[g] = (givenCount[g] || 0) + 1; });
-  });
+  Object.entries(players).forEach(([id, p]) => giftList(p, id).forEach(({ g }) => { givenCount[g] = (givenCount[g] || 0) + 1; }));
 }
-const receivedOf = (p, id) => new Set(Object.keys((p && p.gifts) || {}).map(giverOf).filter(g => g !== id && players[g])).size;
+const receivedOf = (p, id) => giftList(p, id).length;
 function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = key.slice(i + 1); return !!CHARS[c] && artCostumes(c).some(x => x.id === k); }
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
 function earnedOf(id){ const p = players[id]; return EARN.receive * receivedOf(p, id) + EARN.give * (givenCount[id] || 0) + EARN.photo * photoBonusOf(p, id); }
@@ -913,8 +919,18 @@ function newHouseNo(){
   let c; do { c = String(101 + Math.floor(Math.random() * 899)); } while (taken.has(c));
   return c;
 }
-function gaveSince(target, giverId, sinceDate){
-  return Object.keys((target && target.gifts) || {}).some(k => { const [g, d] = k.split("~"); return g === giverId && d >= sinceDate; });
+// giverId가 target에게 sinceDay(날짜번호) 이후에 사탕을 줬는지
+function gaveSince(target, giverId, sinceDay){
+  return Object.entries((target && target.gifts) || {}).some(([k, v]) => giverOf(k) === giverId && giftDay(k, v) >= sinceDay);
+}
+const gaveToday = (a, b) => gaveSince(players[b], a, todayNo());
+// 내가 그 친구 집에 간 날 수: 내가 남긴 방문 기록 + 그 집에 남긴 마지막 노크 + 그 친구에게 사탕 받은 날
+function visitTimes(meId, tid){
+  const days = new Set(), m = players[meId] || {}, t = players[tid] || {};
+  Object.keys((m.visits && m.visits[tid]) || {}).forEach(d => days.add(ymdToDay(d)));
+  if (t.knocks && t.knocks[meId]) days.add(ymdToDay(t.knocks[meId]));
+  giftList(m, meId).forEach(x => { if (x.g === tid) days.add(x.d); });
+  return days.size;
 }
 
 // ===== 상태 =====
@@ -1012,7 +1028,7 @@ function pendingGuests(){
   const k = (me && me.knocks) || {};
   return Object.entries(k)
     .map(([id, date]) => ({ id, date, ...(players[id] || {}) }))
-    .filter(g => g.code && !gave(myId, g.id))
+    .filter(g => g.code && !gaveSince(players[g.id], myId, ymdToDay(g.date)))
     .sort((a, b) => (b.date > a.date ? 1 : -1));
 }
 function renderHome(){
@@ -1143,17 +1159,18 @@ function renderDress(){
   cl.scrollLeft = keepScroll;
 
   const nb = $("neighbors"); const keepN = nb.scrollLeft; nb.innerHTML = "";
-  const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (gave(a[0], myId) - gave(b[0], myId)) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
+  const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (gaveToday(a[0], myId) - gaveToday(b[0], myId)) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
   if (!others.length) nb.innerHTML = '<p class="muted" style="margin:0">아직 다른 참가자가 없어요.</p>';
   others.forEach(([id, p]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "chip";
     b.setAttribute("aria-pressed", pickedNeighbor === id);
-    b.innerHTML = charSVG(p.char, p.costume, p.nick) + "<span></span><small></small>";
+    b.innerHTML = charSVG(p.char, p.costume, p.nick) + "<span></span><small></small><small class=\"visits\"></small>";
     b.querySelector("span").textContent = p.nick;
-    const done = gave(id, myId);
-    b.querySelector("small").textContent = done ? "받기 완료" : p.code + "호";
+    const done = gaveToday(id, myId), n = visitTimes(myId, id);
+    b.querySelector("small").textContent = done ? "오늘 받음 ✓" : p.code + "호";
+    b.querySelector(".visits").textContent = n ? `🚪 ${n}번 방문` : "첫 방문";
     if (done) b.classList.add("locked");
-    b.onclick = () => { if (done) { toast(`${p.nick}에게는 이미 사탕을 받았어요`); return; } pickedNeighbor = id; renderDress(); };
+    b.onclick = () => { if (done) { toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; } pickedNeighbor = id; renderDress(); };
     nb.appendChild(b);
   });
   nb.scrollLeft = keepN;
@@ -1386,11 +1403,12 @@ $("btn-star").onclick = () => { if (freeMode) { freeStar = !freeStar; renderDres
 $("btn-knock").onclick = async () => {
   const t = players[pickedNeighbor];
   if (!t) { toast("누구네 문을 두드릴지 골라 주세요"); return; }
-  if (gave(pickedNeighbor, myId)) { toast(`${t.nick}에게는 이미 사탕을 받았어요`); return; }
+  if (gaveToday(pickedNeighbor, myId)) { toast(`오늘은 ${t.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; }
   if (t.knocks && t.knocks[myId] === today()) { toast(`오늘은 이미 ${t.nick}네 문을 두드렸어요`); return; }
   $("btn-knock").disabled = true;
   try {
     await db.doc("players/" + pickedNeighbor).update({ knocks: { [myId]: today() } });
+    db.doc("players/" + myId).update({ visits: { [pickedNeighbor]: { [today()]: true } } }).catch(() => {});
     toast(`똑똑똑! ${t.nick}네 문 앞에 도착했어요`);
   } catch { toast("문을 두드리지 못했어요. 다시 눌러 주세요."); }
   finally { $("btn-knock").disabled = false; }
@@ -1533,7 +1551,8 @@ function renderDoorActions(){
   setWhoTag(t.nick);
   renderBasket(earnedOf(doorTarget.id));
   const acts = $("door-actions"); acts.innerHTML = "";
-  const key = myId;
+  // 첫 사탕은 "내ID", 그다음부터는 "내ID~날짜번호"
+  const key = gave(myId, doorTarget.id) ? `${myId}~${todayNo()}` : myId;
   const note = document.createElement("p"); note.className = "muted";
   if (doorTarget.id === myId) { note.textContent = "우리 집이에요! 동료에게 집번호를 알려 주면 사탕을 받을 수 있어요."; acts.append(note); }
   else if (!myId || !me) {
@@ -1544,8 +1563,8 @@ function renderDoorActions(){
     acts.append(r);
     return;
   }
-  else if (gave(myId, doorTarget.id)) {
-    note.textContent = `사탕을 줬어요! ${t.nick} +${EARN.receive}, 나 +${EARN.give}`;
+  else if (gaveToday(myId, doorTarget.id)) {
+    note.textContent = `오늘 사탕을 줬어요! ${t.nick} +${EARN.receive}, 나 +${EARN.give} · 내일 또 줄 수 있어요`;
     acts.append(note);
     acts.append(photoBtn());
   }
@@ -1556,13 +1575,13 @@ function renderDoorActions(){
   acts.appendChild(backBtn());
 }
 async function giveCandy(btn, key){
-  if (!me || !key || gave(myId, doorTarget.id)) { renderDoorActions(); return; }
+  if (!me || !key || gaveToday(myId, doorTarget.id)) { renderDoorActions(); return; }
   btn.disabled = true; flyCandy(btn);
   try {
     await Promise.all([db.doc("players/" + doorTarget.id).update({ gifts: { [key]: Date.now() } }), new Promise(r => setTimeout(r, 750))]);
     $("bubble").textContent = "고마워요! 💜";
     renderDoorActions();
-  } catch { btn.disabled = false; toast("사탕을 전하지 못했어요. 다시 눌러 주세요."); }
+  } catch { btn.disabled = false; toast(key.includes("~") ? "같은 친구에게 다시 주는 기능은 곧 열려요!\n조금만 기다려 주세요 🙏" : "사탕을 전하지 못했어요. 다시 눌러 주세요."); }
 }
 function flyCandy(from){
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
