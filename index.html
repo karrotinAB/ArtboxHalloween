@@ -513,7 +513,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="card">
       <h2>Trick or treat 하러 가기</h2>
       <p class="muted" style="margin-top:-.3em;margin-bottom:0">누구네 문을 두드릴까요?</p>
-      <p class="go-note">*친구네 놀러가야 사탕을 모을 수 있습니다! 같은 친구네는 하루에 한 번씩 갈 수 있어요.</p>
+      <p class="go-note">*친구네 놀러가야 사탕을 모을 수 있습니다! 같은 친구네는 하루에 한 번씩 갈 수 있어요. (한국 시간 자정에 새 날이 시작돼요)</p>
       <div class="scroller neighbors" id="neighbors"></div>
       <button class="big green" id="btn-knock" style="margin-top:6px">똑똑 두드리기</button>
       <p class="fit-note" id="tomorrow-note"><span>*내일 오면 같은 사람에게 또 사탕을 받을 수 있습니다!</span></p>
@@ -986,7 +986,8 @@ function withStar(svg, look, side){
   const i = svg.lastIndexOf("</svg>");
   return svg.slice(0, i) + img + svg.slice(i);
 }
-function today(){ const d = new Date(); return d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0"); }
+// "오늘"은 어디서 접속하든 한국 시간(KST) 자정 기준이에요 (사탕 날짜번호·Firebase 규칙과 같은 기준)
+function today(){ const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCFullYear() + String(d.getUTCMonth()+1).padStart(2,"0") + String(d.getUTCDate()).padStart(2,"0"); }
 function readKnock(){
   try {
     const q = new URLSearchParams(location.search).get("knock"); if (q) return q.toUpperCase();
@@ -1180,7 +1181,7 @@ function renderLeague(){
   list.forEach((p, i) => {
     if (p.n !== prev) { rank = i + 1; prev = p.n; }
     const li = document.createElement("li"); if (p.id === myId) li.className = "mine";
-    li.innerHTML = `<span class="rk">${rank === 1 && p.n > 0 ? "👑" : rank}</span><span>${charSVG(p.char, p.costume, p.nick)}</span><span class="who"><b></b></span><span class="n">${p.n}</span>`;
+    li.innerHTML = `<span class="rk">${rank === 1 && p.n > 0 ? "👑" : rank}</span><span class="lg-ch">${withStar(charSVG(p.char, p.costume, p.nick), { costume: p.costume, star: starOn(p, p.id) }, "r")}</span><span class="who"><b></b></span><span class="n">${p.n}</span>`;
     li.querySelector(".who b").textContent = p.nick;
     const st = (p.status || "").trim();
     if (st) { const say = document.createElement("span"), t = document.createElement("span"); say.className = "say"; t.textContent = st; say.title = st; say.appendChild(t); li.querySelector(".who").appendChild(say); }
