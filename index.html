@@ -900,13 +900,13 @@ const PRICE_CHAR = { cat: 0, special: 0, boss: 0, monkey: 10 };
 const PRICE_COS = { none: 0, witch: 0, pband: 0, bat: 2, ghost: 4, vamp: 4, clown: 8, princess: 10, mwitch: 3, gws: 3, gamer: 5, surf: 7, beggar: 20, hanbok: 999 };
 const EARN = { receive: 2, give: 1, photo: 5, unlock: 1, beggar: 3, steal: 1, favor: 3, sparkle: 3 };
 // 효과: 캐릭터 주변에 떠다녀요. 파리 + 거지왹 = 사탕 받으러 간 집 누적 사탕 -1 (가끔 호의 보상)
-// 반짝이: 이걸 쓰고 사탕을 받으면 50% 확률로 +3 더 (EARN.sparkle)
+// 반짝이: 이걸 쓰고 사탕을 받으면 50% 확률로 받는 사탕이 EARN.sparkle개가 돼요
 const EFFECTS = [
   { id: "none", name: "없음" },
   { id: "fly", name: "파리", icon: "fly", info: "거지왹과 함께 쓰면 사탕을 받으러 간 집의 누적 사탕을 1개 뺏을 수 있어요!" },
-  { id: "sparkle", name: "반짝이", icon: "spAll", info: "반짝이를 쓰고 사탕을 받으면 50% 확률로 사탕 3개를 더 받아요!" }
+  { id: "sparkle", name: "반짝이", icon: "spAll", info: "반짝이를 쓰고 사탕을 받으면 50% 확률로 사탕을 3개씩 받아요!" }
 ];
-const PRICE_FX = { fly: 20, sparkle: 20 };
+const PRICE_FX = { fly: 20, sparkle: 15 };
 const FAVOR_CHANCE = 0.25, SPARKLE_CHANCE = 0.5;
 let givenPts = {};
 // 사탕 기록: 받은 사람 gifts에 "주는사람" (첫 사탕) 또는 "주는사람~날짜번호" (그다음부터, 하루 1개)
@@ -958,7 +958,9 @@ function recount(){
   // 주는 사람 점수: 보통 +1, 파리 거지왹에게 주면 -1 (호의 보상이 나오면 +3)
   Object.entries(players).forEach(([id, p]) => giftList(p, id).forEach(({ g, f, l }) => { givenPts[g] = (givenPts[g] || 0) + (f ? (l ? EARN.favor : -EARN.steal) : EARN.give); }));
 }
-const receivedOf = (p, id) => giftList(p, id).reduce((n, x) => n + (x.b ? EARN.beggar : EARN.receive) + (x.sl ? EARN.sparkle : 0), 0);
+// 사탕 1번에 받는 개수: 거지왹이면 EARN.beggar, 반짝이 당첨이면 EARN.sparkle개 (둘 다면 큰 쪽)
+const gotOf = x => Math.max(x.b ? EARN.beggar : EARN.receive, x.sl ? EARN.sparkle : 0);
+const receivedOf = (p, id) => giftList(p, id).reduce((n, x) => n + gotOf(x), 0);
 function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = key.slice(i + 1); return !!CHARS[c] && artCostumes(c).some(x => x.id === k); }
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
 function earnedOf(id){ const p = players[id]; return receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p); }
@@ -1519,7 +1521,7 @@ function renderAdmin(){
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#adm-prices")) return;
   const box = $("adm-prices"); box.innerHTML = "";
   const row = (label, key, val) => `<label class="price-row"><span>${esc(label)}</span><input type="number" min="0" max="999" inputmode="numeric" data-key="${key}" value="${val}"></label>`;
-  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}${row("거지왹을 입고 받으면", "earn.beggar", EARN.beggar)}${row("파리 거지왹에게 주면 잃는 사탕", "earn.steal", EARN.steal)}${row("호의 보상 (가끔)", "earn.favor", EARN.favor)}${row("반짝이 보너스 (50%)", "earn.sparkle", EARN.sparkle)}</div>`;
+  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}${row("거지왹을 입고 받으면", "earn.beggar", EARN.beggar)}${row("파리 거지왹에게 주면 잃는 사탕", "earn.steal", EARN.steal)}${row("호의 보상 (가끔)", "earn.favor", EARN.favor)}${row("반짝이 당첨되면 받는 사탕 (50%)", "earn.sparkle", EARN.sparkle)}</div>`;
   html += `<div class="price-group"><h3>캐릭터 열기</h3>${Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0)).join("")}</div>`;
   html += `<div class="price-group"><h3>효과</h3>${EFFECTS.filter(e => e.id !== "none").map(e => row(e.name, "fx." + e.id, PRICE_FX[e.id] || 0)).join("")}</div>`;
   Object.entries(CHARS).filter(([, c]) => !c.adminOnly).forEach(([k, c]) => {
@@ -1764,7 +1766,7 @@ function renderPreviewActions(given){
     b.onclick = () => { b.disabled = true; flyCandy(b); setTimeout(() => {
       $("bubble").textContent = "고마워요! 💜";
       if (visitorFlyBeggar(t)) { if (Math.random() < FAVOR_CHANCE) toast(`호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀`); else showStolen(); }
-      else if (visitorFx(t) === "sparkle" && Math.random() < SPARKLE_CHANCE) toast(`✨ 반짝! ${t.nick}${josa(t.nick, "이", "가")} 사탕 ${EARN.sparkle}개를 더 받았어요!`);
+      else if (visitorFx(t) === "sparkle" && Math.random() < SPARKLE_CHANCE && gotOf({ b: isBeggar(t), sl: 1 }) > gotOf({ b: isBeggar(t) })) toast(`✨ 반짝! ${t.nick}${josa(t.nick, "이", "가")} 사탕을 ${EARN.sparkle}개 받았어요!`);
       renderPreviewActions(true); }, 750); };
     acts.append(b);
     if (visitorFlyBeggar(t)) {
@@ -1805,7 +1807,7 @@ function renderDoorActions(){
     if (g.f && !g.l) showStolen();
     note.textContent = g.f
       ? (g.l ? `호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀 ${t.nick} +${EARN.beggar}, 나 +${EARN.favor}` : `사탕을 한개 뺏겼어요ㅜㅜ ${t.nick} +${EARN.beggar}, 나 -${EARN.steal}`)
-      : `오늘 사탕을 줬어요! ${t.nick} +${(g.b ? EARN.beggar : EARN.receive) + (g.sl ? EARN.sparkle : 0)}${g.sl ? " ✨" : ""}, 나 +${EARN.give} · 내일 또 줄 수 있어요`;
+      : `오늘 사탕을 줬어요! ${t.nick} +${gotOf(g)}${g.sl && gotOf(g) > gotOf({ b: g.b }) ? " ✨" : ""}, 나 +${EARN.give} · 내일 또 줄 수 있어요`;
     acts.append(note);
     acts.append(photoBtn());
   }
@@ -1837,7 +1839,7 @@ async function giveCandy(btn, key){
     await Promise.all([db.doc("players/" + doorTarget.id).update({ gifts: { [key]: val } }), new Promise(r => setTimeout(r, 750))]);
     $("bubble").textContent = "고마워요! 💜";
     if (fly && luck) toast(`호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀`);
-    if (spLuck) toast(`✨ 반짝! ${doorTarget.nick}${josa(doorTarget.nick, "이", "가")} 사탕 ${EARN.sparkle}개를 더 받았어요!`);
+    if (spLuck && gotOf({ b: isBeggar(doorTarget), sl: 1 }) > gotOf({ b: isBeggar(doorTarget) })) toast(`✨ 반짝! ${doorTarget.nick}${josa(doorTarget.nick, "이", "가")} 사탕을 ${EARN.sparkle}개 받았어요!`);
     renderDoorActions();
   } catch { btn.disabled = false; toast(key.includes("~") ? "같은 친구에게 다시 주는 기능은 곧 열려요!\n조금만 기다려 주세요 🙏" : "사탕을 전하지 못했어요. 다시 눌러 주세요."); }
 }
