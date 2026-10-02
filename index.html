@@ -1144,11 +1144,9 @@ $("btn-register").onclick = async () => {
 // gave(a, b): a가 b에게 사탕을 줬는지 (한 방향)
 function gave(a, b){ return Object.keys((players[b] && players[b].gifts) || {}).some(k => giverOf(k) === a); }
 function interacted(a, b){ return gave(a, b) || gave(b, a); }
-// 오늘(한국 시간 자정 이후) 두드린 손님만 보여요. 어제 못 열어 준 손님은 오늘 다시 두드리면 떠요.
 function pendingGuests(){
-  const k = (me && me.knocks) || {}, d = today();
+  const k = (me && me.knocks) || {};
   return Object.entries(k)
-    .filter(([, date]) => date === d)
     .map(([id, date]) => ({ id, date, ...(players[id] || {}) }))
     .filter(g => g.code && !gaveSince(players[g.id], myId, ymdToDay(g.date)) && !((me.shoo && me.shoo[g.id]) >= ymdToDay(g.date)))
     .sort((a, b) => (b.date > a.date ? 1 : -1));
