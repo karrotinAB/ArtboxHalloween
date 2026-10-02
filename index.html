@@ -330,6 +330,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 @keyframes rattle{0%,100%{transform:none}25%{transform:rotate(-1.2deg)}75%{transform:rotate(1.2deg)}}
 .house.open .door{transform:rotateY(-108deg)}
 .knock-word{font-family:"Jua",sans-serif;font-size:2.2rem;min-height:1.4em;letter-spacing:.05em}
+.knock-word.steal{font-size:1.75rem;line-height:1.3;color:#ffd0c4;letter-spacing:0;animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
 .knock-word span{display:inline-block;opacity:0;animation:pop .35s forwards}
 .knock-word span:nth-child(2){animation-delay:.5s}.knock-word span:nth-child(3){animation-delay:1s}
 @keyframes pop{0%{opacity:0;transform:scale(.4) rotate(-10deg)}100%{opacity:1;transform:none}}
@@ -1694,7 +1695,7 @@ function openDoor(preview){
   basketShown = startN;
   const cArt = CHARS[doorTarget.char] && CHARS[doorTarget.char].img ? ART[CHARS[doorTarget.char].art][doorTarget.costume] : null;
   const sfx = $("sfx"); sfx.classList.remove("on"); sfx.textContent = cArt && cArt.sfx ? cArt.sfx : "";
-  $("knock-word").innerHTML = "<span>똑</span><span>똑</span><span>똑</span>";
+  $("knock-word").className = "knock-word"; $("knock-word").innerHTML = "<span>똑</span><span>똑</span><span>똑</span>";
   requestAnimationFrame(() => house.classList.add("knock"));
   acts.innerHTML = "";
   const b = document.createElement("button"); b.className = "big"; b.textContent = "문 열기";
@@ -1717,6 +1718,8 @@ function setWhoTag(t){
 }
 // 쫓아내기: 문을 닫고, 오늘은 손님 목록에서 빼요 (내 문서 shoo에 기록)
 function closeDoorOn(text){ $("house").classList.remove("open"); $("bubble").textContent = text; }
+// 파리 거지왹에게 사탕을 뺏기면: 문이 닫히고 문 위에 크게
+function showStolen(){ closeDoorOn(""); $("bubble").classList.remove("on"); const w = $("knock-word"); w.className = "knock-word steal"; w.textContent = `누적 사탕 ${EARN.steal}개 뺏겼어요`; }
 function renderPreviewActions(given){
   const t = doorTarget, acts = $("door-actions"); acts.innerHTML = "";
   const n = earnedOf(myId) + (given ? receiveFor(t) : 0);
@@ -1731,7 +1734,7 @@ function renderPreviewActions(given){
     const b = document.createElement("button"); b.className = "big green"; b.textContent = "사탕 주기 🍬";
     b.onclick = () => { b.disabled = true; flyCandy(b); setTimeout(() => {
       $("bubble").textContent = "고마워요! 💜";
-      if (visitorFlyBeggar(t)) toast(Math.random() < FAVOR_CHANCE ? `호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀` : "사탕을 한개 뺏겼어요ㅜㅜ");
+      if (visitorFlyBeggar(t)) { if (Math.random() < FAVOR_CHANCE) toast(`호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀`); else showStolen(); }
       renderPreviewActions(true); }, 750); };
     acts.append(b);
     if (visitorFlyBeggar(t)) {
@@ -1769,6 +1772,7 @@ function renderDoorActions(){
   }
   else if (gaveToday(myId, doorTarget.id)) {
     const g = todayGift(myId, doorTarget.id) || {};
+    if (g.f && !g.l) showStolen();
     note.textContent = g.f
       ? (g.l ? `호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀 ${t.nick} +${EARN.beggar}, 나 +${EARN.favor}` : `사탕을 한개 뺏겼어요ㅜㅜ ${t.nick} +${EARN.beggar}, 나 -${EARN.steal}`)
       : `오늘 사탕을 줬어요! ${t.nick} +${g.b ? EARN.beggar : EARN.receive}, 나 +${EARN.give} · 내일 또 줄 수 있어요`;
@@ -1801,7 +1805,7 @@ async function giveCandy(btn, key){
     const val = isBeggar(doorTarget) ? { t: Date.now(), b: 1, ...(fly ? { f: 1, l: luck ? 1 : 0 } : {}) } : Date.now();
     await Promise.all([db.doc("players/" + doorTarget.id).update({ gifts: { [key]: val } }), new Promise(r => setTimeout(r, 750))]);
     $("bubble").textContent = "고마워요! 💜";
-    if (fly) toast(luck ? `호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀` : "사탕을 한개 뺏겼어요ㅜㅜ");
+    if (fly && luck) toast(`호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀`);
     renderDoorActions();
   } catch { btn.disabled = false; toast(key.includes("~") ? "같은 친구에게 다시 주는 기능은 곧 열려요!\n조금만 기다려 주세요 🙏" : "사탕을 전하지 못했어요. 다시 눌러 주세요."); }
 }
