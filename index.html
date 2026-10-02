@@ -1283,7 +1283,7 @@ function renderDress(){
     b.setAttribute("aria-pressed", look.costume === k.id);
     b.innerHTML = withStar(charSVG(look.char, k.id, k.name), { costume: k.id, star: starOn({ ...me, char: look.char, costume: k.id }, myId) }, "r") + `<span>${k.name}</span><small>${browsing ? (look.costume === k.id ? "구경 중" : ownsCos(me, look.char, k.id) && PRICE_COS[k.id] ? "받음" : k.grantOnly ? "🔒 특별" : (PRICE_COS[k.id] ? "🍬 " + PRICE_COS[k.id] + "개" : "무료")) : owned ? (look.costume === k.id ? "입는 중" : "입기") : k.grantOnly ? "🔒 특별" : "🍬 " + PRICE_COS[k.id] + "개"}</small>`;
     if (k.grantOnly && !owned && !freeMode) { b.onclick = () => openInfo({ name: `${k.name} ${CHARS[look.char].name}`, preview: charSVG(look.char, k.id, k.name), text: k.info }); cl.appendChild(b); return; }
-    b.onclick = () => freeMode ? tryLook({ char: look.char, costume: k.id }) : browsing ? (browseLook = { char: look.char, costume: k.id }, renderDress()) : owned ? setMine({ costume: k.id }) : openBuy({ key: `k:${me.char}:${k.id}`, price: PRICE_COS[k.id], name: k.name, kind: `${CHARS[me.char].name} 코스튬`, preview: charSVG(me.char, k.id, k.name), patch: { costume: k.id } });
+    b.onclick = () => freeMode ? tryLook({ char: look.char, costume: k.id }) : browsing ? (browseLook = { char: look.char, costume: k.id }, renderDress(), openBrowseCos(look.char, k)) : owned ? setMine({ costume: k.id }) : openBuy({ key: `k:${me.char}:${k.id}`, price: PRICE_COS[k.id], name: k.name, kind: `${CHARS[me.char].name} 코스튬`, preview: charSVG(me.char, k.id, k.name), patch: { costume: k.id } });
     cl.appendChild(b);
   });
   if (list.length === 1) { const n = document.createElement("p"); n.className = "muted"; n.style.margin = "auto 0"; n.textContent = `${CHARS[look.char].name} 코스튬은 준비 중이에요`; cl.appendChild(n); }
@@ -1547,6 +1547,14 @@ function tryLook(l){ freeLook = { ...freeLook, ...l }; renderDress(); }
 $("btn-free-end").onclick = () => { freeMode = false; freeLook = null; openAdmin(); };
 $("btn-free-door").onclick = () => startPreview();
 let buying = null;
+// 아직 안 연 캐릭터의 코스튬을 누르면: 그 코스튬을 입은 모습 + 캐릭터 열기 팝업
+function openBrowseCos(ch, k){
+  const c = CHARS[ch], has = ownsCos(me, ch, k.id), p = PRICE_COS[k.id] || 0;
+  const how = k.id === "none" ? `${c.name}${josa(c.name, "을", "를")} 열면 바로 입고 놀 수 있어요!`
+    : has || !p ? `${c.name}${josa(c.name, "을", "를")} 열면 ${k.name}${josa(k.name, "은", "는")} 바로 입을 수 있어요!`
+    : `${c.name}${josa(c.name, "을", "를")} 열면 ${k.name}${josa(k.name, "을", "를")} 사탕 ${p}개로 살 수 있어요!`;
+  openBuy({ key: "c:" + ch, price: PRICE_CHAR[ch], name: c.name, kind: "캐릭터", preview: charSVG(ch, k.id, k.name), patch: { char: ch, costume: has || !p ? k.id : "none" }, extra: how, after: () => { browseLook = null; } });
+}
 // 살 수 없는 특별 코스튬 안내 (구매 창을 빌려 써요)
 function openInfo(item){
   buying = null;
