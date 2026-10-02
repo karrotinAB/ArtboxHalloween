@@ -1269,7 +1269,7 @@ function renderDress(){
     const owned = ownsCos(own, look.char, k.id), b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (owned ? "" : " locked");
     b.setAttribute("aria-pressed", look.costume === k.id);
-    b.innerHTML = charSVG(look.char, k.id, k.name) + `<span>${k.name}</span><small>${browsing ? (look.costume === k.id ? "구경 중" : ownsCos(me, look.char, k.id) && PRICE_COS[k.id] ? "받음" : k.grantOnly ? "🔒 특별" : (PRICE_COS[k.id] ? "🍬 " + PRICE_COS[k.id] + "개" : "무료")) : owned ? (look.costume === k.id ? "입는 중" : "입기") : k.grantOnly ? "🔒 특별" : "🍬 " + PRICE_COS[k.id] + "개"}</small>`;
+    b.innerHTML = withStar(charSVG(look.char, k.id, k.name), { costume: k.id, star: starOn({ ...me, char: look.char, costume: k.id }, myId) }, "r") + `<span>${k.name}</span><small>${browsing ? (look.costume === k.id ? "구경 중" : ownsCos(me, look.char, k.id) && PRICE_COS[k.id] ? "받음" : k.grantOnly ? "🔒 특별" : (PRICE_COS[k.id] ? "🍬 " + PRICE_COS[k.id] + "개" : "무료")) : owned ? (look.costume === k.id ? "입는 중" : "입기") : k.grantOnly ? "🔒 특별" : "🍬 " + PRICE_COS[k.id] + "개"}</small>`;
     if (k.grantOnly && !owned && !freeMode) { b.onclick = () => openInfo({ name: `${k.name} ${CHARS[look.char].name}`, preview: charSVG(look.char, k.id, k.name), text: k.info }); cl.appendChild(b); return; }
     b.onclick = () => freeMode ? tryLook({ char: look.char, costume: k.id }) : browsing ? (browseLook = { char: look.char, costume: k.id }, renderDress()) : owned ? setMine({ costume: k.id }) : openBuy({ key: `k:${me.char}:${k.id}`, price: PRICE_COS[k.id], name: k.name, kind: `${CHARS[me.char].name} 코스튬`, preview: charSVG(me.char, k.id, k.name), patch: { costume: k.id } });
     cl.appendChild(b);
