@@ -229,5 +229,12 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;margin-top:8px}
 
 <footer>🎃 Happy Halloween!</footer>
 </div>
+<script>
+// 게임에서 들어왔으면 "게임 하러 가기"로 보던 화면(홈/꾸미기)에 바로 돌아가요
+(function(){
+  var back = (location.search.match(/[?&]back=(home|dress)/) || [])[1];
+  if (back) document.querySelectorAll('a.cta[href="index.html"]').forEach(function(a){ a.href = "index.html#" + back; a.textContent = back === "dress" ? "← 꾸미기로 돌아가기" : "← 우리 집으로 돌아가기"; });
+})();
+</script>
 </body>
 </html>

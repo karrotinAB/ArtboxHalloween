@@ -379,7 +379,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 
   <!-- 우리 집 문 앞 (홈) -->
   <section class="view" id="v-home">
-    <div class="topbar"><button class="secret" id="btn-admin" aria-label="관리자"></button><span class="row" style="flex-wrap:nowrap"><a class="ghost-a" href="guide.html">❓ 사용법</a><button class="ghost" id="btn-edit">내 정보 수정</button></span></div>
+    <div class="topbar"><button class="secret" id="btn-admin" aria-label="관리자"></button><span class="row" style="flex-wrap:nowrap"><a class="ghost-a" href="guide.html?back=home">❓ 사용법</a><button class="ghost" id="btn-edit">내 정보 수정</button></span></div>
     <div class="facade">
       <img class="dec h-bat1" data-deco="bat1" alt=""><img class="dec h-bat2" data-deco="bat2" alt=""><img class="dec h-gc" data-deco="ghostcandy" alt="">
       <div class="nameplate" id="h-nameplate"></div>
@@ -470,7 +470,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 
   <!-- 꾸미기 -->
   <section class="view" id="v-dress">
-    <div class="topbar"><button class="ghost" id="btn-home">← 우리 집으로</button><span></span></div>
+    <div class="topbar"><button class="ghost" id="btn-home">← 우리 집으로</button><a class="ghost-a" href="guide.html?back=dress">❓ 사용법</a></div>
     <p class="dress-intro">*trick or treat하러 갈 코스튬을 골라주세요~</p>
     <div class="free-banner" id="free-banner" hidden>
       <span>미리보기 중 · 사탕 없이 다 입어볼 수 있고, 저장되지 않아요</span>
@@ -1876,7 +1876,9 @@ function onData(){
   }
   if (!routed) {
     routed = true;
+    const back = location.hash.replace("#", "");
     if (knockCode) openDoor();
+    else if (me && (back === "home" || back === "dress")) { try { history.replaceState(null, "", location.pathname + location.search); } catch {} back === "dress" ? goDress() : goHome(); }
     else if (startWaiting) { $("btn-start").disabled = false; $("btn-start").textContent = "시작하기"; goFromIntro(); }
     return;
   }
