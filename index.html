@@ -8,7 +8,9 @@
 (function(){
   var ua = navigator.userAgent || "";
   if (/KAKAOTALK/i.test(ua)) {
-    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+    var u = location.href;
+    try { var x = new URL(u); x.searchParams.set("from", "kakao"); u = x.toString(); } catch (e) {}
+    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(u);
   }
 })();
 </script>
@@ -221,6 +223,8 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
 .adm-table{border-collapse:collapse;width:100%;font-size:.85rem}
 .adm-table td.who{white-space:normal}
 .adm-table td.who b{display:block;font-family:"Jua",sans-serif;font-weight:400;font-size:1rem}
+.adm-table td.who .via{display:block;color:#b5611b}
+.via-sum{font-size:.85rem;background:#fff0dc;border-radius:12px;padding:.5em .8em;margin:0 0 10px}
 .adm-table td.who span{font-size:.76rem;color:var(--paper-muted)}
 .adm-table th{font-family:"Jua",sans-serif;font-weight:400;text-align:left;color:var(--paper-muted);padding:6px 6px;border-bottom:2px solid var(--soft);white-space:nowrap}
 .adm-table td{padding:6px;border-bottom:1px dashed var(--soft);vertical-align:middle;white-space:nowrap}
@@ -446,7 +450,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   <div class="sheet-bg" id="sheet-member" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sm-title">
       <div class="sheet-head"><h2 id="sm-title"></h2><button class="ghost" data-close>닫기</button></div>
-      <p class="muted" id="sm-info" style="margin-top:0"></p>
+      <p class="muted" id="sm-info" style="margin-top:0;white-space:pre-line"></p>
       <div id="sm-extra"></div>
       <div id="sm-grants"></div>
       <div class="reset-item" style="margin-top:12px"><b>이 회원 삭제</b><span>가짜 계정 등을 지워요. 이 회원이 주고받은 사탕도 순위에서 빠져요.</span><button class="danger" id="sm-delete">회원 삭제</button></div>
@@ -533,7 +537,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     </div>
     <div class="card" data-pane="members" hidden>
       <h2>회원 · 순위 <small class="muted" id="adm-count"></small></h2>
-      <p class="muted" style="margin-top:-.3em;font-size:.85rem">회원을 누르면 캐릭터나 코스튬을 사탕 없이 열어줄 수 있어요.</p>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">회원을 누르면 캐릭터나 코스튬을 사탕 없이 열어줄 수 있어요. 자세한 접속 경로도 회원 창에서 볼 수 있어요.</p>
+      <p class="via-sum" id="adm-via"></p>
       <div class="adm-wrap"><table class="adm-table" id="adm-table"></table></div>
     </div>
     <div class="card" data-pane="prices" hidden>
@@ -942,6 +947,22 @@ let knockCode = readKnock(), pendingNav = null, editMode = false, pickedNeighbor
 // 초대 링크로 들어온 집번호 (인사이더 미션용). 새로 고침해도 남도록 브라우저에도 적어 둬요
 let inviteCode = knockCode;
 try { if (inviteCode) localStorage.setItem("invite", inviteCode); else inviteCode = localStorage.getItem("invite"); } catch {}
+// 접속 경로 (관리자용): 어느 앱에서 열었는지 · 기기 · 브라우저
+function inAppName(ua){
+  const apps = [[/KAKAOTALK/i, "카카오톡"], [/NAVER\(inapp/i, "네이버 앱"], [/Instagram/i, "인스타그램"], [/FBAN|FBAV/i, "페이스북"], [/Line\//i, "라인"], [/Slack/i, "슬랙"], [/everytimeApp/i, "에브리타임"]];
+  const hit = apps.find(([re]) => re.test(ua)); return hit ? hit[1] : "";
+}
+function deviceLabel(){
+  const ua = navigator.userAgent || "";
+  const os = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows PC" : /Macintosh/.test(ua) ? (navigator.maxTouchPoints > 1 ? "iPad" : "Mac") : "기타 기기";
+  const br = inAppName(ua) ? inAppName(ua) + " 앱 안" : /SamsungBrowser/.test(ua) ? "삼성 인터넷" : /Whale/.test(ua) ? "웨일" : /Edg\//.test(ua) ? "Edge" : /CriOS|Chrome\//.test(ua) ? "Chrome" : /FxiOS|Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "기타 브라우저";
+  return `${os} · ${br}`;
+}
+let openedFrom = "";
+try {
+  openedFrom = new URLSearchParams(location.search).get("from") === "kakao" ? "카카오톡" : inAppName(navigator.userAgent || "");
+  if (openedFrom) localStorage.setItem("openedFrom", openedFrom); else openedFrom = localStorage.getItem("openedFrom") || "";
+} catch {}
 
 function goHome(){ renderHome(); show("home"); }
 function goDress(){ closeSheets(); browseLook = null; renderDress(); show("dress"); }
@@ -960,17 +981,19 @@ $("btn-start").onclick = goFromIntro;
 let profiles = {}, profilesSub = false, migratedSelf = false, migratedAll = false;
 function profileOf(id){
   const pr = profiles[id], p = players[id] || {};
-  return { dept: (pr && pr.dept) || p.dept || "", name: (pr && pr.name) || p.name || "" };
+  return { dept: (pr && pr.dept) || p.dept || "", name: (pr && pr.name) || p.name || "", via: (pr && pr.via) || p.via || null };
 }
-async function saveProfile(id, dept, name){
-  try { await db.doc("profiles/" + id).set({ dept, name }); return true; } catch { return false; }
+async function saveProfile(id, dept, name, via){
+  const v = { dept, name }; if (via) v.via = via;
+  try { await db.doc("profiles/" + id).update(v); return true; } catch { return false; }
 }
 // players에 남아 있는 부서·이름을 profiles로 옮기고 players에서는 지워요
 async function moveProfile(id){
-  const p = players[id]; if (!p || (p.dept === undefined && p.name === undefined)) return;
-  if (await saveProfile(id, p.dept || "", p.name || "")) {
-    profiles[id] = { dept: p.dept || "", name: p.name || "" };
-    try { await db.doc("players/" + id).remove(["dept", "name"]); } catch {}
+  const p = players[id]; if (!p || (p.dept === undefined && p.name === undefined && p.via === undefined)) return;
+  const pr = profileOf(id);
+  if (await saveProfile(id, pr.dept, pr.name, pr.via)) {
+    profiles[id] = { ...(profiles[id] || {}), dept: pr.dept, name: pr.name, ...(pr.via ? { via: pr.via } : {}) };
+    try { await db.doc("players/" + id).remove(["dept", "name", "via"]); } catch {}
   }
 }
 function watchProfiles(all){
@@ -1011,10 +1034,12 @@ $("btn-register").onclick = async () => {
       const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now() };
       const inviter = inviteCode && findByCode(inviteCode);
       if (inviter && inviter.id !== myId) doc.invitedBy = inviter.id;
-      if (await saveProfile(myId, dept, name)) profiles[myId] = { dept, name };
-      else { doc.dept = dept; doc.name = name; }
+      // 접속 경로: 링크로 왔는지(누구 링크) · 어느 앱에서 열었는지 · 기기/브라우저
+      const via = { link: !!inviteCode, code: inviteCode || "", app: openedFrom, device: deviceLabel() };
+      if (await saveProfile(myId, dept, name, via)) profiles[myId] = { dept, name, via };
+      else { doc.dept = dept; doc.name = name; doc.via = via; }
       await db.doc("players/" + myId).set(doc);
-      try { localStorage.removeItem("invite"); } catch {}
+      try { localStorage.removeItem("invite"); localStorage.removeItem("openedFrom"); } catch {}
       if (me && pendingNav) { pendingNav = null; if (knockCode) openDoor(); else goDress(); }
     }
   } catch {
@@ -1225,9 +1250,8 @@ function renderMemberExtra(p){
 function renderMember(){
   const p = players[memberOpen]; if (!p) return;
   $("sm-title").textContent = p.nick || "";
-  const inv = p.invitedBy && players[p.invitedBy];
   const pf = profileOf(memberOpen);
-  $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)}${inv ? ` · ${inv.nick}의 링크로 참가` : ""}`;
+  $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)} · 가입 ${p.createdAt ? `${new Date(p.createdAt).getMonth() + 1}월 ${new Date(p.createdAt).getDate()}일` : "날짜 모름"}\n접속 경로: ${viaText(memberOpen)}`;
   renderMemberExtra(p);
   const box = $("sm-grants"); box.innerHTML = "";
   const grantBtn = ({ key, label, bought, onRevoke }) => {
@@ -1271,6 +1295,22 @@ function renderMember(){
   });
 }
 let isServerAdmin = null;
+// 관리자: 이 회원이 어떤 경로로 들어왔는지 (short: 표에 넣을 짧은 글)
+function viaText(id, short){
+  const p = players[id] || {}, v = profileOf(id).via, inv = p.invitedBy && players[p.invitedBy];
+  const who = inv ? `${inv.nick}의 초대 링크` : (v && v.code) || p.invitedBy ? "초대 링크 (보낸 사람 탈퇴/알 수 없음)" : null;
+  if (!v) return who ? (short ? `🔗 ${inv ? inv.nick : "링크"}` : `${who} · 기기 기록 없음`) : (short ? "경로 기록 전 가입" : "경로 기록 전에 가입했어요");
+  const how = v.link ? (who || "초대 링크") : "링크 없이 직접 접속";
+  if (short) return `${v.link ? "🔗 " + (inv ? inv.nick : "링크") : "🏠 직접"}${v.app ? " · " + v.app : ""}`;
+  return [how, v.app ? `${v.app}에서 열기` : "", v.device || ""].filter(Boolean).join(" · ");
+}
+function viaSummary(){
+  const ids = Object.keys(players), c = { link: 0, direct: 0, kakao: 0, none: 0 };
+  ids.forEach(id => { const v = profileOf(id).via, p = players[id];
+    if (!v) { if (p.invitedBy) c.link++; else c.none++; return; }
+    if (v.link) c.link++; else c.direct++; if (v.app === "카카오톡") c.kakao++; });
+  return `🔗 초대 링크 ${c.link}명 · 🏠 직접 ${c.direct}명 · 💬 카톡에서 연 사람 ${c.kakao}명${c.none ? ` · 기록 전 가입 ${c.none}명` : ""}`;
+}
 // 관리자: 모든 회원의 부서·이름을 읽고, 아직 players에 남은 것은 profiles로 옮겨요
 async function adminProfiles(){
   watchProfiles(true);
@@ -1325,6 +1365,7 @@ function renderAdmin(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
+  $("adm-via").textContent = viaSummary();
   const t = $("adm-table"); t.innerHTML = "<tr><th>순위</th><th></th><th>별명 · 부서 · 이름</th><th>누적</th><th>보유</th></tr>";
   let rank = 0, prev = null;
   list.forEach((p, i) => {
@@ -1336,6 +1377,7 @@ function renderAdmin(){
     tr.querySelector(".who b").textContent = p.nick || "";
     const pf = profileOf(p.id);
     tr.querySelector(".who span").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 🏅${MISSIONS.filter(m => hasBadge(p.id, m.id)).length}`;
+    const vs = document.createElement("span"); vs.className = "via"; vs.textContent = viaText(p.id, true); tr.querySelector(".who").appendChild(vs);
     t.appendChild(tr);
   });
   if (!list.length) t.insertAdjacentHTML("beforeend", '<tr><td colspan="5" class="muted">아직 가입한 사람이 없어요.</td></tr>');
