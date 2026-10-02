@@ -397,7 +397,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="card">
       <h2>사탕 리그</h2>
       <p class="prize">*10월 31일 할로윈날 누적 사탕 순위 1위에게는 특별한 선물이 기다리고 있습니다.</p>
-      <p class="muted rules" id="rules">누적 사탕 순위<br>사탕 받으면 +2, 주면 +1<br>*처음 보는 코스튬과 사진 찍으면 +5</p>
+      <p class="muted rules" id="rules">누적 사탕 순위<br>사탕 받으면 +2, 주면 +1<br>*처음 보는 코스튬과 사진 찍으면 +5<br>*새 코스튬을 열 때마다 +1</p>
       <ol class="league" id="league"></ol>
     </div>
 
@@ -488,6 +488,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 
     <div class="card">
       <h2>옷장</h2>
+      <p class="go-note" style="margin-top:-.3em">🍬 새로운 코스튬별로 사탕 보너스!</p>
       <div class="scroller" id="closet"></div>
     </div>
 
@@ -861,7 +862,7 @@ try { document.fonts.ready.then(fitNote); document.fonts.addEventListener("loadi
 let toastT; function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
 const PRICE_CHAR = { cat: 0, special: 0, boss: 0, monkey: 10 };
 const PRICE_COS = { none: 0, witch: 0, pband: 0, bat: 2, ghost: 4, vamp: 4, clown: 8, princess: 10, mwitch: 3, gws: 3, gamer: 5, surf: 7 };
-const EARN = { receive: 2, give: 1, photo: 5 };
+const EARN = { receive: 2, give: 1, photo: 5, unlock: 1 };
 let givenCount = {};
 // 사탕 기록: 받은 사람 gifts에 "주는사람" (첫 사탕) 또는 "주는사람~날짜번호" (그다음부터, 하루 1개)
 const giverOf = k => k.split("~")[0];
@@ -883,7 +884,7 @@ function recount(){
 const receivedOf = (p, id) => giftList(p, id).length;
 function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = key.slice(i + 1); return !!CHARS[c] && artCostumes(c).some(x => x.id === k); }
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
-function earnedOf(id){ const p = players[id]; return EARN.receive * receivedOf(p, id) + EARN.give * (givenCount[id] || 0) + EARN.photo * photoBonusOf(p, id); }
+function earnedOf(id){ const p = players[id]; return EARN.receive * receivedOf(p, id) + EARN.give * (givenCount[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p); }
 function spentOf(p){
   return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : (PRICE_COS[b] || 0)); }, 0);
 }
@@ -1089,7 +1090,7 @@ function renderHome(){
   $("btn-status").classList.toggle("empty", !st);
   $("h-candy").textContent = balanceOf(myId);
   $("h-total").textContent = `누적 ${earnedOf(myId)}`;
-  $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}`;
+  $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}${EARN.unlock ? `<br>*새 코스튬을 열 때마다 +${EARN.unlock}` : ""}`;
   $("h-char").innerHTML = withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
 
   const box = $("guests"); box.innerHTML = "";
@@ -1406,7 +1407,7 @@ function renderAdmin(){
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#adm-prices")) return;
   const box = $("adm-prices"); box.innerHTML = "";
   const row = (label, key, val) => `<label class="price-row"><span>${esc(label)}</span><input type="number" min="0" max="999" inputmode="numeric" data-key="${key}" value="${val}"></label>`;
-  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}</div>`;
+  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}</div>`;
   html += `<div class="price-group"><h3>캐릭터 열기</h3>${Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0)).join("")}</div>`;
   Object.entries(CHARS).filter(([, c]) => !c.adminOnly).forEach(([k, c]) => {
     const cos = artCostumes(k).filter(x => x.id !== "none");
@@ -1445,8 +1446,8 @@ function openBuy(item){
   const bal = balanceOf(myId), short = item.price - bal;
   $("sb-title").textContent = `${item.name} 열기`;
   $("buy-prev").innerHTML = item.preview;
-  const obj = item.kind + josa(item.kind, "을", "를");
-  $("buy-text").textContent = short > 0 ? `${obj} 열려면 사탕 ${item.price}개가 필요해요. ${short}개 더 모아 보세요!` : `사탕 ${item.price}개를 써서 ${obj} 열까요? 남는 사탕은 ${bal - item.price}개예요. 리그 순위는 줄지 않아요.`;
+  const obj = item.kind + josa(item.kind, "을", "를"), bonus = item.key.startsWith("k:") ? EARN.unlock : 0;
+  $("buy-text").textContent = short > 0 ? `${obj} 열려면 사탕 ${item.price}개가 필요해요. ${short}개 더 모아 보세요!` : `사탕 ${item.price}개를 써서 ${obj} 열까요? ${bonus ? `새 코스튬 보너스 +${bonus}까지 받으면 ` : ""}남는 사탕은 ${bal - item.price + bonus}개예요. 리그 순위는 줄지 않아요.`;
   $("btn-buy").textContent = short > 0 ? "사탕이 부족해요" : `🍬 ${item.price}개로 열기`;
   $("btn-buy").disabled = short > 0;
   openSheet("sheet-buy");
@@ -1457,7 +1458,7 @@ $("btn-buy").onclick = async () => {
   try {
     await db.doc("players/" + myId).update({ owned: { [buying.key]: Date.now() }, ...buying.patch });
     if (buying.after) buying.after();
-    closeSheets(); toast(`${buying.name}${josa(buying.name, "을", "를")} 열었어요!`); renderDress();
+    closeSheets(); toast(`${buying.name}${josa(buying.name, "을", "를")} 열었어요!${buying.key.startsWith("k:") && EARN.unlock ? `\n새 코스튬 보너스 사탕 +${EARN.unlock} 🍬` : ""}`); renderDress();
   } catch { toast("열지 못했어요. 다시 눌러 주세요."); $("btn-buy").disabled = false; }
 };
 async function setMine(patch){
