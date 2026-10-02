@@ -93,6 +93,7 @@ button.secret:focus-visible{opacity:1;outline:3px solid var(--green)}
 .d-lolli{width:66px;bottom:-34px;left:-12px;z-index:2;transform:rotate(-12deg)}
 .d-cane{width:44px;bottom:-30px;right:-6px;z-index:2;transform:rotate(14deg)}
 .field{margin-bottom:1.2em}
+.reg-warn{margin:-.5em 0 1.1em;font-size:.82rem;line-height:1.45;color:#c4492f}
 .nick-note{margin:-.6em 0 .5em;font-size:.82rem;color:var(--paper-muted)}
 .dress-intro{text-align:center;font-family:"Jua",sans-serif;font-size:1.1rem;margin:2px 0 4px;color:var(--ink)}
 .go-note{font-size:.85rem;color:#b5611b;margin:.15em 0 .6em}
@@ -356,6 +357,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="card">
         <div class="field"><label for="f-dept">부서</label><input id="f-dept" maxlength="20" autocomplete="organization"></div>
         <div class="field"><label for="f-name">이름</label><input id="f-name" maxlength="12" autocomplete="name"></div>
+        <p class="reg-warn">*부서와 이름이 제대로 기재되지 않으면 계정 중지될 수 있습니다.</p>
         <hr class="soft">
         <div class="field"><p class="nick-note">*사탕 리그에는 별명만 보여요</p><label for="f-nick">별명</label><input id="f-nick" maxlength="12" autocomplete="off"></div>
       </div>
