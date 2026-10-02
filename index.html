@@ -164,6 +164,13 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .league .rk{font-family:"Jua",sans-serif;font-size:1.15rem;text-align:center}
 .league .who b{font-weight:400;font-family:"Jua",sans-serif;font-size:1.02rem;display:block;line-height:1.3}
 .league .who span{font-size:.78rem;color:var(--paper-muted)}
+.league .who{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-width:0}
+.league .who b{flex:none}
+.league .who .say{position:relative;display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#fff;color:var(--brown);border:2px solid var(--brown);border-radius:12px;padding:0 .55em;font-size:.76rem;line-height:1.5;margin-left:6px}
+.league .who .say::before{content:"";position:absolute;left:-7px;top:50%;margin-top:-4px;border:4px solid transparent;border-right:5px solid var(--brown)}
+.status-btn{display:block;width:100%;margin:0 0 22px;background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:18px;box-shadow:0 4px 0 var(--brown);font-family:"Gowun Dodum",sans-serif;font-size:.98rem;padding:.6em 1em;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-btn:active{box-shadow:0 1px 0 var(--brown)}
+.status-btn.empty{color:var(--paper-muted)}
 .league .n{font-family:"Jua",sans-serif;font-size:1.15rem;color:#d9621b}
 
 /* 꾸미기 */
@@ -376,6 +383,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="me-char" id="btn-me" aria-label="내 캐릭터 꾸미기"><span class="me-tag">꾸미기 ✨</span><span id="h-char"></span></button>
     </div>
 
+    <button class="status-btn" id="btn-status" aria-label="상태 메시지 쓰기"></button>
+
     <div class="card">
       <h2>사탕 리그</h2>
       <p class="prize">*10월 31일 할로윈날 누적 사탕 순위 1위에게는 특별한 선물이 기다리고 있습니다.</p>
@@ -406,6 +415,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="sheet-head"><h2 id="bd-title">히든 미션 뱃지</h2><button class="ghost" data-close>닫기</button></div>
       <div class="badges" id="badges"></div>
       <p class="badge-info" id="badge-info"></p>
+    </div>
+  </div>
+  <div class="sheet-bg" id="sheet-status" hidden>
+    <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="st-title">
+      <div class="sheet-head"><h2 id="st-title">💬 상태 메시지</h2><button class="ghost" data-close>닫기</button></div>
+      <p class="muted" style="margin-top:0;font-size:.88rem">사탕 리그에서 내 별명 옆 말풍선으로 보여요.</p>
+      <input id="status-in" maxlength="30" autocomplete="off" placeholder="예: 사탕 나눠드려요 🍬" aria-label="상태 메시지">
+      <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="ghost" id="btn-status-clear">지우기</button><button class="green" id="btn-status-save">저장</button></div>
     </div>
   </div>
   <div class="sheet-bg" id="sheet-buy" hidden>
@@ -606,6 +623,7 @@ const firebaseConfig = {
       get: async () => snapDoc(await ref.get()),
       set: v => ref.set(v),
       update: v => ref.set(v, { merge: true }),
+      remove: fields => ref.update(Object.fromEntries(fields.map(f => [f, firebase.firestore.FieldValue.delete()]))),
       delete: () => ref.delete(),
       onSnapshot: (cb, err) => ref.onSnapshot(s => cb(snapDoc(s)), err)
     };
@@ -914,13 +932,41 @@ function goFromIntro(){
 }
 $("btn-start").onclick = goFromIntro;
 
+// ===== 부서·이름 (본인과 관리자만) =====
+// 부서·이름은 누구나 읽는 players가 아니라 profiles/{id}에 둬요 (Firebase 규칙으로 본인·관리자만 읽기).
+// 규칙이 아직 없으면 예전처럼 players에 남겨 두고, 화면에서는 본인·관리자에게만 보여요.
+let profiles = {}, profilesSub = false, migratedSelf = false, migratedAll = false;
+function profileOf(id){
+  const pr = profiles[id], p = players[id] || {};
+  return { dept: (pr && pr.dept) || p.dept || "", name: (pr && pr.name) || p.name || "" };
+}
+async function saveProfile(id, dept, name){
+  try { await db.doc("profiles/" + id).set({ dept, name }); return true; } catch { return false; }
+}
+// players에 남아 있는 부서·이름을 profiles로 옮기고 players에서는 지워요
+async function moveProfile(id){
+  const p = players[id]; if (!p || (p.dept === undefined && p.name === undefined)) return;
+  if (await saveProfile(id, p.dept || "", p.name || "")) {
+    profiles[id] = { dept: p.dept || "", name: p.name || "" };
+    try { await db.doc("players/" + id).remove(["dept", "name"]); } catch {}
+  }
+}
+function watchProfiles(all){
+  if (profilesSub === "all" || (profilesSub && !all)) return;
+  profilesSub = all ? "all" : true;
+  const done = () => { if (current === "admin") renderAdmin(); };
+  if (all) db.collection("profiles").limit(1000).onSnapshot(snap => { snap.docs.forEach(d => { profiles[d.id] = d.data(); }); done(); }, () => {});
+  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); }, () => {});
+}
+
 // ===== 등록 / 정보 수정 =====
 function openRegister(edit){
   editMode = edit;
   $("v-register").classList.toggle("edit", edit);
   $("btn-register").textContent = edit ? "저장하기" : "참가하기";
-  $("f-dept").value = edit && me ? me.dept : "";
-  $("f-name").value = edit && me ? me.name : "";
+  const pr = edit && me ? profileOf(myId) : { dept: "", name: "" };
+  $("f-dept").value = pr.dept;
+  $("f-name").value = pr.name;
   $("f-nick").value = edit && me ? me.nick : "";
   $("reg-msg").textContent = "";
   show("register");
@@ -934,13 +980,17 @@ $("btn-register").onclick = async () => {
   $("btn-register").disabled = true;
   try {
     if (editMode && me) {
-      await db.doc("players/" + myId).update({ dept, name, nick });
+      await db.doc("players/" + myId).update({ nick });
+      if (await saveProfile(myId, dept, name)) { profiles[myId] = { dept, name }; if (me.dept !== undefined || me.name !== undefined) db.doc("players/" + myId).remove(["dept", "name"]).catch(() => {}); }
+      else await db.doc("players/" + myId).update({ dept, name });
       goHome();
     } else {
       pendingNav = "dress";
-      const doc = { code: newHouseNo(), dept, name, nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now() };
+      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now() };
       const inviter = inviteCode && findByCode(inviteCode);
       if (inviter && inviter.id !== myId) doc.invitedBy = inviter.id;
+      if (await saveProfile(myId, dept, name)) profiles[myId] = { dept, name };
+      else { doc.dept = dept; doc.name = name; }
       await db.doc("players/" + myId).set(doc);
       try { localStorage.removeItem("invite"); } catch {}
       if (me && pendingNav) { pendingNav = null; if (knockCode) openDoor(); else goDress(); }
@@ -965,6 +1015,9 @@ function renderHome(){
   if (!me) return;
   $("h-nameplate").textContent = me.nick + "네 집";
   $("h-plate").textContent = me.code + "호";
+  const st = (me.status || "").trim();
+  $("btn-status").textContent = st ? `💬 ${st}` : "💬 상태 메시지를 남겨 보세요 ✏️";
+  $("btn-status").classList.toggle("empty", !st);
   $("h-candy").textContent = balanceOf(myId);
   $("h-total").textContent = `누적 ${earnedOf(myId)}`;
   $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}`;
@@ -981,7 +1034,7 @@ function renderHome(){
     const row = document.createElement("div"); row.className = "guest";
     row.innerHTML = `<span>${charSVG(g.char, g.costume, g.nick)}</span><span><b></b><span class="gm"></span></span>`;
     row.querySelector("b").textContent = g.nick;
-    row.querySelector(".gm").textContent = `${g.dept} · ${g.code}호`;
+    row.querySelector(".gm").textContent = `${g.code}호`;
     const b = document.createElement("button"); b.className = "green"; b.textContent = "문 열기";
     b.onclick = () => { knockCode = g.code; closeSheets(); openDoor(); };
     row.appendChild(b); box.appendChild(row);
@@ -1002,10 +1055,20 @@ function renderLeague(){
     const li = document.createElement("li"); if (p.id === myId) li.className = "mine";
     li.innerHTML = `<span class="rk">${rank === 1 && p.n > 0 ? "👑" : rank}</span><span>${charSVG(p.char, p.costume, p.nick)}</span><span class="who"><b></b></span><span class="n">${p.n}</span>`;
     li.querySelector(".who b").textContent = p.nick;
+    const st = (p.status || "").trim();
+    if (st) { const say = document.createElement("span"); say.className = "say"; say.textContent = st; say.title = st; li.querySelector(".who").appendChild(say); }
     ol.appendChild(li);
   });
 }
 $("btn-me").onclick = goDress;
+$("btn-status").onclick = () => { $("status-in").value = (me && me.status) || ""; openSheet("sheet-status"); $("status-in").focus(); };
+async function saveStatus(v){
+  try { await db.doc("players/" + myId).update({ status: v }); closeSheets(); toast(v ? "상태 메시지를 남겼어요" : "상태 메시지를 지웠어요"); }
+  catch { toast("저장하지 못했어요. 다시 눌러 주세요."); }
+}
+$("btn-status-save").onclick = () => saveStatus($("status-in").value.trim().slice(0, 30));
+$("btn-status-clear").onclick = () => saveStatus("");
+$("status-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-status-save").click(); });
 $("btn-admin").onclick = () => { if (adminUnlocked) { openAdmin(); return; } $("pw-in").value = ""; $("pw-msg").textContent = ""; openSheet("sheet-pw"); };
 $("btn-pw").onclick = () => {
   if ($("pw-in").value.trim() === ADMIN_PIN) { adminUnlocked = true; closeSheets(); openAdmin(); }
@@ -1140,7 +1203,8 @@ function renderMember(){
   const p = players[memberOpen]; if (!p) return;
   $("sm-title").textContent = p.nick || "";
   const inv = p.invitedBy && players[p.invitedBy];
-  $("sm-info").textContent = `${p.dept || ""} · ${p.name || ""} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)}${inv ? ` · ${inv.nick}의 링크로 참가` : ""}`;
+  const pf = profileOf(memberOpen);
+  $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)}${inv ? ` · ${inv.nick}의 링크로 참가` : ""}`;
   renderMemberExtra(p);
   const box = $("sm-grants"); box.innerHTML = "";
   const grantBtn = ({ key, label, bought, onRevoke }) => {
@@ -1184,11 +1248,18 @@ function renderMember(){
   });
 }
 let isServerAdmin = null;
+// 관리자: 모든 회원의 부서·이름을 읽고, 아직 players에 남은 것은 profiles로 옮겨요
+async function adminProfiles(){
+  watchProfiles(true);
+  if (migratedAll) return; migratedAll = true;
+  for (const id of Object.keys(players)) await moveProfile(id);
+}
 async function checkServerAdmin(){
   if (isServerAdmin !== null || !db || !myId) return;
   try { const snap = await db.doc("admins/" + myId).get(); isServerAdmin = !!snap.exists; }
   catch { isServerAdmin = false; }
   renderAdminKey();
+  if (isServerAdmin) adminProfiles();
 }
 function renderAdminKey(){
   $("adm-key").hidden = isServerAdmin !== false;
@@ -1202,7 +1273,9 @@ $("adm-reset-league").onclick = async () => {
   $("reset-msg").textContent = "초기화 중…";
   try {
     for (const [id, p] of Object.entries(players)) {
-      const keep = { code: p.code, dept: p.dept, name: p.name, nick: p.nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: p.createdAt || Date.now() };
+      const keep = { code: p.code, nick: p.nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: p.createdAt || Date.now() };
+      if (p.dept !== undefined) keep.dept = p.dept; if (p.name !== undefined) keep.name = p.name;
+      if (p.status) keep.status = p.status;
       if (p.grants) { keep.grants = p.grants; if (p.grants[p.char] === true) keep.char = p.char; }
       if (p.invitedBy) keep.invitedBy = p.invitedBy;
       await db.doc("players/" + id).set(keep);
@@ -1214,14 +1287,14 @@ $("adm-reset-users").onclick = async () => {
   if (needAdmin() || !confirmWord("모든 회원을 지워요. 모두 다시 등록해야 해요.")) return;
   $("reset-msg").textContent = "삭제 중…";
   try {
-    for (const id of Object.keys(players)) await db.doc("players/" + id).delete();
+    for (const id of Object.keys(players)) { await db.doc("players/" + id).delete(); db.doc("profiles/" + id).delete().catch(() => {}); }
     $("reset-msg").textContent = "회원 정보를 모두 지웠어요.";
   } catch { $("reset-msg").textContent = "일부를 지우지 못했어요. 관리자 등록을 확인하고 다시 눌러 주세요."; }
 };
 $("sm-delete").onclick = async () => {
   const p = players[memberOpen]; if (!p || needAdmin()) return;
   if (!confirm(`${p.nick} 회원을 삭제할까요? 되돌릴 수 없어요.`)) return;
-  try { await db.doc("players/" + memberOpen).delete(); closeSheets(); toast(`${p.nick} 회원을 삭제했어요`); }
+  try { await db.doc("players/" + memberOpen).delete(); db.doc("profiles/" + memberOpen).delete().catch(() => {}); closeSheets(); toast(`${p.nick} 회원을 삭제했어요`); }
   catch { toast("삭제하지 못했어요."); }
 };
 function renderAdmin(){
@@ -1238,7 +1311,8 @@ function renderAdmin(){
     tr.onkeydown = e => { if (e.key === "Enter") openMember(p.id); };
     tr.innerHTML = `<td>${rank === 1 && p.n > 0 ? "👑" : rank}</td><td>${charSVG(p.char, p.costume, p.nick).replace(/class="lids"/g, 'class="x" style="display:none"')}</td><td class="who"><b></b><span></span></td><td class="n">${p.n}</td><td class="n">${p.bal}</td>`;
     tr.querySelector(".who b").textContent = p.nick || "";
-    tr.querySelector(".who span").textContent = `${p.dept || ""} · ${p.name || ""} · ${p.code}호 · 🏅${MISSIONS.filter(m => hasBadge(p.id, m.id)).length}`;
+    const pf = profileOf(p.id);
+    tr.querySelector(".who span").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 🏅${MISSIONS.filter(m => hasBadge(p.id, m.id)).length}`;
     t.appendChild(tr);
   });
   if (!list.length) t.insertAdjacentHTML("beforeend", '<tr><td colspan="5" class="muted">아직 가입한 사람이 없어요.</td></tr>');
@@ -1702,6 +1776,7 @@ function onData(){
     if (Object.keys(fix).length) db.doc("players/" + myId).update(fix).catch(() => {});
   }
   checkBadges();
+  if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
   if (me && !isHouseNo(me.code) && !migrating) {
     migrating = true;
     db.doc("players/" + myId).update({ code: newHouseNo() }).catch(() => { migrating = false; });
