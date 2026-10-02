@@ -931,13 +931,20 @@ function gaveSince(target, giverId, sinceDay){
   return Object.entries((target && target.gifts) || {}).some(([k, v]) => giverOf(k) === giverId && giftDay(k, v) >= sinceDay);
 }
 const gaveToday = (a, b) => gaveSince(players[b], a, todayNo());
-// 내가 그 친구 집에 간 날 수: 내가 남긴 방문 기록 + 그 집에 남긴 마지막 노크 + 그 친구에게 사탕 받은 날
+// 내가 그 친구 집에 간 횟수 (한 방향, 하루 최대 1번)
+// 방문 1번 = 내가 그 집 문을 두드린 날. 그 똑똑에 친구가 나중에(다음 날이라도) 사탕을 주면 같은 방문으로 쳐요.
+// 똑똑 없이 링크로 바로 사탕을 받은 날만 따로 방문 1번으로 세요. 친구가 우리 집에 온 건 세지 않아요.
 function visitTimes(meId, tid){
-  const days = new Set(), m = players[meId] || {}, t = players[tid] || {};
-  Object.keys((m.visits && m.visits[tid]) || {}).forEach(d => days.add(ymdToDay(d)));
-  if (t.knocks && t.knocks[meId]) days.add(ymdToDay(t.knocks[meId]));
-  giftList(m, meId).forEach(x => { if (x.g === tid) days.add(x.d); });
-  return days.size;
+  const m = players[meId] || {}, t = players[tid] || {}, knocks = new Set();
+  Object.keys((m.visits && m.visits[tid]) || {}).forEach(d => knocks.add(ymdToDay(d)));
+  if (t.knocks && t.knocks[meId]) knocks.add(ymdToDay(t.knocks[meId]));
+  const ks = [...knocks].sort((a, b) => a - b), answered = new Set();
+  let linkOnly = 0;
+  giftList(m, meId).filter(x => x.g === tid).map(x => x.d).sort((a, b) => a - b).forEach(d => {
+    const k = ks.filter(k => k <= d && !answered.has(k)).pop();
+    if (k === undefined) linkOnly++; else answered.add(k);
+  });
+  return ks.length + linkOnly;
 }
 
 // ===== 상태 =====
