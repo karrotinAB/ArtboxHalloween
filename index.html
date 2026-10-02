@@ -554,6 +554,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="adm-free" style="margin-top:12px">전체 미리보기 (모든 캐릭터·코스튬·보스·별이)</button>
       <button class="big" id="adm-badges" style="margin-top:12px">히든 미션 뱃지 창 미리보기 (모두 달성)</button>
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
+      <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
     </div>
     <div class="card" data-pane="members" hidden>
@@ -1513,6 +1514,7 @@ document.querySelectorAll(".tabs [data-tab]").forEach(t => t.onclick = () => {
 $("adm-door").onclick = () => { previewFrom = "admin"; freeMode = false; startPreview(); };
 $("adm-badges").onclick = () => { badgePick = null; badgePreviewAll = true; renderBadges(); openSheet("sheet-badges"); };
 $("adm-toasts").onclick = () => MISSIONS.forEach((m, i) => setTimeout(() => toast(missionToast(m)), i * 3000));
+$("adm-flydoor").onclick = startFlyDoor;
 $("adm-free").onclick = () => { freeStar = true; freeMode = true; freeLook = { char: me.char, costume: me.costume, effect: me.effect || "none" }; browseLook = null; renderDress(); show("dress"); };
 $("adm-save").onclick = async () => {
   if (needAdmin()) return;
@@ -1619,7 +1621,16 @@ function startPeek(){
   setTimeout(() => { const b = $("door-actions").querySelector("button"); if (peekMode && current === "door" && doorPhase === "closed" && b) b.click(); $("door-actions").style.visibility = ""; }, 1500);
 }
 $("btn-peek").onclick = startPeek;
+// 관리자 실험: 파리를 단 거지왹 손님이 우리 집에 온 장면 (기록 안 남음)
+function startFlyDoor(){
+  if (!me) return;
+  previewFrom = "admin"; freeMode = false; previewMode = true; peekMode = false; previewRestart = startFlyDoor;
+  doorTarget = { id: "__preview", ...me, char: "cat", costume: "beggar", effect: "fly", labFx: "fly", gifts: me.gifts || {} };
+  openDoor(true);
+}
+let previewRestart = () => startPreview();
 function startPreview(){
+  previewRestart = startPreview;
   if (!me) return;
   previewMode = true; peekMode = false;
   doorTarget = { id: "__preview", ...me, ...myLook(), gifts: me.gifts || {} };
@@ -1696,7 +1707,7 @@ function openDoor(preview){
   acts.appendChild(b);
 }
 // 문 앞 손님의 효과 (관리자 전체 미리보기에서는 고른 효과 그대로)
-const visitorFx = t => previewMode && freeMode ? (t.effect || "none") : fxOf(t);
+const visitorFx = t => t.labFx || (previewMode && freeMode ? (t.effect || "none") : fxOf(t));
 const visitorFlyBeggar = t => isBeggar(t) && visitorFx(t) === "fly";
 function setWhoTag(t){
   const el = $("who-tag"), nick = t.nick || ""; el.textContent = "";
@@ -1714,7 +1725,7 @@ function renderPreviewActions(given){
   if (peekMode) { acts.appendChild(backBtn()); return; }
   if (given === "shoo") {
     const note = document.createElement("p"); note.className = "muted"; note.textContent = `${t.nick}${josa(t.nick, "을", "를")} 쫓아냈어요! 🧹 (미리보기)`;
-    const again = document.createElement("button"); again.className = "ghost"; again.textContent = "처음부터 다시 보기"; again.style.marginTop = "10px"; again.onclick = startPreview;
+    const again = document.createElement("button"); again.className = "ghost"; again.textContent = "처음부터 다시 보기"; again.style.marginTop = "10px"; again.onclick = () => previewRestart();
     acts.append(note, again);
   } else if (!given) {
     const b = document.createElement("button"); b.className = "big green"; b.textContent = "사탕 주기 🍬";
@@ -1731,7 +1742,7 @@ function renderPreviewActions(given){
     }
   } else {
     const note = document.createElement("p"); note.className = "muted"; note.textContent = `동료 화면에서는 받는 사람 +${receiveFor(t)}, 주는 사람 +${EARN.give}이 실제로 쌓여요.`;
-    const again = document.createElement("button"); again.className = "ghost"; again.textContent = "처음부터 다시 보기"; again.style.marginTop = "10px"; again.onclick = startPreview;
+    const again = document.createElement("button"); again.className = "ghost"; again.textContent = "처음부터 다시 보기"; again.style.marginTop = "10px"; again.onclick = () => previewRestart();
     acts.append(note, photoBtn(), again);
   }
   acts.appendChild(backBtn());
