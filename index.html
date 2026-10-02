@@ -1218,7 +1218,7 @@ function renderDress(){
     b.querySelector("span").textContent = p.nick;
     const done = gaveToday(id, myId), n = visitTimes(myId, id);
     b.querySelector("small").textContent = done ? "오늘 받음 ✓" : p.code + "호";
-    b.querySelector(".visits").textContent = n ? `🚪 ${n}번 방문` : "첫 방문";
+    b.querySelector(".visits").textContent = n ? `${n}번 방문` : "첫 방문";
     if (done) b.classList.add("locked");
     b.onclick = () => { if (done) { toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; } pickedNeighbor = id; renderDress(); };
     nb.appendChild(b);
