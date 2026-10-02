@@ -176,6 +176,7 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .league .who b{flex:none}
 .league .who .say{display:block;max-width:100%;min-width:0;background:#fff;color:var(--brown);border:2px solid var(--brown);border-radius:12px;padding:0 .55em;font-size:.76rem;line-height:1.5;margin-left:2px}
 .league .who .say span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:inherit;color:inherit}
+.buy-special{display:block;margin-top:.35em;color:#b5611b}
 .buy-sub{display:block;font-size:.8rem;line-height:1.55;color:var(--paper-muted);margin-top:.45em}
 .fx-chip .fx-img{display:block;width:62px;height:58px;margin:0 auto;object-fit:contain}
 .fx-chip .fx-none{display:flex;align-items:center;justify-content:center;width:62px;height:58px;margin:0 auto;font-size:28px}
@@ -408,7 +409,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="card">
       <h2>사탕 리그</h2>
       <p class="prize">*10월 31일 할로윈날 누적 사탕 순위 1위에게는 특별한 선물이 기다리고 있습니다.</p>
-      <p class="muted rules" id="rules">누적 사탕 순위<br>사탕 받으면 +2, 주면 +1<br>*처음 보는 코스튬과 사진 찍으면 +5<br>*새 코스튬을 열 때마다 +1<br>*거지왹을 입고 받으면 +3<br>*파리 거지왹에게 주면 -1 (가끔 호의 보상 +3)</p>
+      <p class="muted rules" id="rules">누적 사탕 순위<br>사탕 받으면 +2, 주면 +1<br>*처음 보는 코스튬과 사진 찍으면 +5<br>*새 코스튬을 열 때마다 +1</p>
       <ol class="league" id="league"></ol>
     </div>
 
@@ -499,13 +500,12 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 
     <div class="card">
       <h2>옷장</h2>
-      <p class="go-note" style="margin-top:-.3em">🍬 새로운 코스튬별로 사탕 보너스!<br>*거지왹을 입고 사탕을 받으러 가면 한 번에 3개씩 받아요!</p>
+      <p class="go-note" style="margin-top:-.3em">🍬 새로운 코스튬별로 사탕 보너스!</p>
       <div class="scroller" id="closet"></div>
     </div>
 
     <div class="card">
       <h2>효과</h2>
-      <p class="go-note" style="margin-top:-.3em">*거지왹과 파리를 함께 쓰면 사탕을 받으러 간 집의 누적 사탕을 1개 뺏을 수 있어요!</p>
       <div class="scroller" id="effects"></div>
     </div>
 
@@ -1145,7 +1145,7 @@ function renderHome(){
   $("btn-status").classList.toggle("empty", !st);
   $("h-candy").textContent = balanceOf(myId);
   $("h-total").textContent = `누적 ${earnedOf(myId)}`;
-  $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}${EARN.unlock ? `<br>*새 코스튬을 열 때마다 +${EARN.unlock}` : ""}<br>*거지왹을 입고 받으면 +${EARN.beggar}<br>*파리 거지왹에게 주면 -${EARN.steal} (가끔 호의 보상 +${EARN.favor})`;
+  $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}${EARN.unlock ? `<br>*새 코스튬을 열 때마다 +${EARN.unlock}` : ""}`;
   $("h-char").innerHTML = withFx(withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l"), fxOf(me));
 
   const box = $("guests"); box.innerHTML = "";
@@ -1281,7 +1281,7 @@ function renderDress(){
     b.type = "button"; b.className = "chip fx-chip" + (owned ? "" : " locked");
     b.setAttribute("aria-pressed", curFx === e.id);
     b.innerHTML = (e.id === "none" ? '<span class="fx-none">🚫</span>' : `<img class="fx-img" alt="" src="data:image/webp;base64,${DECO.fly}">`) + `<span>${e.name}</span><small>${owned ? (curFx === e.id ? "쓰는 중" : "쓰기") : "🍬 " + PRICE_FX[e.id] + "개"}</small>`;
-    b.onclick = () => freeMode ? tryLook({ effect: e.id }) : owned ? setMine({ effect: e.id })
+    b.onclick = () => freeMode ? tryLook({ effect: e.id }) : owned ? (setMine({ effect: e.id }), e.id === "fly" && toast("🪰 거지왹과 함께 쓰면\n사탕을 받으러 간 집의 누적 사탕을 1개 뺏을 수 있어요!"))
       : openBuy({ key: "e:" + e.id, price: PRICE_FX[e.id], name: e.name, kind: "효과", preview: withFx(charSVG(me.char, me.costume, e.name), e.id), patch: { effect: e.id }, extra: "거지왹과 함께 쓰면 사탕을 받으러 간 집의 누적 사탕을 1개 뺏을 수 있어요!" });
     ef.appendChild(b);
   });
@@ -1551,9 +1551,9 @@ function openBuy(item){
   // 첫 줄은 질문, 나머지 설명은 다음 줄에 작은 글씨로
   const main = short > 0 ? `${obj} 열려면 사탕 ${item.price}개가 필요해요.` : `사탕 ${item.price}개를 써서 ${obj} 열까요?`;
   const subs = short > 0 ? [`${short}개 더 모아 보세요!`] : [`${bonus ? `새 코스튬 보너스 +${bonus}까지 받으면 ` : ""}남는 사탕은 ${bal - item.price + bonus}개예요.`, "리그 순위는 줄지 않아요."];
-  if (item.key.endsWith(":beggar")) subs.push(`거지왹을 입고 사탕을 받으러 가면 한 번에 ${EARN.beggar}개씩 받아요!`);
-  if (item.extra) subs.push(item.extra);
+  const special = item.key.endsWith(":beggar") ? `거지왹을 입고 사탕을 받으러 가면 한 번에 ${EARN.beggar}개씩 받아요!` : item.extra || "";
   const bt = $("buy-text"); bt.textContent = main;
+  if (special) { const sp = document.createElement("span"); sp.className = "buy-special"; sp.textContent = special; bt.appendChild(sp); }
   subs.forEach(t => { const sm = document.createElement("small"); sm.className = "buy-sub"; sm.textContent = t; bt.appendChild(sm); });
   $("btn-buy").textContent = short > 0 ? "사탕이 부족해요" : `🍬 ${item.price}개로 열기`;
   $("btn-buy").disabled = short > 0;
