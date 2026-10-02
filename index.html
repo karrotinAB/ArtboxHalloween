@@ -165,7 +165,7 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .rules{font-size:.8rem;line-height:1.55;margin:-.4em 0 .7em}
 .league .lids{display:none}
 .league svg.ch .eyes{animation:none}
-.league{list-style:none;margin:0;padding:0 2px 0 0;max-height:min(440px,58vh);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.league{list-style:none;margin:0;padding:0 2px 0 0;max-height:324px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .league li{display:grid;grid-template-columns:2em 40px 1fr auto;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px dashed var(--soft)}
 .league li:last-child{border-bottom:0}
 .league li.mine{background:#eaf6e9;border-radius:12px}
@@ -1210,9 +1210,17 @@ function renderLeague(){
     ol.appendChild(li);
   });
   // 순위표는 일정 높이에서 스크롤돼요. 다시 그려도 보던 위치를 지키고, 처음에는 내 줄이 보이게 해요
+  fitLeague();
   if (leagueScrolled) ol.scrollTop = keepTop; else scrollLeagueToMine();
 }
+// 리그 칸은 6명까지만 보이고 나머지는 스크롤해요
+function fitLeague(){
+  const ol = $("league"), six = ol.children[5];
+  if (!ol.clientHeight) return;
+  ol.style.maxHeight = six ? Math.ceil(six.getBoundingClientRect().bottom - ol.firstElementChild.getBoundingClientRect().top) + "px" : "";
+}
 function scrollLeagueToMine(){
+  fitLeague();
   const ol = $("league"), mine = ol.querySelector("li.mine");
   if (leagueScrolled || !ol.clientHeight) return;
   leagueScrolled = true;
