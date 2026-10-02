@@ -928,8 +928,8 @@ function todayGift(a, b){
 }
 const shooedToday = vid => !!(me && me.shoo && me.shoo[vid] >= todayNo());
 // 캐릭터 SVG 주변에 파리 3마리
-// 반짝이 위치: 캐릭터마다 머리 옆에 붙게 [x, y, 크기] (분홍, 초록, 노랑)
-const SPARKLE_POS = {
+// 효과(파리·반짝이) 위치: 캐릭터마다 머리 옆에 붙게 [x, y, 크기] (반짝이 기준 분홍, 초록, 노랑)
+const FX_POS = {
   alien: [[8, 48, 30], [163, 16, 26], [168, 110, 26]], alienUp: [[16, 44, 30], [142, 20, 26], [168, 92, 22]],
   monkey: [[0, 44, 30], [146, 18, 26], [168, 110, 26]], monkeyUp: [[8, 52, 30], [136, 30, 26], [168, 92, 22]],
   special: [[26, 52, 30], [108, 26, 26], [168, 110, 26]], specialUp: [[56, 98, 22], [107, 86, 20], [136, 136, 18]],
@@ -938,7 +938,7 @@ const SPARKLE_POS = {
 function withFx(svg, fx){
   if (fx !== "fly" && fx !== "sparkle") return svg;
   const up = svg.includes('class="ch up"'), ch = (svg.match(/data-ch="(\w+)"/) || [])[1];
-  const P = fx === "sparkle" && SPARKLE_POS[ch + (up ? "Up" : "")] || (up ? [[6, 4, 30], [158, -8, 26], [168, 92, 22]] : [[0, 4, 34], [160, -16, 30], [168, 110, 26]]);
+  const P = FX_POS[ch + (up ? "Up" : "")] || (up ? [[6, 4, 30], [158, -8, 26], [168, 92, 22]] : [[0, 4, 34], [160, -16, 30], [168, 110, 26]]);
   const img = fx === "fly"
     ? P.map(([x, y, w], i) => `<image class="fly f${i + 1}" href="data:image/webp;base64,${DECO.fly}" x="${x}" y="${y}" width="${w}" height="${(w * 160 / 167).toFixed(1)}"/>`).join("")
     : P.map(([x, y, w], i) => `<image class="spk s${i + 1}" href="data:image/webp;base64,${DECO["sp" + (i + 1)]}" x="${x}" y="${y}" width="${w}" height="${w}"/>`).join("");
