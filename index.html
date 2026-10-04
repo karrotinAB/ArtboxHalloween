@@ -698,7 +698,7 @@ const CHARS = {
   cat:   {name:"게왹이", body:"#65bc79", belly:"#ffffff", dark:"#3c1a10", img:"alien", up:"alienUp", upBody:"#6fc97d", art:"alien"},
   monkey:{name:"숭민이", body:"#cfa27f", belly:"#f9e9dc", dark:"#3c1a10", img:"monkeyF", art:"monkey"},
   special:{name:"개꿀이", photoScale:0.55, body:"#93c79a", belly:"#f5ecdc", dark:"#223311", img:"spF", art:"special", mission:"insider"},
-  boss:  {name:"보스", body:"#c3cfe4", belly:"#ffffff", dark:"#223344", img:"bossF", art:"boss", mission:"fashion"}
+  boss:  {name:"보스", body:"#c3cfe4", belly:"#ffffff", dark:"#223344", img:"bossF", art:"boss", mission:"fashion", teaser:true}
 };
 const INK = "#2a1f33";
 const wingPath = 'M62 168 Q22 118 2 150 Q16 156 12 172 Q26 166 30 184 Q42 174 62 192Z';
@@ -1274,9 +1274,12 @@ function renderDress(){
 
   const cc = $("char-chips"); cc.innerHTML = "";
   Object.entries(CHARS).forEach(([k, c]) => {
-    if (!freeMode && (c.adminOnly || c.mission) && !ownsChar(me, k)) return;
+    const teaser = !freeMode && c.teaser && !ownsChar(me, k);
+    if (!freeMode && (c.adminOnly || c.mission) && !ownsChar(me, k) && !teaser) return;
     const owned = ownsChar(own, k), b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (owned ? "" : " locked");
+    // 보여만 주고 잠가 둔 히든 미션 상품 캐릭터
+    if (teaser) { b.innerHTML = charSVG(k, "none", c.name) + `<span>${c.name}</span><small>🔒 히든미션</small>`; b.onclick = () => openInfo({ name: c.name, preview: popPrev(k, "none", c.name), text: "히든 미션 상품이에요. 히든 미션을 달성하면 열려요!", btn: "🔒 히든 미션 상품" }); cc.appendChild(b); return; }
     b.setAttribute("aria-pressed", look.char === k);
     b.innerHTML = charSVG(k, "none", c.name) + `<span>${c.name}</span><small>${owned ? (look.char === k ? "선택 중" : "바꾸기") : (look.char === k ? "구경 중" : "🍬 " + PRICE_CHAR[k] + "개")}</small>`;
     b.onclick = () => freeMode ? tryLook({ char: k, costume: artCostumes(k).some(c => c.id === look.costume) ? look.costume : "none" })
@@ -1583,7 +1586,7 @@ function openInfo(item){
   const [main, ...rest] = item.text.split(". "), bt = $("buy-text");
   bt.textContent = main + (rest.length ? "." : "");
   if (rest.length) { const sm = document.createElement("small"); sm.className = "buy-sub"; sm.textContent = rest.join(". "); bt.appendChild(sm); }
-  $("btn-buy").textContent = "🔒 관리자가 열어줘야 해요"; $("btn-buy").disabled = true;
+  $("btn-buy").textContent = item.btn || "🔒 관리자가 열어줘야 해요"; $("btn-buy").disabled = true;
   openSheet("sheet-buy");
 }
 function openBuy(item){
