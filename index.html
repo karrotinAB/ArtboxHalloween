@@ -144,11 +144,11 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .mailbox{position:absolute;left:max(4px,calc(50% - 178px));top:110px;z-index:3;width:72px;padding:0;background:none;box-shadow:none;border-radius:10px}
 .mailbox svg{display:block;width:100%;height:auto}
 .mailbox:active{transform:translateY(2px);box-shadow:none}
-.mailbox .flag{transform-origin:61.5px 42px;transform:rotate(90deg);transition:transform .4s}
+.mailbox .flag{transform-origin:48.5px 38px;transform:rotate(90deg);transition:transform .4s}
 .mailbox.has-mail .flag{transform:none}
 .find-label{margin:.2em 0 .4em;font-size:.85rem}
 #find-neighbors{margin-bottom:.6em}
-.mail-dot{position:absolute;right:-6px;top:-8px;width:16px;height:16px;border-radius:50%;background:#e8392e;border:2.5px solid var(--brown)}
+.mail-dot{position:absolute;right:30px;top:-4px;width:16px;height:16px;border-radius:50%;background:#e8392e;border:2.5px solid var(--brown)}
 .mail-dot[hidden]{display:none}
 .mail{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--soft)}
 .mail:last-child{border-bottom:0}
@@ -415,7 +415,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="nameplate" id="h-nameplate"></div>
       <div class="frontdoor" aria-hidden="true"><div class="win"></div><div class="plate" id="h-plate"></div><div class="knob"></div></div>
       <button class="signpost" id="btn-find" aria-label="받은 집번호 찾아가기"><svg viewBox="0 0 100 104" aria-hidden="true"><rect x="60" y="40" width="9" height="66" rx="2" fill="#3c1a10"/><path d="M5 26 L22 6 H95 V46 H22 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/></svg><span>이웃집<br>찾아가기</span></button>
-      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 52" aria-hidden="true"><g class="flag"><rect x="59" y="2" width="5" height="42" rx="2" fill="#3c1a10"/><path d="M62 2 H77 V15 H62Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/></g><path d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/></svg><span class="mail-dot" id="mail-dot" hidden></span></button>
+      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 52" aria-hidden="true"><path d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/><g class="flag"><rect x="46" y="12" width="5" height="28" rx="2" fill="#3c1a10"/><path d="M49 12 H63 V23 H49Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/><circle cx="48.5" cy="38" r="3.5" fill="#3c1a10"/></g></svg><span class="mail-dot" id="mail-dot" hidden></span></button>
       <button class="bell-talk" id="bell-talk" hidden>누가 왔어요!</button>
       <button class="bell" id="btn-bell" aria-label="문 앞에 온 손님 보기">
         <svg viewBox="0 8 60 56" aria-hidden="true"><path d="M12 44 Q12 14 30 12 Q48 14 48 44 L54 50 H6Z" fill="#ffc53d" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M20 26 Q22 18 29 17" stroke="#fff3c4" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="56" r="6" fill="#e0883a" stroke="#3c1a10" stroke-width="4"/></svg>
