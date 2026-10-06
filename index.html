@@ -141,6 +141,19 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .bell-talk{position:absolute;left:calc(50% + 66px);top:36px;z-index:4;background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:14px;padding:.15em .7em;font-family:"Jua",sans-serif;font-size:.95rem;white-space:nowrap;box-shadow:0 3px 0 var(--brown);transform-origin:65px 100%;animation:talkpop .4s cubic-bezier(.3,1.6,.5,1)}
 .bell-talk::after{content:"";position:absolute;left:58px;bottom:-11px;width:12px;height:12px;background:var(--paper);border-right:3px solid var(--brown);border-bottom:3px solid var(--brown);transform:rotate(45deg)}
 .bell-talk[hidden]{display:none}
+.mailbox{position:absolute;left:max(4px,calc(50% - 178px));top:110px;z-index:3;width:72px;padding:0;background:none;box-shadow:none;border-radius:10px}
+.mailbox svg{display:block;width:100%;height:auto}
+.mailbox:active{transform:translateY(2px);box-shadow:none}
+.mailbox .flag{transform-origin:61.5px 42px;transform:rotate(90deg);transition:transform .4s}
+.mailbox.has-mail .flag{transform:none}
+.mail-dot{position:absolute;right:-6px;top:-8px;width:16px;height:16px;border-radius:50%;background:#e8392e;border:2.5px solid var(--brown)}
+.mail-dot[hidden]{display:none}
+.mail{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--soft)}
+.mail:last-child{border-bottom:0}
+.mail .ch{width:44px;height:auto}
+.mail b{font-family:"Jua",sans-serif;font-weight:400;font-size:1rem;display:block;line-height:1.35}
+.mail small{font-size:.78rem;color:var(--paper-muted)}
+.mail.new b::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8392e;margin-left:6px;vertical-align:middle}
 @keyframes talkpop{0%{transform:scale(0)}100%{transform:scale(1)}}
 .h-gc{display:none}
 .sheet-bg{position:fixed;inset:0;z-index:40;background:rgba(30,12,40,.55);display:flex;align-items:flex-end;justify-content:center;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px))}
@@ -400,6 +413,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="nameplate" id="h-nameplate"></div>
       <div class="frontdoor" aria-hidden="true"><div class="win"></div><div class="plate" id="h-plate"></div><div class="knob"></div></div>
       <button class="signpost" id="btn-find" aria-label="받은 집번호 찾아가기"><svg viewBox="0 0 100 104" aria-hidden="true"><rect x="60" y="40" width="9" height="66" rx="2" fill="#3c1a10"/><path d="M5 26 L22 6 H95 V46 H22 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/></svg><span>이웃집<br>찾아가기</span></button>
+      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 84" aria-hidden="true"><rect x="28" y="44" width="10" height="40" rx="2" fill="#3c1a10"/><g class="flag"><rect x="59" y="2" width="5" height="42" rx="2" fill="#3c1a10"/><path d="M62 2 H77 V15 H62Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/></g><path d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/></svg><span class="mail-dot" id="mail-dot" hidden></span></button>
       <button class="bell-talk" id="bell-talk" hidden>누가 왔어요!</button>
       <button class="bell" id="btn-bell" aria-label="문 앞에 온 손님 보기">
         <svg viewBox="0 8 60 56" aria-hidden="true"><path d="M12 44 Q12 14 30 12 Q48 14 48 44 L54 50 H6Z" fill="#ffc53d" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M20 26 Q22 18 29 17" stroke="#fff3c4" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="56" r="6" fill="#e0883a" stroke="#3c1a10" stroke-width="4"/></svg>
@@ -435,6 +449,12 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sg-title">
       <div class="sheet-head"><h2 id="sg-title">문 앞에 온 손님</h2><button class="ghost" data-close>닫기</button></div>
       <div id="guests"></div>
+    </div>
+  </div>
+  <div class="sheet-bg" id="sheet-mail" hidden>
+    <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sm-mail-title">
+      <div class="sheet-head"><h2 id="sm-mail-title">📮 우편함</h2><button class="ghost" data-close>닫기</button></div>
+      <div id="mails"></div>
     </div>
   </div>
   <div class="sheet-bg" id="sheet-badges" hidden>
@@ -1189,11 +1209,57 @@ function renderHome(){
     b.onclick = () => { knockCode = g.code; closeSheets(); openDoor(); };
     row.appendChild(b); box.appendChild(row);
   });
+  renderMailDot();
   renderLeague();
   const nShots = albumShots().length;
   $("gallery-count").textContent = nShots ? `(${nShots}장)` : "";
   $("badge-count").textContent = `(${MISSIONS.filter(m => hasBadge(myId, m.id)).length}/${MISSIONS.length})`;
   if (!$("sheet-badges").hidden) renderBadges();
+}
+// ===== 우편함: 내가 찾아간 집에서 문을 열어줬는지(사탕) · 쫓겨났는지 알려줘요 =====
+// 읽은 시각은 내 문서 mailSeen에 저장 (그 뒤에 온 소식이 있으면 빨간 점)
+function mailItems(){
+  if (!me) return [];
+  const out = [], seen = new Set();
+  Object.entries(me.gifts || {}).forEach(([k, v]) => {
+    const g = giverOf(k), p = players[g], d = giftDay(k, v);
+    if (g === myId || !p || seen.has(g + "~" + d)) return;
+    seen.add(g + "~" + d);
+    const o = v && typeof v === "object" ? v : {}, n = gotOf({ b: !!o.b, sl: !!o.sl }), nm = p.nick + josa(p.nick, "이", "가");
+    const text = o.f ? (o.l ? `${nm} 호의를 베풀어 문을 열어줬어요 🍀` : `${p.nick}네 누적 사탕 1개를 뺏었어요 🪰`)
+      : `${nm} 문을 열어줬어요!${o.sl && n > gotOf({ b: !!o.b }) ? " ✨" : ""}`;
+    out.push({ t: giftTime(v), p, text, sub: `사탕 +${n}` });
+  });
+  Object.entries(players).forEach(([id, p]) => {
+    if (id === myId || !p.shoo || p.shoo[myId] == null) return;
+    const t = (p.shooAt && p.shooAt[myId]) || p.shoo[myId] * 86400e3 - 9 * 3600e3;
+    out.push({ t, p, text: `${p.nick}${josa(p.nick, "이", "가")} 문을 안 열어줬어요… 🧹`, sub: "쫓겨났어요. 내일 다시 가 봐요!" });
+  });
+  return out.sort((a, b) => b.t - a.t).slice(0, 60);
+}
+const mailUnread = () => mailItems().filter(m => m.t > (me && me.mailSeen || 0)).length;
+function renderMailDot(){
+  const n = mailUnread();
+  $("mail-dot").hidden = !n;
+  $("btn-mail").classList.toggle("has-mail", n > 0);
+  $("btn-mail").setAttribute("aria-label", n ? `우편함 보기 (새 소식 ${n}개)` : "우편함 보기");
+}
+function mailWhen(t){
+  const d = todayNo() - dayNo(t);
+  return d <= 0 ? "오늘" : d === 1 ? "어제" : `${d}일 전`;
+}
+function openMail(){
+  const box = $("mails"), last = (me && me.mailSeen) || 0, list = mailItems();
+  box.innerHTML = list.length ? "" : '<p class="muted">아직 소식이 없어요. 친구네 문을 두드려 보세요!</p>';
+  list.forEach(m => {
+    const row = document.createElement("div"); row.className = "mail" + (m.t > last ? " new" : "");
+    row.innerHTML = `<span>${charSVG(m.p.char, m.p.costume, m.p.nick)}</span><span><b></b><small></small></span>`;
+    row.querySelector("b").textContent = m.text;
+    row.querySelector("small").textContent = `${mailWhen(m.t)} · ${m.sub}`;
+    box.appendChild(row);
+  });
+  openSheet("sheet-mail");
+  if (me && list.length && list[0].t > last) setMine({ mailSeen: Date.now() });
 }
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
@@ -1247,6 +1313,7 @@ function closeSheets(){ document.querySelectorAll(".sheet-bg").forEach(e => e.hi
 document.querySelectorAll(".sheet-bg").forEach(bg => bg.addEventListener("click", e => { if (e.target === bg || e.target.hasAttribute("data-close")) closeSheets(); }));
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(); });
 $("btn-bell").onclick = () => openSheet("sheet-guests");
+$("btn-mail").onclick = openMail;
 $("bell-talk").onclick = () => openSheet("sheet-guests");
 $("btn-find").onclick = () => openSheet("sheet-find");
 $("code-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-code").click(); });
@@ -1860,7 +1927,7 @@ async function shooGuest(btn){
   if (!me || !doorTarget) return;
   btn.disabled = true;
   try {
-    await db.doc("players/" + myId).update({ shoo: { [doorTarget.id]: todayNo() } });
+    await db.doc("players/" + myId).update({ shoo: { [doorTarget.id]: todayNo() }, shooAt: { [doorTarget.id]: Date.now() } });
     toast(`${doorTarget.nick}${josa(doorTarget.nick, "을", "를")} 쫓아냈어요! 🧹`);
     renderDoorActions();
   } catch { btn.disabled = false; toast("쫓아내지 못했어요. 다시 눌러 주세요."); }
