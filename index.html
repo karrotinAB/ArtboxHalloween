@@ -146,6 +146,8 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .mailbox:active{transform:translateY(2px);box-shadow:none}
 .mailbox .flag{transform-origin:61.5px 42px;transform:rotate(90deg);transition:transform .4s}
 .mailbox.has-mail .flag{transform:none}
+.find-label{margin:.2em 0 .4em;font-size:.85rem}
+#find-neighbors{margin-bottom:.6em}
 .mail-dot{position:absolute;right:-6px;top:-8px;width:16px;height:16px;border-radius:50%;background:#e8392e;border:2.5px solid var(--brown)}
 .mail-dot[hidden]{display:none}
 .mail{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--soft)}
@@ -413,7 +415,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="nameplate" id="h-nameplate"></div>
       <div class="frontdoor" aria-hidden="true"><div class="win"></div><div class="plate" id="h-plate"></div><div class="knob"></div></div>
       <button class="signpost" id="btn-find" aria-label="받은 집번호 찾아가기"><svg viewBox="0 0 100 104" aria-hidden="true"><rect x="60" y="40" width="9" height="66" rx="2" fill="#3c1a10"/><path d="M5 26 L22 6 H95 V46 H22 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/></svg><span>이웃집<br>찾아가기</span></button>
-      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 84" aria-hidden="true"><rect x="28" y="44" width="10" height="40" rx="2" fill="#3c1a10"/><g class="flag"><rect x="59" y="2" width="5" height="42" rx="2" fill="#3c1a10"/><path d="M62 2 H77 V15 H62Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/></g><path d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/></svg><span class="mail-dot" id="mail-dot" hidden></span></button>
+      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 52" aria-hidden="true"><g class="flag"><rect x="59" y="2" width="5" height="42" rx="2" fill="#3c1a10"/><path d="M62 2 H77 V15 H62Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/></g><path d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/></svg><span class="mail-dot" id="mail-dot" hidden></span></button>
       <button class="bell-talk" id="bell-talk" hidden>누가 왔어요!</button>
       <button class="bell" id="btn-bell" aria-label="문 앞에 온 손님 보기">
         <svg viewBox="0 8 60 56" aria-hidden="true"><path d="M12 44 Q12 14 30 12 Q48 14 48 44 L54 50 H6Z" fill="#ffc53d" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M20 26 Q22 18 29 17" stroke="#fff3c4" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="56" r="6" fill="#e0883a" stroke="#3c1a10" stroke-width="4"/></svg>
@@ -498,7 +500,10 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   </div>
   <div class="sheet-bg" id="sheet-find" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sf-title">
-      <div class="sheet-head"><h2 id="sf-title">받은 집번호 찾아가기</h2><button class="ghost" data-close>닫기</button></div>
+      <div class="sheet-head"><h2 id="sf-title">이웃집 찾아가기</h2><button class="ghost" data-close>닫기</button></div>
+      <p class="muted find-label">이웃을 골라 바로 찾아가요</p>
+      <div class="scroller neighbors" id="find-neighbors"></div>
+      <p class="muted find-label">또는 받은 집번호 입력</p>
       <div class="findrow"><input id="code-in" maxlength="5" inputmode="numeric" placeholder="예: 207" aria-label="집번호"><button id="btn-code" class="green">찾아가기</button></div>
     </div>
   </div>
@@ -1315,7 +1320,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(
 $("btn-bell").onclick = () => openSheet("sheet-guests");
 $("btn-mail").onclick = openMail;
 $("bell-talk").onclick = () => openSheet("sheet-guests");
-$("btn-find").onclick = () => openSheet("sheet-find");
+$("btn-find").onclick = () => { renderNeighborChips($("find-neighbors"), (id, p) => { knockCode = p.code; closeSheets(); openDoor(); }); openSheet("sheet-find"); };
 $("code-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-code").click(); });
 $("btn-code").onclick = () => {
   const c = $("code-in").value.trim().replace(/호$/, "").toUpperCase();
@@ -1390,23 +1395,28 @@ function renderDress(){
   });
   ef.scrollLeft = keepE;
 
-  const nb = $("neighbors"); const keepN = nb.scrollLeft; nb.innerHTML = "";
+  const others = renderNeighborChips($("neighbors"), id => { pickedNeighbor = id; renderDress(); });
+  $("btn-knock").disabled = !others.length;
+}
+// 이웃 칩 (꾸미기의 Trick or treat 카드 · 이웃집 찾아가기 창에서 같이 써요)
+function renderNeighborChips(nb, onPick){
+  const keepN = nb.scrollLeft; nb.innerHTML = "";
   const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (gaveToday(a[0], myId) - gaveToday(b[0], myId)) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
   if (!others.length) nb.innerHTML = '<p class="muted" style="margin:0">아직 다른 참가자가 없어요.</p>';
   others.forEach(([id, p]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "chip";
-    b.setAttribute("aria-pressed", pickedNeighbor === id);
+    b.setAttribute("aria-pressed", nb.id === "neighbors" && pickedNeighbor === id);
     b.innerHTML = charSVG(p.char, p.costume, p.nick) + "<span></span><small></small><small class=\"visits\"></small>";
     b.querySelector("span").textContent = p.nick;
     const done = gaveToday(id, myId), n = visitTimes(myId, id);
     b.querySelector("small").textContent = done ? "오늘 받음 ✓" : p.code + "호";
     b.querySelector(".visits").textContent = n ? `${n}번 방문` : "첫 방문";
     if (done) b.classList.add("locked");
-    b.onclick = () => { if (done) { toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; } pickedNeighbor = id; renderDress(); };
+    b.onclick = () => { if (done) { toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; } onPick(id, p); };
     nb.appendChild(b);
   });
   nb.scrollLeft = keepN;
-  $("btn-knock").disabled = !others.length;
+  return others;
 }
 const ADMIN_PIN = "0930";
 let adminUnlocked = false;
