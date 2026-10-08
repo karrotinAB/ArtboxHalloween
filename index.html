@@ -1943,8 +1943,6 @@ function renderDoorActions(){
   setWhoTag(t);
   renderBasket(earnedOf(doorTarget.id));
   const acts = $("door-actions"); acts.innerHTML = "";
-  // 첫 사탕은 "내ID", 그다음부터는 "내ID~날짜번호"
-  const key = gave(myId, doorTarget.id) ? `${myId}~${todayNo()}` : myId;
   const note = document.createElement("p"); note.className = "muted";
   if (doorTarget.id === myId) { note.textContent = "우리 집이에요! 동료에게 집번호를 알려 주면 사탕을 받을 수 있어요."; acts.append(note); }
   else if (!myId || !me) {
@@ -1971,7 +1969,7 @@ function renderDoorActions(){
   }
   else {
     const b = document.createElement("button"); b.className = "big green"; b.textContent = "사탕 주기 🍬";
-    b.onclick = () => giveCandy(b, key); acts.append(b);
+    b.onclick = () => giveCandy(b); acts.append(b);
     if (isFlyBeggar(t)) {
       const s2 = document.createElement("button"); s2.className = "big"; s2.style.marginTop = "10px"; s2.textContent = "쫓아내기 🧹";
       s2.onclick = () => shooGuest(s2);
@@ -1981,8 +1979,10 @@ function renderDoorActions(){
   }
   acts.appendChild(backBtn());
 }
-async function giveCandy(btn, key){
-  if (!me || !key || gaveToday(myId, doorTarget.id)) { renderDoorActions(); return; }
+async function giveCandy(btn){
+  if (!me || gaveToday(myId, doorTarget.id)) { renderDoorActions(); return; }
+  // 첫 사탕은 "내ID", 그다음부터는 "내ID~오늘 날짜번호" (누른 순간 기준)
+  const key = gave(myId, doorTarget.id) ? `${myId}~${todayNo()}` : myId;
   btn.disabled = true; flyCandy(btn);
   try {
     // 거지왹이면 {b:1}, 파리까지 쓰고 있으면 {f:1}과 호의 보상 여부 {l:1}도 함께 기록해요
@@ -1994,7 +1994,7 @@ async function giveCandy(btn, key){
     if (fly && luck) toast(`호의를 베풀었더니 사탕 ${EARN.favor}개가 돌아왔어요! 🍀`);
     if (spLuck && gotOf({ b: isBeggar(doorTarget), sl: 1 }) > gotOf({ b: isBeggar(doorTarget) })) toast(`✨ 반짝! ${doorTarget.nick}${josa(doorTarget.nick, "이", "가")} 사탕을 ${EARN.sparkle}개 받았어요!`);
     renderDoorActions();
-  } catch { btn.disabled = false; toast(key.includes("~") ? "같은 친구에게 다시 주는 기능은 곧 열려요!\n조금만 기다려 주세요 🙏" : "사탕을 전하지 못했어요. 다시 눌러 주세요."); }
+  } catch (e) { btn.disabled = false; toast(e && e.code === "permission-denied" ? "사탕을 전하지 못했어요 😢\n관리자에게 알려 주세요." : "사탕을 전하지 못했어요. 다시 눌러 주세요."); }
 }
 async function shooGuest(btn){
   if (!me || !doorTarget) return;
