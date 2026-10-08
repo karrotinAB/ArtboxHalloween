@@ -150,6 +150,16 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .mailbox.has-mail .flag-cloth{fill:#e8392e}
 .find-label{margin:.2em 0 .4em;font-size:.85rem}
 #find-neighbors{margin-bottom:.6em}
+.tour{position:fixed;inset:0;z-index:80}
+.tour[hidden]{display:none}
+.tour-hole{position:fixed;border-radius:18px;box-shadow:0 0 0 3px #ffd29e,0 0 0 9999px rgba(20,8,30,.72);transition:all .35s ease;pointer-events:none}
+.tour-bub{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:18px;padding:14px 16px 12px;box-shadow:0 5px 0 var(--brown);transition:top .35s ease}
+.tour-bub p{margin:0 0 10px;font-size:1rem;line-height:1.5;word-break:keep-all}
+.tour-bub b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.15rem;display:block;margin-bottom:4px}
+.tour-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tour-dots{font-size:.85rem;color:var(--paper-muted)}
+.tour-row button{font-size:.95rem;padding:.45em 1em}
+.tour-row .tour-skip{background:none;box-shadow:none;border:0;color:var(--paper-muted);text-decoration:underline;padding:.45em .4em}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -455,6 +465,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sg-title">
       <div class="sheet-head"><h2 id="sg-title">문 앞에 온 손님</h2><button class="ghost" data-close>닫기</button></div>
       <div id="guests"></div>
+    </div>
+  </div>
+  <!-- 처음 가입한 사람용 따라하기 안내 -->
+  <div class="tour" id="tour" hidden>
+    <div class="tour-hole" id="tour-hole"></div>
+    <div class="tour-bub" id="tour-bub" role="dialog" aria-live="polite">
+      <b id="tour-title"></b><p id="tour-text"></p>
+      <div class="tour-row"><span class="tour-dots" id="tour-dots"></span><span class="row" style="flex-wrap:nowrap;gap:6px"><button class="tour-skip" id="tour-skip">건너뛰기</button><button class="green" id="tour-next">다음 →</button></span></div>
     </div>
   </div>
   <div class="sheet-bg" id="sheet-mail" hidden>
@@ -1096,8 +1114,8 @@ try {
   if (openedFrom) localStorage.setItem("openedFrom", openedFrom); else openedFrom = localStorage.getItem("openedFrom") || "";
 } catch {}
 
-function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); }
-function goDress(){ closeSheets(); browseLook = null; renderDress(); show("dress"); }
+function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); maybeTour(); }
+function goDress(){ if (tourStep < 0) closeSheets(); browseLook = null; renderDress(); show("dress"); maybeTour(); }
 
 // ===== 첫 화면 =====
 function goFromIntro(){
@@ -1171,6 +1189,7 @@ $("btn-register").onclick = async () => {
       if (await saveProfile(myId, dept, name, via)) profiles[myId] = { dept, name, via };
       else { doc.dept = dept; doc.name = name; doc.via = via; }
       await db.doc("players/" + myId).set(doc);
+      try { localStorage.setItem("tour", "1"); } catch {}
       try { localStorage.removeItem("invite"); localStorage.removeItem("openedFrom"); } catch {}
       if (me && pendingNav) { pendingNav = null; if (knockCode) openDoor(); else goDress(); }
     }
@@ -1270,6 +1289,46 @@ function openMail(){
   openSheet("sheet-mail");
   if (me && list.length && list[0].t > last) setMine({ mailSeen: Date.now() });
 }
+// ===== 따라하기 안내 (새로 가입하면 한 번, ?tour=1 로 다시 보기) =====
+const TOUR = [
+  { view: "dress", sel: ".stage", title: "환영해요! 🎃", text: "여기는 꾸미기 화면이에요. 친구 집에 놀러 갈 때 내 캐릭터가 이 모습으로 가요." },
+  { view: "dress", sel: "#closet", card: true, title: "옷장 👗", text: "코스튬을 골라 입어요. 사탕을 모아서 새 코스튬도 열 수 있어요!" },
+  { view: "dress", sel: "#neighbors", card: true, title: "친구네 놀러 가기 🚪", text: "친구를 고르고 똑똑 두드리기! 친구가 문을 열어주면 사탕 +2 🍬 같은 친구네는 하루에 한 번씩 갈 수 있어요." },
+  { view: "home", sel: "#btn-bell", title: "초인종 🔔", text: "친구가 우리 집 문을 두드리면 숫자가 떠요. 눌러서 문을 열고 사탕을 주면 나도 +1!" },
+  { view: "home", sel: "#btn-mail", title: "우편함 📮", text: "내가 놀러 간 집에서 문을 열어줬는지 여기서 확인해요. 빨간 ❗가 뜨면 새 소식이에요." },
+  { view: "home", sel: "#btn-find", title: "이웃집 찾아가기", text: "표지판을 누르면 이웃을 골라 바로 놀러 갈 수 있어요." },
+  { view: "home", sel: "#btn-me", title: "내 캐릭터", text: "누르면 꾸미기 화면으로 가요. 친구네 놀러 가는 버튼도 거기 있어요!" },
+  { view: "home", sel: "#league", card: true, title: "사탕 리그 🏆", text: "모은 사탕 순위예요. 10월 31일 1등에게는 특별한 선물이 있어요! 이제 친구네 놀러 가 볼까요?" }
+];
+let tourStep = -1;
+const tourWanted = () => { try { return localStorage.getItem("tour") === "1"; } catch { return false; } };
+function maybeTour(){ if (tourStep < 0 && me && tourWanted() && (current === "home" || current === "dress")) setTimeout(startTour, 450); }
+function startTour(){ if (tourStep >= 0 || !me) return; closeSheets(); tourStep = 0; $("tour").hidden = false; tourShow(); }
+function endTour(){
+  tourStep = -1; $("tour").hidden = true;
+  try { localStorage.removeItem("tour"); } catch {}
+  if (current !== "dress") goDress();
+}
+function tourShow(){
+  const st = TOUR[tourStep];
+  if (current !== st.view) (st.view === "home" ? goHome : goDress)();
+  let el = document.querySelector(st.sel); if (el && st.card) el = el.closest(".card") || el;
+  $("tour-title").textContent = st.title; $("tour-text").textContent = st.text;
+  $("tour-dots").textContent = `${tourStep + 1} / ${TOUR.length}`;
+  $("tour-next").textContent = tourStep === TOUR.length - 1 ? "시작하기 🍬" : "다음 →";
+  if (el) el.scrollIntoView({ block: "center", behavior: "instant" });
+  requestAnimationFrame(() => {
+    const hole = $("tour-hole"), bub = $("tour-bub"), r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 };
+    const pad = 8, top = Math.max(4, r.top - pad), h = Math.min(r.height + pad * 2, innerHeight - 8);
+    Object.assign(hole.style, { left: Math.max(4, r.left - pad) + "px", top: top + "px", width: Math.min(r.width + pad * 2, innerWidth - 8) + "px", height: h + "px" });
+    const bh = bub.offsetHeight, below = top + h + 14;
+    bub.style.top = (below + bh < innerHeight - 8 ? below : Math.max(8, top - bh - 14)) + "px";
+  });
+}
+$("tour-next").onclick = () => { if (tourStep >= TOUR.length - 1) endTour(); else { tourStep++; tourShow(); } };
+$("tour-skip").onclick = endTour;
+addEventListener("resize", () => { if (tourStep >= 0) tourShow(); });
+try { if (new URLSearchParams(location.search).get("tour") === "1") { localStorage.setItem("tour", "1"); history.replaceState(null, "", location.pathname + location.hash); } } catch {}
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
