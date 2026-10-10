@@ -315,16 +315,16 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .badge.got{background:none;border:0;box-shadow:0 4px 0 rgba(60,26,16,.35)}
 .badge img{display:block;width:100%;height:100%;border-radius:50%}
 .badge[aria-pressed="true"]{outline:3px solid var(--lamp);outline-offset:3px}
-.mlist{display:flex;flex-direction:column;gap:2px}
-.mrow{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--soft)}
-.mrow:last-child{border-bottom:0}
-.mrow .badge{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-family:"Jua",sans-serif;font-size:1.6rem;color:#8d8197}
-.mrow b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.1rem;display:block}
-.mrow .how{font-size:.9rem;margin:2px 0 6px;line-height:1.4}
-.mrow .reward{font-size:.78rem;color:var(--paper-muted);margin-top:4px;line-height:1.4}
-.mbar{display:flex;align-items:center;gap:8px;font-size:.85rem;color:#d9621b;font-family:"Jua",sans-serif}
-.mbar i{flex:1;height:10px;border-radius:5px;background:#eadff0;overflow:hidden;position:relative}
-.mbar i span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffb347,#e0883a);border-radius:5px}
+.mlist{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;margin:6px 0 4px}
+.mrow{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0;word-break:keep-all}
+.mrow .badge{width:min(100px,26vw);height:min(100px,26vw);display:flex;align-items:center;justify-content:center;font-family:"Jua",sans-serif;font-size:2.2rem;color:#8d8197;margin-bottom:6px}
+.mrow b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.02rem;display:block}
+.mrow .how{font-size:.74rem;line-height:1.35;margin:2px 0 5px;color:var(--brown)}
+.mrow .reward{font-size:.68rem;color:var(--paper-muted);margin-top:4px;line-height:1.3}
+.mbar{display:flex;align-items:center;gap:5px;width:100%;font-size:.78rem;color:#d9621b;font-family:"Jua",sans-serif}
+.mbar i{flex:1;height:8px;border-radius:4px;background:#eadff0;overflow:hidden;position:relative}
+.mbar i span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffb347,#e0883a);border-radius:4px}
+.mbar em{font-style:normal}
 .mrow.got .mbar{color:#3f8a3a}
 .mrow.got .mbar i span{background:#7bc47a}
 .award{text-align:center}
@@ -1061,9 +1061,9 @@ const comboKey = p => `${p.char || "cat"}-${p.costume || "none"}`;
 
 // ===== 히든 미션 · 별이 =====
 const MISSIONS = [
-  { id: "lucky7", title: "럭키7", how: "서로 다른 친구 7명의 집에 놀러 가기", goal: 7, done: "친구 7명의 집을 방문했어요!", reward: "보상: 게왹이 곁에 함께 다니는 '별이' — 꾸미기에서 켜고 끌 수 있어요", badge: "badgeLucky7" },
+  { id: "lucky7", title: "럭키7", how: "서로 다른 친구 7명 집에 놀러 가기", goal: 7, done: "친구 7명의 집을 방문했어요!", reward: "보상: 게왹이 곁에 함께 다니는 '별이' — 꾸미기에서 켜고 끌 수 있어요", badge: "badgeLucky7" },
   { id: "fashion", title: "패셔니스타", how: "사탕으로 코스튬 5개 열기", goal: 5, done: "사탕으로 코스튬 5개를 열었어요!", reward: "보상: 새 캐릭터 '보스' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeFashion" },
-  { id: "insider", title: "인사이더", how: "내 링크로 동료 4명 참가시키기 (링크 만들기)", goal: 4, done: "내 링크로 동료 4명이 참가했어요!", reward: "보상: 새 캐릭터 '개꿀이' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeInsider" }
+  { id: "insider", title: "인사이더", how: "내 링크로 동료 4명 참가시키기", goal: 4, done: "내 링크로 동료 4명이 참가했어요!", reward: "보상: 새 캐릭터 '개꿀이' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeInsider" }
 ];
 // 게왹이 코스튬별 별이. 위치는 기본 별이 틀(가로 1, 세로 0.9394) 기준 [x, y, 너비, 높이]
 const STAR_FRAME_H = 0.9394;
@@ -2254,10 +2254,10 @@ function renderBadges(){
     const got = gotBadge(m.id), n = Math.min(m.goal, missionCount(myId, m.id)), row = document.createElement("div");
     row.className = "mrow" + (got ? " got" : "");
     row.innerHTML = `<span class="badge${got ? " got" : ""}">${got ? `<img alt="" src="data:image/webp;base64,${DECO[m.badge]}">` : "?"}</span><span><b></b><div class="how"></div><div class="mbar"><i><span style="width:${got ? 100 : Math.round(n / m.goal * 100)}%"></span></i><em></em></div><div class="reward"></div></span>`;
-    row.querySelector("b").textContent = (got ? "🏅 " : "🔒 ") + m.title;
+    row.querySelector("b").textContent = m.title;
     row.querySelector(".how").textContent = m.how;
-    row.querySelector("em").textContent = got ? "성공!" : `${n} / ${m.goal}`;
-    row.querySelector(".reward").textContent = got ? m.reward : m.reward.replace(/ — .*$/, "");
+    row.querySelector("em").textContent = got ? "성공" : `${n}/${m.goal}`;
+    row.querySelector(".reward").textContent = m.reward.replace(/ — .*$/, "");
     box.appendChild(row);
   });
 }
