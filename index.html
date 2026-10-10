@@ -315,6 +315,27 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .badge.got{background:none;border:0;box-shadow:0 4px 0 rgba(60,26,16,.35)}
 .badge img{display:block;width:100%;height:100%;border-radius:50%}
 .badge[aria-pressed="true"]{outline:3px solid var(--lamp);outline-offset:3px}
+.mlist{display:flex;flex-direction:column;gap:2px}
+.mrow{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--soft)}
+.mrow:last-child{border-bottom:0}
+.mrow .badge{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-family:"Jua",sans-serif;font-size:1.6rem;color:#8d8197}
+.mrow b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.1rem;display:block}
+.mrow .how{font-size:.9rem;margin:2px 0 6px;line-height:1.4}
+.mrow .reward{font-size:.78rem;color:var(--paper-muted);margin-top:4px;line-height:1.4}
+.mbar{display:flex;align-items:center;gap:8px;font-size:.85rem;color:#d9621b;font-family:"Jua",sans-serif}
+.mbar i{flex:1;height:10px;border-radius:5px;background:#eadff0;overflow:hidden;position:relative}
+.mbar i span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffb347,#e0883a);border-radius:5px}
+.mrow.got .mbar{color:#3f8a3a}
+.mrow.got .mbar i span{background:#7bc47a}
+.award{text-align:center}
+.award-kicker{font-family:"Jua",sans-serif;font-size:1.15rem;color:#d9621b;margin:.2em 0 .4em}
+.award-img{width:140px;height:140px;border-radius:50%;display:block;margin:0 auto 8px;box-shadow:0 5px 0 rgba(60,26,16,.35);animation:awardpop .7s cubic-bezier(.3,1.6,.5,1)}
+@keyframes awardpop{0%{transform:scale(.2) rotate(-30deg);opacity:0}100%{transform:none;opacity:1}}
+.award h2{margin:.2em 0}
+.award p{margin:.3em 0;line-height:1.5}
+.award-reward{font-size:.92rem;color:var(--paper-muted)}
+.news-h{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem;margin:.6em 0 .2em}
+.news-more{font-size:.85rem;color:var(--paper-muted);margin:.3em 0 0}
 .badge-info{text-align:center;min-height:3.2em;margin:0 0 4px;font-size:.95rem}
 .badge-info b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.15rem;display:block}
 .star-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:10px 12px;border:2px dashed var(--soft);border-radius:16px}
@@ -484,8 +505,25 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   <div class="sheet-bg" id="sheet-badges" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="bd-title">
       <div class="sheet-head"><h2 id="bd-title">히든 미션 뱃지</h2><button class="ghost" data-close>닫기</button></div>
-      <div class="badges" id="badges"></div>
-      <p class="badge-info" id="badge-info"></p>
+      <p class="muted" style="margin:0 0 .4em">미션을 깨면 뱃지와 특별한 보상을 받아요!</p>
+      <div class="mlist" id="badges"></div>
+    </div>
+  </div>
+  <div class="sheet-bg" id="sheet-award" data-modal hidden>
+    <div class="sheet card award" role="dialog" aria-modal="true" aria-labelledby="aw-title">
+      <p class="award-kicker">🎉 히든 미션 성공! 🎉</p>
+      <img class="award-img" id="aw-img" alt="">
+      <h2 id="aw-title"></h2>
+      <p id="aw-done"></p>
+      <p class="award-reward" id="aw-reward"></p>
+      <button class="big green" id="aw-ok">좋아요!</button>
+    </div>
+  </div>
+  <div class="sheet-bg" id="sheet-news" data-modal hidden>
+    <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="nw-title">
+      <div class="sheet-head"><h2 id="nw-title">📬 새 소식</h2><button class="ghost" data-close>닫기</button></div>
+      <div id="news"></div>
+      <button class="big green" id="nw-ok" style="margin-top:10px">확인</button>
     </div>
   </div>
   <div class="sheet-bg" id="sheet-status" hidden>
@@ -1023,9 +1061,9 @@ const comboKey = p => `${p.char || "cat"}-${p.costume || "none"}`;
 
 // ===== 히든 미션 · 별이 =====
 const MISSIONS = [
-  { id: "lucky7", title: "럭키7", done: "친구 7명의 집을 방문했어요!", reward: "보상: 게왹이 곁에 함께 다니는 '별이' — 꾸미기에서 켜고 끌 수 있어요", badge: "badgeLucky7" },
-  { id: "fashion", title: "패셔니스타", done: "사탕으로 코스튬 5개를 열었어요!", reward: "보상: 새 캐릭터 '보스' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeFashion" },
-  { id: "insider", title: "인사이더", done: "내 링크로 동료 4명이 참가했어요!", reward: "보상: 새 캐릭터 '개꿀이' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeInsider" }
+  { id: "lucky7", title: "럭키7", how: "서로 다른 친구 7명의 집에 놀러 가기", goal: 7, done: "친구 7명의 집을 방문했어요!", reward: "보상: 게왹이 곁에 함께 다니는 '별이' — 꾸미기에서 켜고 끌 수 있어요", badge: "badgeLucky7" },
+  { id: "fashion", title: "패셔니스타", how: "사탕으로 코스튬 5개 열기", goal: 5, done: "사탕으로 코스튬 5개를 열었어요!", reward: "보상: 새 캐릭터 '보스' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeFashion" },
+  { id: "insider", title: "인사이더", how: "내 링크로 동료 4명 참가시키기 (링크 만들기)", goal: 4, done: "내 링크로 동료 4명이 참가했어요!", reward: "보상: 새 캐릭터 '개꿀이' — 꾸미기의 캐릭터에서 고를 수 있어요", badge: "badgeInsider" }
 ];
 // 게왹이 코스튬별 별이. 위치는 기본 별이 틀(가로 1, 세로 0.9394) 기준 [x, y, 너비, 높이]
 const STAR_FRAME_H = 0.9394;
@@ -1114,8 +1152,8 @@ try {
   if (openedFrom) localStorage.setItem("openedFrom", openedFrom); else openedFrom = localStorage.getItem("openedFrom") || "";
 } catch {}
 
-function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); maybeTour(); }
-function goDress(){ if (tourStep < 0) closeSheets(); browseLook = null; renderDress(); show("dress"); maybeTour(); }
+function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); maybeTour(); maybeNews(); setTimeout(flushModal, 300); }
+function goDress(){ if (tourStep < 0) closeSheets(); browseLook = null; renderDress(); show("dress"); maybeTour(); setTimeout(flushModal, 300); }
 
 // ===== 첫 화면 =====
 function goFromIntro(){
@@ -1307,7 +1345,7 @@ const tourWanted = () => { try { return localStorage.getItem("tour") === "1"; } 
 function maybeTour(){ if (tourStep < 0 && me && tourWanted() && (current === "home" || current === "dress")) setTimeout(startTour, 450); }
 function startTour(){ if (tourStep >= 0 || !me) return; closeSheets(); tourStep = 0; $("tour").hidden = false; tourShow(); }
 function endTour(){
-  tourStep = -1; $("tour").hidden = true;
+  tourStep = -1; $("tour").hidden = true; setTimeout(flushModal, 400);
   try { localStorage.removeItem("tour"); } catch {}
   if (current !== "dress") goDress();
 }
@@ -1331,6 +1369,69 @@ $("tour-next").onclick = () => { if (tourStep >= TOUR.length - 1) endTour(); els
 $("tour-skip").onclick = endTour;
 addEventListener("resize", () => { if (tourStep >= 0) tourShow(); });
 try { if (new URLSearchParams(location.search).get("tour") === "1") { localStorage.setItem("tour", "1"); history.replaceState(null, "", location.pathname + location.hash); } } catch {}
+// ===== 팝업 차례대로 띄우기 (뱃지 획득 · 새 소식) =====
+let modalQ = [];
+const modalOpen = () => [...document.querySelectorAll(".sheet-bg[data-modal]")].some(e => !e.hidden);
+function pushModal(fn){ modalQ.push(fn); flushModal(); }
+// 홈·꾸미기 화면에서, 다른 팝업·안내가 없을 때만 하나씩 띄워요
+function flushModal(){
+  if (!modalQ.length || modalOpen() || tourStep >= 0 || !(current === "home" || current === "dress")) return;
+  if ([...document.querySelectorAll(".sheet-bg")].some(e => !e.hidden)) return;
+  modalQ.shift()();
+}
+function nextModal(){
+  if (!$("sheet-news").hidden) markNewsSeen();
+  closeSheets();
+  setTimeout(flushModal, 150);
+}
+function showAward(m){
+  $("aw-img").src = "data:image/webp;base64," + DECO[m.badge];
+  $("aw-title").textContent = `🏅 ${m.title}`;
+  $("aw-done").textContent = m.done;
+  $("aw-reward").textContent = m.reward;
+  openSheet("sheet-award");
+}
+$("aw-ok").onclick = nextModal;
+// 접속할 때 새 소식: 문 앞에서 기다리는 친구 + 우편함의 안 읽은 소식
+let newsChecked = false;
+function maybeNews(){
+  if (newsChecked || !me) return;
+  newsChecked = true;
+  if (tourWanted()) return;
+  const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last);
+  if (!guests.length && !mails.length) return;
+  pushModal(() => showNews(guests, mails));
+}
+function showNews(guests, mails){
+  const box = $("news"); box.innerHTML = "";
+  const head = t => { const h = document.createElement("p"); h.className = "news-h"; h.textContent = t; box.appendChild(h); };
+  if (guests.length) {
+    head(`🔔 문 앞에서 기다리는 친구 ${guests.length}명`);
+    guests.slice(0, 5).forEach(g => {
+      const row = document.createElement("div"); row.className = "guest";
+      row.innerHTML = `<span>${charSVG(g.char, g.costume, g.nick)}</span><span><b></b><span class="gm"></span></span>`;
+      row.querySelector("b").textContent = g.nick; row.querySelector(".gm").textContent = "똑똑! 문을 열어 주세요";
+      const b = document.createElement("button"); b.className = "green"; b.textContent = "문 열기";
+      b.onclick = () => { markNewsSeen(); closeSheets(); knockCode = g.code; openDoor(); };
+      row.appendChild(b); box.appendChild(row);
+    });
+    if (guests.length > 5) { const p = document.createElement("p"); p.className = "news-more"; p.textContent = `그 외 ${guests.length - 5}명은 초인종에서 볼 수 있어요`; box.appendChild(p); }
+  }
+  if (mails.length) {
+    head(`📮 내가 놀러 간 집 소식 ${mails.length}개`);
+    mails.slice(0, 5).forEach(m => {
+      const row = document.createElement("div"); row.className = "mail new";
+      row.innerHTML = `<span>${charSVG(m.p.char, m.p.costume, m.p.nick)}</span><span><b></b><small></small></span>`;
+      row.querySelector("b").textContent = m.text;
+      row.querySelector("small").textContent = `${mailWhen(m.t)} · ${m.sub}`;
+      box.appendChild(row);
+    });
+    if (mails.length > 5) { const p = document.createElement("p"); p.className = "news-more"; p.textContent = `그 외 ${mails.length - 5}개는 우편함에서 볼 수 있어요`; box.appendChild(p); }
+  }
+  openSheet("sheet-news");
+}
+function markNewsSeen(){ if (me && mailUnread()) setMine({ mailSeen: Date.now() }); }
+$("nw-ok").onclick = nextModal;
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -1380,7 +1481,7 @@ $("btn-pw").onclick = () => {
 $("pw-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-pw").click(); });
 function openSheet(id){ const el = $(id); el.hidden = false; const f = el.querySelector("input, button"); if (f) f.focus(); }
 function closeSheets(){ document.querySelectorAll(".sheet-bg").forEach(e => e.hidden = true); }
-document.querySelectorAll(".sheet-bg").forEach(bg => bg.addEventListener("click", e => { if (e.target === bg || e.target.hasAttribute("data-close")) closeSheets(); }));
+document.querySelectorAll(".sheet-bg").forEach(bg => bg.addEventListener("click", e => { if (e.target === bg || e.target.hasAttribute("data-close")) { if (bg.hasAttribute("data-modal")) nextModal(); else closeSheets(); } }));
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(); });
 $("btn-bell").onclick = () => openSheet("sheet-guests");
 $("btn-mail").onclick = openMail;
@@ -1416,7 +1517,7 @@ function renderDress(){
     const owned = ownsChar(own, k), b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (owned ? "" : " locked");
     // 보여만 주고 잠가 둔 히든 미션 상품 캐릭터
-    if (teaser) { b.innerHTML = charSVG(k, "none", c.name) + `<span>${c.name}</span><small>🔒 히든미션</small>`; b.onclick = () => openInfo({ name: c.name, preview: popPrev(k, "none", c.name), text: "히든 미션 상품이에요. 히든 미션을 달성하면 열려요!", btn: "🔒 히든 미션 상품" }); cc.appendChild(b); return; }
+    if (teaser) { b.innerHTML = charSVG(k, "none", c.name) + `<span>${c.name}</span><small>🔒 히든미션</small>`; b.onclick = () => openInfo({ name: c.name, preview: popPrev(k, "none", c.name), text: (m => `히든 미션 상품이에요. 히든 미션 '${m.title}'(${m.how})${josa(m.how, "을", "를")} 깨면 열려요!`)(MISSIONS.find(x => x.id === c.mission)), btn: "🔒 히든 미션 상품" }); cc.appendChild(b); return; }
     b.setAttribute("aria-pressed", look.char === k);
     b.innerHTML = charSVG(k, "none", c.name) + `<span>${c.name}</span><small>${owned ? (look.char === k ? "선택 중" : "바꾸기") : (look.char === k ? "구경 중" : "🍬 " + PRICE_CHAR[k] + "개")}</small>`;
     b.onclick = () => freeMode ? tryLook({ char: k, costume: artCostumes(k).some(c => c.id === look.costume) ? look.costume : "none" })
@@ -1689,8 +1790,8 @@ document.querySelectorAll(".tabs [data-tab]").forEach(t => t.onclick = () => {
   document.querySelectorAll("[data-pane]").forEach(p => p.hidden = p.dataset.pane !== t.dataset.tab);
 });
 $("adm-door").onclick = () => { previewFrom = "admin"; freeMode = false; startPreview(); };
-$("adm-badges").onclick = () => { badgePick = null; badgePreviewAll = true; renderBadges(); openSheet("sheet-badges"); };
-$("adm-toasts").onclick = () => MISSIONS.forEach((m, i) => setTimeout(() => toast(missionToast(m)), i * 3000));
+$("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSheet("sheet-badges"); };
+$("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
 $("adm-free").onclick = () => { freeStar = true; freeMode = true; freeLook = { char: me.char, costume: me.costume, effect: me.effect || "none" }; browseLook = null; renderDress(); show("dress"); };
 $("adm-save").onclick = async () => {
@@ -2144,27 +2245,23 @@ function renderAlbum(){
     box.appendChild(b); thumbFor(s, img);
   });
 }
-let badgePick = null, badgePreviewAll = false;
+let badgePreviewAll = false;
 const gotBadge = id => badgePreviewAll || hasBadge(myId, id);
+const missionCount = (id, m) => m === "lucky7" ? visitedCount(id) : m === "fashion" ? fashionCount(players[id]) : m === "insider" ? insiderCount(id) : 0;
 function renderBadges(){
   const box = $("badges"); box.innerHTML = "";
   MISSIONS.forEach(m => {
-    const got = gotBadge(m.id), b = document.createElement("button");
-    b.type = "button"; b.className = "badge" + (got ? " got" : "");
-    b.setAttribute("aria-pressed", badgePick === m.id);
-    b.setAttribute("aria-label", got ? `${m.title} 뱃지` : "아직 못 받은 뱃지");
-    if (got) b.innerHTML = `<img alt="" src="data:image/webp;base64,${DECO[m.badge]}">`;
-    b.onclick = () => { badgePick = m.id; renderBadges(); };
-    box.appendChild(b);
+    const got = gotBadge(m.id), n = Math.min(m.goal, missionCount(myId, m.id)), row = document.createElement("div");
+    row.className = "mrow" + (got ? " got" : "");
+    row.innerHTML = `<span class="badge${got ? " got" : ""}">${got ? `<img alt="" src="data:image/webp;base64,${DECO[m.badge]}">` : "?"}</span><span><b></b><div class="how"></div><div class="mbar"><i><span style="width:${got ? 100 : Math.round(n / m.goal * 100)}%"></span></i><em></em></div><div class="reward"></div></span>`;
+    row.querySelector("b").textContent = (got ? "🏅 " : "🔒 ") + m.title;
+    row.querySelector(".how").textContent = m.how;
+    row.querySelector("em").textContent = got ? "성공!" : `${n} / ${m.goal}`;
+    row.querySelector(".reward").textContent = got ? m.reward : m.reward.replace(/ — .*$/, "");
+    box.appendChild(row);
   });
-  const info = $("badge-info"), m = MISSIONS.find(x => x.id === badgePick);
-  info.textContent = "";
-  if (!m) { info.textContent = "동그라미를 눌러 보세요"; return; }
-  const t = document.createElement("b");
-  if (gotBadge(m.id)) { t.textContent = `🏅 ${m.title}`; info.append(t, m.done, document.createElement("br"), m.reward); }
-  else { t.textContent = `🔒 ${m.title}`; info.append(t, "아직 비밀이에요"); }
 }
-$("btn-badges").onclick = () => { badgePick = null; badgePreviewAll = false; renderBadges(); openSheet("sheet-badges"); };
+$("btn-badges").onclick = () => { badgePreviewAll = false; renderBadges(); openSheet("sheet-badges"); };
 const missionToast = m => m.id === "lucky7" ? "🏅 히든 미션 '럭키7' 성공!\n별이가 게왹이와 함께해요 ⭐" : m.id === "fashion" ? "🏅 히든 미션 '패셔니스타' 성공!\n새 캐릭터 '보스'가 열렸어요 🦈" : m.id === "insider" ? "🏅 히든 미션 '인사이더' 성공!\n새 캐릭터 '개꿀이'가 열렸어요 🍀" : `🏅 히든 미션 '${m.title}' 성공!`;
 let badgeSaving = {};
 function checkBadges(){
@@ -2172,7 +2269,7 @@ function checkBadges(){
     if (!me || (me.badges && me.badges[m.id]) || badgeSaving[m.id] || !hasBadge(myId, m.id)) return;
     badgeSaving[m.id] = true;
     db.doc("players/" + myId).update({ badges: { [m.id]: Date.now() } })
-      .then(() => toast(missionToast(m)))
+      .then(() => pushModal(() => showAward(m)))
       .catch(() => { badgeSaving[m.id] = false; });
   });
 }
