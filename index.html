@@ -336,6 +336,12 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .award h2{margin:.2em 0}
 .award p{margin:.3em 0;line-height:1.5}
 .award-reward{font-size:.92rem;color:var(--paper-muted)}
+.notice-row{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;text-align:left;word-break:keep-all;padding:8px 0;border-bottom:1px dashed var(--soft)}
+.notice-row:last-child{border-bottom:0}
+.notice-row .ch{width:96px;height:auto}
+.notice-row b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem;display:block;line-height:1.35}
+.notice-row small{font-size:.85rem;color:var(--paper-muted);line-height:1.4;display:block;margin-top:2px}
+.ghost-dark{display:block;margin:10px auto 0;background:none;box-shadow:none;border:0;color:var(--paper-muted);text-decoration:underline;font-size:.95rem}
 .news-h{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem;margin:.6em 0 .2em}
 .news-more{font-size:.85rem;color:var(--paper-muted);margin:.3em 0 0}
 .badge-info{text-align:center;min-height:3.2em;margin:0 0 4px;font-size:.95rem}
@@ -519,6 +525,15 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p id="aw-done"></p>
       <p class="award-reward" id="aw-reward"></p>
       <button class="big green" id="aw-ok">좋아요!</button>
+    </div>
+  </div>
+  <div class="sheet-bg" id="sheet-notice" data-modal hidden>
+    <div class="sheet card award" role="dialog" aria-modal="true" aria-labelledby="nt-title">
+      <p class="award-kicker" id="nt-kicker"></p>
+      <h2 id="nt-title"></h2>
+      <div id="notice"></div>
+      <button class="big green" id="nt-go" style="margin-top:10px">꾸미기에서 보기 ✨</button>
+      <button class="ghost-dark" id="nt-ok">닫기</button>
     </div>
   </div>
   <div class="sheet-bg" id="sheet-news" data-modal hidden>
@@ -1226,7 +1241,7 @@ $("btn-register").onclick = async () => {
       goHome();
     } else {
       pendingNav = "dress";
-      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now() };
+      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now(), seenUpdates: Object.fromEntries(UPDATES.map(u => [u.id, Date.now()])) };
       const inviter = inviteCode && findByCode(inviteCode);
       if (inviter && inviter.id !== myId) doc.invitedBy = inviter.id;
       // 접속 경로: 링크로 왔는지(누구 링크) · 어느 앱에서 열었는지 · 기기/브라우저
@@ -1388,6 +1403,7 @@ function flushModal(){
 }
 function nextModal(){
   if (!$("sheet-news").hidden) markNewsSeen();
+  if (!$("sheet-notice").hidden && noticeDone) { noticeDone(); noticeDone = null; }
   closeSheets();
   setTimeout(flushModal, 150);
 }
@@ -1405,6 +1421,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
+  checkUpdates(); checkGrants();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last);
   if (!guests.length && !mails.length) return;
   pushModal(() => showNews(guests, mails));
@@ -1439,6 +1456,51 @@ function showNews(guests, mails){
 }
 function markNewsSeen(){ if (me && mailUnread()) setMine({ mailSeen: Date.now() }); }
 $("nw-ok").onclick = nextModal;
+// ===== 알림: 관리자가 열어준 것 · 새 코스튬/효과 업데이트 =====
+// 새로 나온 것만 여기에 추가해요 (id는 한 번 정하면 바꾸지 않기). 이미 본 건 내 문서 seenUpdates에 기록돼요.
+const UPDATES = [
+  { id: "sparkle", title: "새 효과 '반짝이' ✨", text: () => `사탕 ${PRICE_FX.sparkle}개로 열 수 있어요. 쓰고 사탕을 받으면 50% 확률로 사탕 ${EARN.sparkle}개!`, preview: () => withFx(charSVG(me.char, me.costume, "반짝이"), "sparkle") },
+  { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
+];
+let noticeDone = null;
+function showNotice(kicker, title, items, done){
+  $("nt-kicker").textContent = kicker; $("nt-title").textContent = title;
+  const box = $("notice"); box.innerHTML = "";
+  items.forEach(it => {
+    const row = document.createElement("div"); row.className = "notice-row";
+    row.innerHTML = `<span>${it.preview}</span><span><b></b><small></small></span>`;
+    row.querySelector("b").textContent = it.title; row.querySelector("small").textContent = it.text;
+    box.appendChild(row);
+  });
+  noticeDone = done;
+  openSheet("sheet-notice");
+}
+$("nt-ok").onclick = nextModal;
+$("nt-go").onclick = () => { if (noticeDone) { noticeDone(); noticeDone = null; } modalQ = []; closeSheets(); goDress(); };
+// 관리자가 열어준 것: grants 키 → 이름·미리보기
+function grantInfo(k){
+  if (k.startsWith("fx:")) { const e = EFFECTS.find(x => x.id === k.slice(3)); return e && { title: `효과 '${e.name}'`, preview: withFx(charSVG(me.char, me.costume, e.name), e.id) }; }
+  const [c, cos] = k.split(":");
+  if (!CHARS[c]) return null;
+  if (!cos) return { title: `캐릭터 '${CHARS[c].name}'`, preview: charSVG(c, "none", CHARS[c].name) };
+  const K = costumeById(cos); return K && { title: `${CHARS[c].name} '${K.name}'`, preview: charSVG(c, cos, K.name) };
+}
+let grantQueued = {};
+function checkGrants(){
+  if (!me || !me.grants) return;
+  const seen = me.seenGrants || {}, fresh = Object.keys(me.grants).filter(k => me.grants[k] === true && !seen[k] && !grantQueued[k]).map(k => ({ k, info: grantInfo(k) })).filter(x => x.info);
+  if (!fresh.length) return;
+  fresh.forEach(x => grantQueued[x.k] = 1);
+  pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 열어줬어요", fresh.map(x => ({ ...x.info, text: "지금 꾸미기에서 바로 쓸 수 있어요!" })),
+    () => setMine({ seenGrants: Object.fromEntries(fresh.map(x => [x.k, Date.now()])) })));
+}
+function checkUpdates(){
+  if (!me) return;
+  const seen = me.seenUpdates || {}, fresh = UPDATES.filter(u => !seen[u.id]);
+  if (!fresh.length) return;
+  pushModal(() => showNotice("📢 업데이트 소식", "새로 나왔어요!", fresh.map(u => ({ title: u.title, text: u.text(), preview: u.preview() })),
+    () => setMine({ seenUpdates: Object.fromEntries(fresh.map(u => [u.id, Date.now()])) })));
+}
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -2328,6 +2390,7 @@ function onData(){
     if (Object.keys(fix).length) db.doc("players/" + myId).update(fix).catch(() => {});
   }
   checkBadges();
+  if (newsChecked) checkGrants();
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
   if (me && !isHouseNo(me.code) && !migrating) {
     migrating = true;
