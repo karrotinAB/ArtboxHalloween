@@ -172,7 +172,7 @@ button.ghost.map-btn{display:block;margin:0 0 .7em;background:#ffe2b8;border-col
 .vh button.vwait{background:#d4cbdc;color:#6d6278;box-shadow:0 4px 0 #a99db5}
 .vh .vch{position:absolute;width:58px;top:84px;z-index:1}
 .vh .vch .ch{width:58px;height:auto}
-.vh.left .vch{left:88px}.vh.right .vch{left:4px}
+.vh.left .vch{left:62px}.vh.right .vch{left:30px}
 .vh .vplate{display:block;width:fit-content;margin:0 auto 2px;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vh .vplate small{display:block;font-family:inherit;font-size:.75rem;color:var(--paper-muted)}
 .vh button{display:block;margin:22px auto 0;font-size:.85rem;padding:.35em .9em;position:relative;z-index:2}
@@ -1557,7 +1557,7 @@ function renderMap(){
   const box = $("village"); box.innerHTML = "";
   const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
   $("map-count").textContent = `이웃 ${list.length}집`;
-  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 118, top = 16, H = top + list.length * ROW + 150;
+  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 165, top = 16, H = top + list.length * ROW + 150;
   box.style.height = H + "px";
   const roadX = y => W / 2 + Math.sin(y / 170) * W * 0.07;
   // 집 자리 먼저 정하고 (문 앞까지 이어지는 오솔길도 같이 그려요)
@@ -1571,7 +1571,7 @@ function renderMap(){
   box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${walks}" stroke="#2a1f33" stroke-width="22" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${walks}" stroke="#c9a46b" stroke-width="15" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/></svg>`);
   // 길가 장식
   const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
-  for (let i = 0; i * 110 < H; i++) { const r = hashOf("deco" + i), y = 20 + i * 110 + (r % 40), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
+  for (let i = 0; i * 220 < H; i++) { const r = hashOf("deco" + i), y = 60 + i * 220 + (r % 60), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
     box.insertAdjacentHTML("beforeend", `<span class="vdeco" style="left:${x}px;top:${y}px">${DECO_E[r % DECO_E.length]}</span>`); }
   spots.forEach(({ id, p, r, left, x, y }) => {
     const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
