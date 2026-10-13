@@ -270,6 +270,9 @@ svg .spk.s3{animation-delay:-1.1s}
 .chip small{display:block;color:var(--paper-muted);font-family:"Gowun Dodum",sans-serif;font-size:.72rem}
 .chip small.visits{color:#b5611b}
 .chip.locked svg{filter:grayscale(1) brightness(.7)}
+.chip.used{background:#e2dbe8;border-color:#c9bfd2}
+.chip.used svg{filter:grayscale(1) brightness(.85);opacity:.75}
+.chip.used span,.chip.used small{color:#8d8197}
 .neighbors .chip{flex-basis:76px;width:76px}
 .neighbors .chip svg{width:48px}
 .neighbors .chip span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1729,18 +1732,20 @@ function renderDress(){
 // 이웃 칩 (꾸미기의 Trick or treat 카드 · 이웃집 찾아가기 창에서 같이 써요)
 function renderNeighborChips(nb, onPick){
   const keepN = nb.scrollLeft; nb.innerHTML = "";
-  const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (gaveToday(a[0], myId) - gaveToday(b[0], myId)) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
+  // 오늘 더 못 가는 집(사탕 받음 · 이미 두드림)은 회색으로 뒤쪽에
+  const usedToday = id => gaveToday(id, myId) || !!(players[id].knocks && players[id].knocks[myId] === today());
+  const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (usedToday(a[0]) - usedToday(b[0])) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
   if (!others.length) nb.innerHTML = '<p class="muted" style="margin:0">아직 다른 참가자가 없어요.</p>';
   others.forEach(([id, p]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "chip";
     b.setAttribute("aria-pressed", nb.id === "neighbors" && pickedNeighbor === id);
     b.innerHTML = lookSVG(p, id) + "<span></span><small></small><small class=\"visits\"></small>";
     b.querySelector("span").textContent = p.nick;
-    const done = gaveToday(id, myId), n = visitTimes(myId, id);
-    b.querySelector("small").textContent = done ? "오늘 받음 ✓" : p.code + "호";
+    const done = gaveToday(id, myId), wait = !done && usedToday(id), n = visitTimes(myId, id);
+    b.querySelector("small").textContent = done ? "오늘 받음 ✓" : wait ? "대기중..." : p.code + "호";
     b.querySelector(".visits").textContent = n ? `${n}번 방문` : "첫 방문";
-    if (done) b.classList.add("locked");
-    b.onclick = () => { if (done) { toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; } onPick(id, p); };
+    if (done || wait) b.classList.add("used");
+    b.onclick = () => { if (done) { toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; } if (wait) { toast(`오늘은 이미 ${p.nick}네 문을 두드렸어요. 문을 열어줄 때까지 기다려요!`); return; } onPick(id, p); };
     nb.appendChild(b);
   });
   nb.scrollLeft = keepN;
