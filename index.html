@@ -160,6 +160,23 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .tour-dots{font-size:.85rem;color:var(--paper-muted)}
 .tour-row button{font-size:.95rem;padding:.45em 1em}
 .tour-row .tour-skip{background:none;box-shadow:none;border:0;color:var(--paper-muted);text-decoration:underline;padding:.45em .4em}
+.map-btn{display:block;width:100%;margin:0 0 .7em;padding:.55em 1em;font-size:1rem;background:#ffe2b8;color:var(--brown);border:3px solid var(--brown);border-radius:14px;box-shadow:0 3px 0 var(--brown)}
+.map-title{text-align:center;margin:.1em 0 0;color:#fff3c4}
+.map-sub{text-align:center;margin:.2em 0 .6em;color:#d9c8ea;font-size:.9rem}
+.map-count{color:#d9c8ea;font-size:.9rem}
+.village{position:relative;margin:0 -18px;overflow:hidden;background:linear-gradient(#3f6b45,#2f5537);border-top:4px solid var(--brown);border-bottom:4px solid var(--brown)}
+.village .vroad{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.village .vdeco{position:absolute;font-size:22px;pointer-events:none;opacity:.9}
+.vh{position:absolute;width:150px;text-align:center}
+.vh .vhouse{width:110px;height:auto;display:block;margin:0 auto}
+.vh .vch{position:absolute;width:58px;top:34px;z-index:1}
+.vh .vch .ch{width:58px;height:auto}
+.vh.left .vch{right:-22px}.vh.right .vch{left:-22px}
+.vh .vplate{display:block;width:fit-content;margin:-4px auto 0;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vh .vplate small{display:block;font-family:inherit;font-size:.75rem;color:var(--paper-muted)}
+.vh button{display:block;margin:5px auto 0;font-size:.85rem;padding:.35em .9em}
+.vh.mine .vplate{background:#fff3c4}
+.vh .vdone{display:block;margin-top:5px;font-size:.8rem;color:#fff3c4}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -482,6 +499,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <button class="big soft-orange" id="btn-badges">🏅 히든 미션 뱃지 보기 <small id="badge-count"></small></button>
   </section>
 
+  <!-- 마을 지도 -->
+  <section class="view" id="v-map">
+    <div class="topbar"><button class="ghost" id="btn-map-back">← 돌아가기</button><span class="map-count" id="map-count"></span></div>
+    <h2 class="map-title">🎃 할로윈 마을</h2>
+    <p class="map-sub">길을 따라 내려가며 이웃집을 구경해요</p>
+    <div class="village" id="village"></div>
+  </section>
+
   <!-- 갤러리 -->
   <section class="view" id="v-gallery">
     <div class="topbar"><button class="ghost" id="btn-gallery-back">← 우리 집으로</button><span></span></div>
@@ -578,6 +603,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   <div class="sheet-bg" id="sheet-find" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sf-title">
       <div class="sheet-head"><h2 id="sf-title">이웃집 찾아가기</h2><button class="ghost" data-close>닫기</button></div>
+      <button class="map-btn" id="btn-map">🗺️ 마을 지도 보기</button>
       <p class="muted find-label">이웃을 골라 바로 찾아가요</p>
       <div class="scroller neighbors" id="find-neighbors"></div>
       <p class="muted find-label">또는 받은 집번호 입력</p>
@@ -1027,6 +1053,8 @@ const isBeggar = p => !!p && (p.char || "cat") === "cat" && p.costume === "begga
 const receiveFor = p => isBeggar(p) ? EARN.beggar : EARN.receive;
 const ownsFx = (p, e) => e === "none" || granted(p, "fx:" + e) || !!(p && p.owned && p.owned["e:" + e]);
 const fxOf = p => p && p.effect && p.effect !== "none" && ownsFx(p, p.effect) ? p.effect : "none";
+// 다른 사람 캐릭터 미리보기: 코스튬 + 별이 + 쓰고 있는 효과까지
+const lookSVG = (p, id, side = "r") => withFx(withStar(charSVG(p.char, p.costume, p.nick), { costume: p.costume, star: starOn(p, id) }, side), fxOf(p));
 const isFlyBeggar = p => isBeggar(p) && fxOf(p) === "fly";
 // 오늘 a가 b에게 준 사탕 기록 (없으면 null)
 function todayGift(a, b){
@@ -1290,7 +1318,7 @@ function renderHome(){
   if (!gs.length) box.innerHTML = '<p class="muted">아직 아무도 문을 두드리지 않았어요.</p>';
   gs.forEach(g => {
     const row = document.createElement("div"); row.className = "guest";
-    row.innerHTML = `<span>${charSVG(g.char, g.costume, g.nick)}</span><span><b></b><span class="gm"></span></span>`;
+    row.innerHTML = `<span>${lookSVG(g, g.id)}</span><span><b></b><span class="gm"></span></span>`;
     row.querySelector("b").textContent = g.nick;
     row.querySelector(".gm").textContent = `${g.code}호`;
     const b = document.createElement("button"); b.className = "green"; b.textContent = "문 열기";
@@ -1316,12 +1344,12 @@ function mailItems(){
     const o = v && typeof v === "object" ? v : {}, n = gotOf({ b: !!o.b, sl: !!o.sl }), nm = p.nick + josa(p.nick, "이", "가");
     const text = o.f ? (o.l ? `${nm} 호의를 베풀어 문을 열어줬어요 🍀` : `${p.nick}네 누적 사탕 1개를 뺏었어요 🪰`)
       : `${nm} 문을 열어줬어요!${o.sl && n > gotOf({ b: !!o.b }) ? " ✨" : ""}`;
-    out.push({ t: giftTime(v), p, text, sub: `사탕 +${n}` });
+    out.push({ t: giftTime(v), p, id: g, text, sub: `사탕 +${n}` });
   });
   Object.entries(players).forEach(([id, p]) => {
     if (id === myId || !p.shoo || p.shoo[myId] == null) return;
     const t = (p.shooAt && p.shooAt[myId]) || p.shoo[myId] * 86400e3 - 9 * 3600e3;
-    out.push({ t, p, text: `${p.nick}${josa(p.nick, "이", "가")} 문을 안 열어줬어요… 🧹`, sub: "쫓겨났어요. 내일 다시 가 봐요!" });
+    out.push({ t, p, id, text: `${p.nick}${josa(p.nick, "이", "가")} 문을 안 열어줬어요… 🧹`, sub: "쫓겨났어요. 내일 다시 가 봐요!" });
   });
   return out.sort((a, b) => b.t - a.t).slice(0, 60);
 }
@@ -1341,7 +1369,7 @@ function openMail(){
   box.innerHTML = list.length ? "" : '<p class="muted">아직 소식이 없어요. 친구네 문을 두드려 보세요!</p>';
   list.forEach(m => {
     const row = document.createElement("div"); row.className = "mail" + (m.t > last ? " new" : "");
-    row.innerHTML = `<span>${charSVG(m.p.char, m.p.costume, m.p.nick)}</span><span><b></b><small></small></span>`;
+    row.innerHTML = `<span>${lookSVG(m.p, m.id)}</span><span><b></b><small></small></span>`;
     row.querySelector("b").textContent = m.text;
     row.querySelector("small").textContent = `${mailWhen(m.t)} · ${m.sub}`;
     box.appendChild(row);
@@ -1433,7 +1461,7 @@ function showNews(guests, mails){
     head(`🔔 문 앞에서 기다리는 친구 ${guests.length}명`);
     guests.slice(0, 5).forEach(g => {
       const row = document.createElement("div"); row.className = "guest";
-      row.innerHTML = `<span>${charSVG(g.char, g.costume, g.nick)}</span><span><b></b><span class="gm"></span></span>`;
+      row.innerHTML = `<span>${lookSVG(g, g.id)}</span><span><b></b><span class="gm"></span></span>`;
       row.querySelector("b").textContent = g.nick; row.querySelector(".gm").textContent = "똑똑! 문을 열어 주세요";
       const b = document.createElement("button"); b.className = "green"; b.textContent = "문 열기";
       b.onclick = () => { markNewsSeen(); closeSheets(); knockCode = g.code; openDoor(); };
@@ -1445,7 +1473,7 @@ function showNews(guests, mails){
     head(`📮 내가 놀러 간 집 소식 ${mails.length}개`);
     mails.slice(0, 5).forEach(m => {
       const row = document.createElement("div"); row.className = "mail new";
-      row.innerHTML = `<span>${charSVG(m.p.char, m.p.costume, m.p.nick)}</span><span><b></b><small></small></span>`;
+      row.innerHTML = `<span>${lookSVG(m.p, m.id)}</span><span><b></b><small></small></span>`;
       row.querySelector("b").textContent = m.text;
       row.querySelector("small").textContent = `${mailWhen(m.t)} · ${m.sub}`;
       box.appendChild(row);
@@ -1501,6 +1529,49 @@ function checkUpdates(){
   pushModal(() => showNotice("📢 업데이트 소식", "새로 나왔어요!", fresh.map(u => ({ title: u.title, text: u.text(), preview: u.preview() })),
     () => setMine({ seenUpdates: Object.fromEntries(fresh.map(u => [u.id, Date.now()])) })));
 }
+// ===== 마을 지도: 가입 순서대로 길 양쪽에 집이 생겨요 =====
+const hashOf = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const HOUSE_COLORS = [["#e0883a", "#7b3b1e"], ["#8f6cc0", "#3d2359"], ["#6fae6b", "#2f5537"], ["#d9645a", "#6b2a24"], ["#e6b84a", "#7a5418"], ["#5f8fc4", "#25406b"], ["#c47aa8", "#5e2a4c"]];
+function houseSVG(seed){
+  const [wall, roof] = HOUSE_COLORS[seed % HOUSE_COLORS.length], win = seed % 3 === 0;
+  return `<svg class="vhouse" viewBox="0 0 110 100" aria-hidden="true"><path d="M8 46 L55 8 L102 46Z" fill="${roof}" stroke="#2a1f33" stroke-width="4" stroke-linejoin="round"/>`
+    + `<rect x="18" y="42" width="74" height="54" rx="4" fill="${wall}" stroke="#2a1f33" stroke-width="4"/>`
+    + `<rect x="47" y="62" width="18" height="34" rx="8" fill="#5a3418" stroke="#2a1f33" stroke-width="3"/><circle cx="61" cy="80" r="2" fill="#ffd36b"/>`
+    + `<rect x="${win ? 25 : 72}" y="54" width="14" height="14" rx="3" fill="#ffd36b" stroke="#2a1f33" stroke-width="3"/>`
+    + (seed % 2 ? `<circle cx="${win ? 80 : 32}" cy="61" r="7" fill="#ffd36b" stroke="#2a1f33" stroke-width="3"/>` : "")
+    + `<rect x="74" y="16" width="10" height="18" fill="${roof}" stroke="#2a1f33" stroke-width="3"/></svg>`;
+}
+let mapFrom = null;
+function openMap(){ mapFrom = current; closeSheets(); show("map"); renderMap(); }
+function renderMap(){
+  const box = $("village"); box.innerHTML = "";
+  const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
+  $("map-count").textContent = `이웃 ${list.length}집`;
+  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 165, top = 30, H = top + list.length * ROW + 80;
+  box.style.height = H + "px";
+  const roadX = y => W / 2 + Math.sin(y / 170) * W * 0.07;
+  let d = `M${roadX(0)} 0`; for (let y = 20; y <= H; y += 20) d += ` L${roadX(y).toFixed(1)} ${y}`;
+  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#fff3c4" stroke-width="3" stroke-dasharray="12 14" fill="none"/></svg>`);
+  // 길가 장식
+  const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
+  for (let i = 0; i * 110 < H; i++) { const r = hashOf("deco" + i), y = 20 + i * 110 + (r % 40), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
+    box.insertAdjacentHTML("beforeend", `<span class="vdeco" style="left:${x}px;top:${y}px">${DECO_E[r % DECO_E.length]}</span>`); }
+  list.forEach(([id, p], i) => {
+    const r = hashOf(id), left = i % 2 === 0, y = top + i * ROW + (r % 34) - 10, cx = roadX(y + 60);
+    const x = left ? Math.max(14, cx - 52 - 150 - (r % 18)) : Math.min(W - 164, cx + 52 + ((r >> 3) % 18));
+    const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
+    el.style.left = x + "px"; el.style.top = y + "px";
+    el.innerHTML = houseSVG(r) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span><span class="vplate"><span class="nm"></span><small>${p.code}호</small></span>`;
+    el.querySelector(".nm").textContent = id === myId ? `${p.nick} (우리 집)` : p.nick;
+    if (id !== myId) {
+      if (me && gaveToday(id, myId)) { const s2 = document.createElement("span"); s2.className = "vdone"; s2.textContent = "오늘 받음 ✓"; el.appendChild(s2); }
+      else { const b = document.createElement("button"); b.className = "green"; b.textContent = "방문하기"; b.onclick = () => { knockCode = p.code; openDoor(); }; el.appendChild(b); }
+    }
+    box.appendChild(el);
+  });
+}
+$("btn-map").onclick = openMap;
+$("btn-map-back").onclick = () => mapFrom === "dress" ? goDress() : goHome();
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -1509,7 +1580,7 @@ function renderLeague(){
   list.forEach((p, i) => {
     if (p.n !== prev) { rank = i + 1; prev = p.n; }
     const li = document.createElement("li"); if (p.id === myId) li.className = "mine";
-    li.innerHTML = `<span class="rk">${rank === 1 && p.n > 0 ? "👑" : rank}</span><span class="lg-ch">${withStar(charSVG(p.char, p.costume, p.nick), { costume: p.costume, star: starOn(p, p.id) }, "r")}</span><span class="who"><b></b></span><span class="n">${p.n}</span>`;
+    li.innerHTML = `<span class="rk">${rank === 1 && p.n > 0 ? "👑" : rank}</span><span class="lg-ch">${lookSVG(p, p.id)}</span><span class="who"><b></b></span><span class="n">${p.n}</span>`;
     li.querySelector(".who b").textContent = p.nick;
     const st = (p.status || "").trim();
     if (st) { const say = document.createElement("span"), t = document.createElement("span"); say.className = "say"; t.textContent = st; say.title = st; say.appendChild(t); li.querySelector(".who").appendChild(say); }
@@ -1641,7 +1712,7 @@ function renderNeighborChips(nb, onPick){
   others.forEach(([id, p]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "chip";
     b.setAttribute("aria-pressed", nb.id === "neighbors" && pickedNeighbor === id);
-    b.innerHTML = charSVG(p.char, p.costume, p.nick) + "<span></span><small></small><small class=\"visits\"></small>";
+    b.innerHTML = lookSVG(p, id) + "<span></span><small></small><small class=\"visits\"></small>";
     b.querySelector("span").textContent = p.nick;
     const done = gaveToday(id, myId), n = visitTimes(myId, id);
     b.querySelector("small").textContent = done ? "오늘 받음 ✓" : p.code + "호";
@@ -2407,6 +2478,7 @@ function onData(){
   if (current === "register" && me && pendingNav === "dress") { pendingNav = null; if (knockCode) openDoor(); else goDress(); }
   else if (current === "home") renderHome();
   else if (current === "gallery") renderAlbum();
+  else if (current === "map") renderMap();
   else if (current === "dress") renderDress();
   else if (current === "admin") { renderAdmin(); if (!$("sheet-member").hidden) renderMember(); }
   else if (current === "door" && !previewMode) renderDoorActions();
