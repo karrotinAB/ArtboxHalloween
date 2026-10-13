@@ -609,7 +609,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   <div class="sheet-bg" id="sheet-find" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sf-title">
       <div class="sheet-head"><h2 id="sf-title">이웃집 찾아가기</h2><span class="row" style="flex-wrap:nowrap;gap:6px"><button class="ghost map-btn" id="btn-map">🗺️ 마을 지도</button><button class="ghost" data-close>닫기</button></span></div>
-      <p class="muted find-label">이웃을 골라 바로 찾아가요</p>
+      <p class="muted find-label">이웃을 누르면 바로 그 집 문을 두드려요</p>
       <div class="scroller neighbors" id="find-neighbors"></div>
       <p class="muted find-label">또는 받은 집번호 입력</p>
       <div class="findrow"><input id="code-in" maxlength="5" inputmode="numeric" placeholder="예: 207" aria-label="집번호"><button id="btn-code" class="green">찾아가기</button></div>
@@ -1585,7 +1585,7 @@ function renderMap(){
       // 오늘 문을 열어준 집: 방문완료! · 두드렸는데 아직 안 열어준 집: 대기중... · 나머지: 방문하기
       const b = document.createElement("button"), done = me && gaveToday(id, myId), wait = !done && p.knocks && p.knocks[myId] === today();
       b.className = done || wait ? "vwait" : "vgo"; b.textContent = done ? "방문완료!" : wait ? "대기중..." : "방문하기";
-      b.onclick = () => { if (done) toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); else { knockCode = p.code; openDoor(); } };
+      b.onclick = () => knockOn(id, b);
       el.appendChild(b);
     }
     box.appendChild(el);
@@ -1647,7 +1647,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(
 $("btn-bell").onclick = () => openSheet("sheet-guests");
 $("btn-mail").onclick = openMail;
 $("bell-talk").onclick = () => openSheet("sheet-guests");
-$("btn-find").onclick = () => { renderNeighborChips($("find-neighbors"), (id, p) => { knockCode = p.code; closeSheets(); openDoor(); }); openSheet("sheet-find"); };
+$("btn-find").onclick = () => { renderNeighborChips($("find-neighbors"), async id => { if (await knockOn(id)) closeSheets(); }); openSheet("sheet-find"); };
 $("code-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-code").click(); });
 $("btn-code").onclick = () => {
   const c = $("code-in").value.trim().replace(/호$/, "").toUpperCase();
@@ -2026,19 +2026,22 @@ async function setMine(patch){
 }
 $("btn-home").onclick = goHome;
 $("btn-star").onclick = () => { if (freeMode) { freeStar = !freeStar; renderDress(); } else setMine({ withStar: me.withStar === false }); };
-$("btn-knock").onclick = async () => {
-  const t = players[pickedNeighbor];
-  if (!t) { toast("누구네 문을 두드릴지 골라 주세요"); return; }
-  if (gaveToday(pickedNeighbor, myId)) { toast(`오늘은 ${t.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return; }
-  if (t.knocks && t.knocks[myId] === today()) { toast(`오늘은 이미 ${t.nick}네 문을 두드렸어요`); return; }
-  $("btn-knock").disabled = true;
+// 친구네 문 두드리기 (꾸미기의 똑똑 두드리기 · 이웃집 찾아가기 · 마을 지도에서 같이 써요)
+async function knockOn(id, btn){
+  const t = players[id];
+  if (!t) { toast("누구네 문을 두드릴지 골라 주세요"); return false; }
+  if (gaveToday(id, myId)) { toast(`오늘은 ${t.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return false; }
+  if (t.knocks && t.knocks[myId] === today()) { toast(`오늘은 이미 ${t.nick}네 문을 두드렸어요`); return false; }
+  if (btn) btn.disabled = true;
   try {
-    await db.doc("players/" + pickedNeighbor).update({ knocks: { [myId]: today() } });
-    db.doc("players/" + myId).update({ visits: { [pickedNeighbor]: { [today()]: true } } }).catch(() => {});
+    await db.doc("players/" + id).update({ knocks: { [myId]: today() } });
+    db.doc("players/" + myId).update({ visits: { [id]: { [today()]: true } } }).catch(() => {});
     toast(`똑똑똑! ${t.nick}네 문 앞에 도착했어요`);
-  } catch { toast("문을 두드리지 못했어요. 다시 눌러 주세요."); }
-  finally { $("btn-knock").disabled = false; }
-};
+    return true;
+  } catch { toast("문을 두드리지 못했어요. 다시 눌러 주세요."); return false; }
+  finally { if (btn) btn.disabled = false; }
+}
+$("btn-knock").onclick = () => knockOn(pickedNeighbor, $("btn-knock"));
 $("btn-share").onclick = () => {
   $("share-text").value = `🎃 똑똑똑! ${me.nick}이(가) 사탕 받으러 왔어요.\n${APP_URL}?knock=${me.code}\n우리 집 번호: ${me.code}호 (링크가 안 열리면 앱 홈의 '이웃집 찾아가기' 표지판에 입력해 주세요)`;
   $("share-box").classList.add("on");
