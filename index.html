@@ -168,15 +168,17 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .village .vroad{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .village .vdeco{position:absolute;font-size:22px;pointer-events:none;opacity:.9}
 .vh{position:absolute;width:150px;text-align:center}
-.vh .vhouse{width:110px;height:auto;display:block;margin:0 auto}
-.vh .vch{position:absolute;width:58px;top:34px;z-index:1}
+.vh .vhouse{width:132px;height:auto;display:block;margin:0 auto}
+.vh button.vwait{background:#d4cbdc;color:#6d6278;box-shadow:0 4px 0 #a99db5}
+.vh .vch{position:absolute;width:58px;top:50px;z-index:1}
 .vh .vch .ch{width:58px;height:auto}
-.vh.left .vch{right:-22px}.vh.right .vch{left:-22px}
+.vh.left .vch{right:-14px}.vh.right .vch{left:-14px}
 .vh .vplate{display:block;width:fit-content;margin:-4px auto 0;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vh .vplate small{display:block;font-family:inherit;font-size:.75rem;color:var(--paper-muted)}
 .vh button{display:block;margin:5px auto 0;font-size:.85rem;padding:.35em .9em}
 .vh.mine .vplate{background:#fff3c4}
 .vh .vdone{display:block;margin-top:5px;font-size:.8rem;color:#fff3c4}
+.invite-bonus{color:#d9621b;font-weight:400;font-family:"Jua",sans-serif}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -651,7 +653,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="btn-knock" style="margin-top:6px">똑똑 두드리기</button>
       <p class="fit-note" id="tomorrow-note"><span>*내일 오면 같은 사람에게 또 사탕을 받을 수 있습니다!</span></p>
       <hr class="soft" style="margin:1.4em 0 1em">
-      <p class="muted">아직 참가하지 않은 동료에게는 링크를 보내요.</p>
+      <p class="muted">아직 참가하지 않은 동료에게는 링크를 보내요. <b class="invite-bonus" id="invite-bonus">내 링크로 들어오면 사탕 +7!</b></p>
       <button class="big" id="btn-share" style="margin-top:6px">링크 만들기</button>
       <div class="share-box" id="share-box">
         <textarea id="share-text" rows="4" readonly></textarea>
@@ -1031,7 +1033,7 @@ try { document.fonts.ready.then(fitNote); document.fonts.addEventListener("loadi
 let toastT; function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
 const PRICE_CHAR = { cat: 0, special: 0, boss: 0, monkey: 10 };
 const PRICE_COS = { none: 0, witch: 0, pband: 0, bat: 2, ghost: 4, vamp: 4, clown: 8, princess: 10, mwitch: 3, kawaii: 15, gws: 3, gamer: 5, surf: 7, beggar: 20, hanbok: 999 };
-const EARN = { receive: 2, give: 1, photo: 5, unlock: 1, beggar: 3, steal: 1, favor: 3, sparkle: 3 };
+const EARN = { invite: 7, receive: 2, give: 1, photo: 5, unlock: 1, beggar: 3, steal: 1, favor: 3, sparkle: 3 };
 // 효과: 캐릭터 주변에 떠다녀요. 파리 + 거지왹 = 사탕 받으러 간 집 누적 사탕 -1 (가끔 호의 보상)
 // 반짝이: 이걸 쓰고 사탕을 받으면 50% 확률로 받는 사탕이 EARN.sparkle개가 돼요
 const EFFECTS = [
@@ -1098,7 +1100,7 @@ const gotOf = x => Math.max(x.b ? EARN.beggar : EARN.receive, x.sl ? EARN.sparkl
 const receivedOf = (p, id) => giftList(p, id).reduce((n, x) => n + gotOf(x), 0);
 function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = key.slice(i + 1); return !!CHARS[c] && artCostumes(c).some(x => x.id === k); }
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
-function earnedOf(id){ const p = players[id]; return receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p); }
+function earnedOf(id){ const p = players[id]; return receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p) + EARN.invite * insiderCount(id); }
 function spentOf(p){
   return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : (PRICE_COS[b] || 0)); }, 0);
 }
@@ -1306,7 +1308,7 @@ function renderHome(){
   $("btn-status").classList.toggle("empty", !st);
   $("h-candy").textContent = balanceOf(myId);
   $("h-total").textContent = `누적 ${earnedOf(myId)}`;
-  $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}${EARN.unlock ? `<br>*새 코스튬을 열 때마다 +${EARN.unlock}` : ""}`;
+  $("rules").innerHTML = `누적 사탕 순위<br>사탕 받으면 +${EARN.receive}, 주면 +${EARN.give}<br>*처음 보는 코스튬과 사진 찍으면 +${EARN.photo}${EARN.unlock ? `<br>*새 코스튬을 열 때마다 +${EARN.unlock}` : ""}${EARN.invite ? `<br>*내 링크로 동료가 참가하면 +${EARN.invite}` : ""}`;
   $("h-char").innerHTML = withFx(withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l"), fxOf(me));
 
   const box = $("guests"); box.innerHTML = "";
@@ -1351,6 +1353,10 @@ function mailItems(){
     const t = (p.shooAt && p.shooAt[myId]) || p.shoo[myId] * 86400e3 - 9 * 3600e3;
     out.push({ t, p, id, text: `${p.nick}${josa(p.nick, "이", "가")} 문을 안 열어줬어요… 🧹`, sub: "쫓겨났어요. 내일 다시 가 봐요!" });
   });
+  Object.entries(players).forEach(([id, p]) => {
+    if (id === myId || p.invitedBy !== myId) return;
+    out.push({ t: p.createdAt || 0, p, id, text: `${p.nick}${josa(p.nick, "이", "가")} 내 링크로 들어왔어요! 🎉`, sub: `초대 보너스 사탕 +${EARN.invite}` });
+  });
   return out.sort((a, b) => b.t - a.t).slice(0, 60);
 }
 const mailUnread = () => mailItems().filter(m => m.t > (me && me.mailSeen || 0)).length;
@@ -1382,7 +1388,7 @@ const TOUR = [
   { view: "dress", sel: ".stage", title: "환영해요! 🎃", text: "여기는 꾸미기 화면이에요. 친구 집에 놀러 갈 때 내 캐릭터가 이 모습으로 가요." },
   { view: "dress", sel: "#closet", card: true, title: "옷장 👗", text: "코스튬을 골라 입어요. 사탕을 모아서 새 코스튬도 열 수 있어요!" },
   { view: "dress", sel: "#neighbors", card: true, title: "친구네 놀러 가기 🚪", text: "친구를 고르고 똑똑 두드리기! 친구가 문을 열어주면 사탕 +2 🍬 같은 친구네는 하루에 한 번씩 갈 수 있어요." },
-  { view: "dress", sel: "#btn-share", title: "링크 만들기 🔗", text: "아직 참가하지 않은 동료에게 보낼 초대 링크를 만들어요. 복사해서 메신저로 보내면, 링크를 누른 동료가 참가 등록하고 바로 우리 집 문 앞으로 와요!" },
+  { view: "dress", sel: "#btn-share", title: "링크 만들기 🔗", text: "아직 참가하지 않은 동료에게 보낼 초대 링크를 만들어요. 링크로 동료가 참가하면 사탕 +7! 🍬 링크를 누른 동료는 바로 우리 집 문 앞으로 와요." },
   { view: "dress", sel: "#btn-home", title: "우리 집으로 🏠", text: "누르면 내 집(홈)으로 가요. 초인종과 우편함이 거기 있어요. 같이 가 볼까요?" },
   { view: "home", sel: "#btn-bell", title: "초인종 🔔", text: "친구가 우리 집 문을 두드리면 숫자가 떠요. 눌러서 문을 열고 사탕을 주면 나도 +1!" },
   { view: "home", sel: "#btn-mail", title: "우편함 📮", text: "내가 놀러 간 집에서 문을 열어줬는지 여기서 확인해요. 빨간 ❗가 뜨면 새 소식이에요." },
@@ -1488,6 +1494,8 @@ $("nw-ok").onclick = nextModal;
 // 새로 나온 것만 여기에 추가해요 (id는 한 번 정하면 바꾸지 않기). 이미 본 건 내 문서 seenUpdates에 기록돼요.
 const UPDATES = [
   { id: "sparkle", title: "새 효과 '반짝이' ✨", text: () => `사탕 ${PRICE_FX.sparkle}개로 열 수 있어요. 쓰고 사탕을 받으면 50% 확률로 사탕 ${EARN.sparkle}개!`, preview: () => withFx(charSVG(me.char, me.costume, "반짝이"), "sparkle") },
+  { id: "map", title: "마을 지도가 생겼어요 🗺️", text: () => "홈의 표지판(이웃집 찾아가기)에서 '마을 지도 보기'를 눌러 보세요. 길을 따라 모든 이웃집을 구경하고 바로 방문할 수 있어요!", preview: () => doorSVG(me.code, 1, true) },
+  { id: "invite7", title: () => `친구 초대하면 사탕 ${EARN.invite}개! 🍬`, text: () => `꾸미기 화면의 '링크 만들기'로 만든 링크로 동료가 참가하면 사탕 ${EARN.invite}개를 받아요.`, preview: () => `<span style="font-size:64px;line-height:1">🍬</span>` },
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
 ];
 let noticeDone = null;
@@ -1526,20 +1534,21 @@ function checkUpdates(){
   if (!me) return;
   const seen = me.seenUpdates || {}, fresh = UPDATES.filter(u => !seen[u.id]);
   if (!fresh.length) return;
-  pushModal(() => showNotice("📢 업데이트 소식", "새로 나왔어요!", fresh.map(u => ({ title: u.title, text: u.text(), preview: u.preview() })),
+  pushModal(() => showNotice("📢 업데이트 소식", "새로 나왔어요!", fresh.map(u => ({ title: typeof u.title === "function" ? u.title() : u.title, text: u.text(), preview: u.preview() })),
     () => setMine({ seenUpdates: Object.fromEntries(fresh.map(u => [u.id, Date.now()])) })));
 }
 // ===== 마을 지도: 가입 순서대로 길 양쪽에 집이 생겨요 =====
 const hashOf = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
-const HOUSE_COLORS = [["#e0883a", "#7b3b1e"], ["#8f6cc0", "#3d2359"], ["#6fae6b", "#2f5537"], ["#d9645a", "#6b2a24"], ["#e6b84a", "#7a5418"], ["#5f8fc4", "#25406b"], ["#c47aa8", "#5e2a4c"]];
-function houseSVG(seed){
-  const [wall, roof] = HOUSE_COLORS[seed % HOUSE_COLORS.length], win = seed % 3 === 0;
-  return `<svg class="vhouse" viewBox="0 0 110 100" aria-hidden="true"><path d="M8 46 L55 8 L102 46Z" fill="${roof}" stroke="#2a1f33" stroke-width="4" stroke-linejoin="round"/>`
-    + `<rect x="18" y="42" width="74" height="54" rx="4" fill="${wall}" stroke="#2a1f33" stroke-width="4"/>`
-    + `<rect x="47" y="62" width="18" height="34" rx="8" fill="#5a3418" stroke="#2a1f33" stroke-width="3"/><circle cx="61" cy="80" r="2" fill="#ffd36b"/>`
-    + `<rect x="${win ? 25 : 72}" y="54" width="14" height="14" rx="3" fill="#ffd36b" stroke="#2a1f33" stroke-width="3"/>`
-    + (seed % 2 ? `<circle cx="${win ? 80 : 32}" cy="61" r="7" fill="#ffd36b" stroke="#2a1f33" stroke-width="3"/>` : "")
-    + `<rect x="74" y="16" width="10" height="18" fill="${roof}" stroke="#2a1f33" stroke-width="3"/></svg>`;
+// 집 그림: 우리 집처럼 아치형 문 + 집번호 + 덤불 + 작은 우편함
+function doorSVG(code, seed, mailLeft){
+  const W = "#e0883a", L = "#c46f28", B = "#3c1a10";
+  const bush = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" stroke="${B}" stroke-width="3.5"><circle cx="-10" cy="4" r="11" fill="#4f8a4a"/><circle cx="10" cy="4" r="11" fill="#4f8a4a"/><circle cx="0" cy="-6" r="13" fill="#6fae6b"/></g>`;
+  const mx = mailLeft ? 4 : 104;
+  const mail = `<g transform="translate(${mx} 62)"><rect x="13" y="20" width="5" height="34" rx="1.5" fill="${B}"/><rect x="${mailLeft ? 24 : 2}" y="-2" width="3" height="14" fill="${B}"/><path d="M${mailLeft ? 25 : 3} -2 H${mailLeft ? 33 : 11} V5 H${mailLeft ? 25 : 3}Z" fill="#e8392e" stroke="${B}" stroke-width="2"/><path d="M2 24 V10 Q2 2 10 2 H22 Q30 2 30 10 V24Z" fill="#e0883a" stroke="${B}" stroke-width="3" stroke-linejoin="round"/><path d="M2 24 V10 Q2 2 10 2 Q18 2 18 10 V24" fill="#f2a65a" stroke="${B}" stroke-width="3" stroke-linejoin="round"/></g>`;
+  const planks = [52, 62, 72, 82, 92].map(x => `<line x1="${x}" y1="${x < 62 || x > 82 ? 22 : 12}" x2="${x}" y2="118" stroke="${L}" stroke-width="2"/>`).join("");
+  return `<svg class="vhouse" viewBox="0 0 140 122" aria-hidden="true"><path d="M42 120 V42 A30 30 0 0 1 102 42 V120Z" fill="${W}"/>${planks}<path d="M42 120 V42 A30 30 0 0 1 102 42 V120" fill="none" stroke="${B}" stroke-width="5" stroke-linejoin="round"/>`
+    + `<circle cx="72" cy="36" r="11" fill="#ffcf6e" stroke="${B}" stroke-width="4"/><rect x="55" y="56" width="34" height="15" rx="4" fill="#ffc53d" stroke="${B}" stroke-width="3"/><text x="72" y="67.5" text-anchor="middle" font-family="Jua, sans-serif" font-size="10" fill="${B}">${code}</text><circle cx="93" cy="88" r="3.6" fill="#ffc53d" stroke="${B}" stroke-width="2"/>`
+    + `<rect x="30" y="117" width="84" height="5" rx="2" fill="${B}"/>` + mail + bush(mailLeft ? 116 : 22, 108, seed % 2 ? 1 : 0.85) + (seed % 3 ? bush(mailLeft ? 40 : 102, 112, 0.6) : "") + `</svg>`;
 }
 let mapFrom = null;
 function openMap(){ mapFrom = current; closeSheets(); show("map"); renderMap(); }
@@ -1561,11 +1570,14 @@ function renderMap(){
     const x = left ? Math.max(14, cx - 52 - 150 - (r % 18)) : Math.min(W - 164, cx + 52 + ((r >> 3) % 18));
     const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
     el.style.left = x + "px"; el.style.top = y + "px";
-    el.innerHTML = houseSVG(r) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span><span class="vplate"><span class="nm"></span><small>${p.code}호</small></span>`;
+    el.innerHTML = doorSVG(p.code, r, left) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span><span class="vplate"><span class="nm"></span></span>`;
     el.querySelector(".nm").textContent = id === myId ? `${p.nick} (우리 집)` : p.nick;
     if (id !== myId) {
-      if (me && gaveToday(id, myId)) { const s2 = document.createElement("span"); s2.className = "vdone"; s2.textContent = "오늘 받음 ✓"; el.appendChild(s2); }
-      else { const b = document.createElement("button"); b.className = "green"; b.textContent = "방문하기"; b.onclick = () => { knockCode = p.code; openDoor(); }; el.appendChild(b); }
+      // 오늘 문을 열어준 집: 방문완료! · 두드렸는데 아직 안 열어준 집: 대기중... · 나머지: 방문하기
+      const b = document.createElement("button"), done = me && gaveToday(id, myId), wait = !done && p.knocks && p.knocks[myId] === today();
+      b.className = done || wait ? "vwait" : "green"; b.textContent = done ? "방문완료!" : wait ? "대기중..." : "방문하기";
+      b.onclick = () => { if (done) toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); else { knockCode = p.code; openDoor(); } };
+      el.appendChild(b);
     }
     box.appendChild(el);
   });
@@ -1649,6 +1661,7 @@ function renderDress(){
   $("btn-star").textContent = starPref ? "켜짐" : "꺼짐"; $("btn-star").setAttribute("aria-checked", starPref);
   $("star-note").textContent = look.char !== "cat" ? "게왹이일 때만 함께 나와요" : freeMode ? "미리보기 · 저장되지 않아요" : "문 앞과 사진에 같이 나와요";
   $("d-candy").textContent = bal;
+  $("invite-bonus").textContent = `내 링크로 들어오면 사탕 +${EARN.invite}!`;
 
   const cc = $("char-chips"); cc.innerHTML = "";
   Object.entries(CHARS).forEach(([k, c]) => {
@@ -1915,7 +1928,7 @@ function renderAdmin(){
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#adm-prices")) return;
   const box = $("adm-prices"); box.innerHTML = "";
   const row = (label, key, val) => `<label class="price-row"><span>${esc(label)}</span><input type="number" min="0" max="999" inputmode="numeric" data-key="${key}" value="${val}"></label>`;
-  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}${row("거지왹을 입고 받으면", "earn.beggar", EARN.beggar)}${row("파리 거지왹에게 주면 잃는 사탕", "earn.steal", EARN.steal)}${row("호의 보상 (가끔)", "earn.favor", EARN.favor)}${row("반짝이 당첨되면 받는 사탕 (50%)", "earn.sparkle", EARN.sparkle)}</div>`;
+  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}${row("거지왹을 입고 받으면", "earn.beggar", EARN.beggar)}${row("파리 거지왹에게 주면 잃는 사탕", "earn.steal", EARN.steal)}${row("호의 보상 (가끔)", "earn.favor", EARN.favor)}${row("반짝이 당첨되면 받는 사탕 (50%)", "earn.sparkle", EARN.sparkle)}${row("내 링크로 친구가 참가하면", "earn.invite", EARN.invite)}</div>`;
   html += `<div class="price-group"><h3>캐릭터 열기</h3>${Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0)).join("")}</div>`;
   html += `<div class="price-group"><h3>효과</h3>${EFFECTS.filter(e => e.id !== "none").map(e => row(e.name, "fx." + e.id, PRICE_FX[e.id] || 0)).join("")}</div>`;
   Object.entries(CHARS).filter(([, c]) => !c.adminOnly).forEach(([k, c]) => {
