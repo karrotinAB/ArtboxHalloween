@@ -176,7 +176,7 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .vh .vch{position:absolute;width:58px;top:84px;z-index:1}
 .vh .vch .ch{width:58px;height:auto}
 .vh.left .vch{left:62px}.vh.right .vch{left:30px}
-.vh .vplate{display:block;width:fit-content;margin:0 auto 2px;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vh .vplate{display:block;width:fit-content;margin:0 auto -9px;position:relative;z-index:2;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vh .vplate small{display:block;font-family:inherit;font-size:.75rem;color:var(--paper-muted)}
 .vh button{display:block;margin:22px auto 0;font-size:.85rem;padding:.35em .9em;position:relative;z-index:2}
 .vh button.vgo{background:#f0983a;color:#3c1a10;box-shadow:0 4px 0 #b8611c}
@@ -1561,16 +1561,17 @@ function renderMap(){
   $("map-count").textContent = `이웃 ${list.length}집`;
   const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 165, top = 16, H = top + list.length * ROW + 150;
   box.style.height = H + "px";
-  const roadX = y => W / 2 + Math.sin(y / 170) * W * 0.07;
+  const roadX = y => W / 2 + Math.sin(y / 120) * W * 0.12 + Math.sin(y / 47) * W * 0.025;
   // 집 자리 먼저 정하고 (문 앞까지 이어지는 오솔길도 같이 그려요)
   const spots = list.map(([id, p], i) => {
-    const r = hashOf(id), left = i % 2 === 0, y = top + i * ROW + (r % 30) - 8, cx = roadX(y + 140);
-    const x = left ? Math.max(6, cx - 44 - 150 - (r % 16)) : Math.min(W - 156, cx + 44 + ((r >> 3) % 16));
+    const r = hashOf(id), left = i % 2 === 0, y = top + i * ROW + (r % 30) - 8;
+    // 집이 길과 겹치지 않게: 집 높이 동안 길이 가장 가까이 오는 곳 기준
+    let lo = 1e9, hi = -1e9; for (let t = y; t <= y + 190; t += 10) { const v = roadX(t); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    const x = left ? Math.max(4, lo - 34 - 150 - (r % 12)) : Math.min(W - 154, hi + 34 + ((r >> 3) % 12));
     return { id, p, r, left, x, y, doorX: x + 77, doorY: y + 141 };
   });
   let d = `M${roadX(0)} 0`; for (let y = 20; y <= H; y += 20) d += ` L${roadX(y).toFixed(1)} ${y}`;
-  const walks = spots.map(o => `M${roadX(o.doorY).toFixed(1)} ${o.doorY + 4} Q${((roadX(o.doorY) + o.doorX) / 2).toFixed(1)} ${o.doorY + 14} ${o.doorX} ${o.doorY}`).join(" ");
-  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${walks}" stroke="#2a1f33" stroke-width="22" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${walks}" stroke="#c9a46b" stroke-width="15" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/></svg>`);
+  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/></svg>`);
   // 길가 장식
   const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
   for (let i = 0; i * 220 < H; i++) { const r = hashOf("deco" + i), y = 60 + i * 220 + (r % 60), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
