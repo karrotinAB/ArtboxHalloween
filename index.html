@@ -170,12 +170,13 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .vh{position:absolute;width:150px;text-align:center}
 .vh .vhouse{width:132px;height:auto;display:block;margin:0 auto}
 .vh button.vwait{background:#d4cbdc;color:#6d6278;box-shadow:0 4px 0 #a99db5}
-.vh .vch{position:absolute;width:58px;top:50px;z-index:1}
+.vh .vch{position:absolute;width:58px;top:84px;z-index:1}
 .vh .vch .ch{width:58px;height:auto}
-.vh.left .vch{right:-14px}.vh.right .vch{left:-14px}
-.vh .vplate{display:block;width:fit-content;margin:-4px auto 0;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vh.left .vch{left:88px}.vh.right .vch{left:4px}
+.vh .vplate{display:block;width:fit-content;margin:0 auto 2px;background:var(--paper);color:var(--brown);border:2.5px solid var(--brown);border-radius:12px;padding:.1em .6em;font-family:"Jua",sans-serif;font-size:.95rem;line-height:1.3;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vh .vplate small{display:block;font-family:inherit;font-size:.75rem;color:var(--paper-muted)}
-.vh button{display:block;margin:5px auto 0;font-size:.85rem;padding:.35em .9em}
+.vh button{display:block;margin:22px auto 0;font-size:.85rem;padding:.35em .9em;position:relative;z-index:2}
+.vh button.vgo{background:#f0983a;color:#3c1a10;box-shadow:0 4px 0 #b8611c}
 .vh.mine .vplate{background:#fff3c4}
 .vh .vdone{display:block;margin-top:5px;font-size:.8rem;color:#fff3c4}
 .invite-bonus{color:#d9621b;font-weight:400;font-family:"Jua",sans-serif}
@@ -1556,26 +1557,31 @@ function renderMap(){
   const box = $("village"); box.innerHTML = "";
   const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
   $("map-count").textContent = `이웃 ${list.length}집`;
-  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 165, top = 30, H = top + list.length * ROW + 80;
+  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 118, top = 16, H = top + list.length * ROW + 150;
   box.style.height = H + "px";
   const roadX = y => W / 2 + Math.sin(y / 170) * W * 0.07;
+  // 집 자리 먼저 정하고 (문 앞까지 이어지는 오솔길도 같이 그려요)
+  const spots = list.map(([id, p], i) => {
+    const r = hashOf(id), left = i % 2 === 0, y = top + i * ROW + (r % 30) - 8, cx = roadX(y + 140);
+    const x = left ? Math.max(6, cx - 44 - 150 - (r % 16)) : Math.min(W - 156, cx + 44 + ((r >> 3) % 16));
+    return { id, p, r, left, x, y, doorX: x + 77, doorY: y + 141 };
+  });
   let d = `M${roadX(0)} 0`; for (let y = 20; y <= H; y += 20) d += ` L${roadX(y).toFixed(1)} ${y}`;
-  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#fff3c4" stroke-width="3" stroke-dasharray="12 14" fill="none"/></svg>`);
+  const walks = spots.map(o => `M${roadX(o.doorY).toFixed(1)} ${o.doorY + 4} Q${((roadX(o.doorY) + o.doorX) / 2).toFixed(1)} ${o.doorY + 14} ${o.doorX} ${o.doorY}`).join(" ");
+  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${walks}" stroke="#2a1f33" stroke-width="22" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${walks}" stroke="#c9a46b" stroke-width="15" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/></svg>`);
   // 길가 장식
   const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
   for (let i = 0; i * 110 < H; i++) { const r = hashOf("deco" + i), y = 20 + i * 110 + (r % 40), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
     box.insertAdjacentHTML("beforeend", `<span class="vdeco" style="left:${x}px;top:${y}px">${DECO_E[r % DECO_E.length]}</span>`); }
-  list.forEach(([id, p], i) => {
-    const r = hashOf(id), left = i % 2 === 0, y = top + i * ROW + (r % 34) - 10, cx = roadX(y + 60);
-    const x = left ? Math.max(14, cx - 52 - 150 - (r % 18)) : Math.min(W - 164, cx + 52 + ((r >> 3) % 18));
+  spots.forEach(({ id, p, r, left, x, y }) => {
     const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
     el.style.left = x + "px"; el.style.top = y + "px";
-    el.innerHTML = doorSVG(p.code, r, left) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span><span class="vplate"><span class="nm"></span></span>`;
+    el.innerHTML = `<span class="vplate"><span class="nm"></span></span>` + doorSVG(p.code, r, left) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span>`;
     el.querySelector(".nm").textContent = id === myId ? `${p.nick} (우리 집)` : p.nick;
     if (id !== myId) {
       // 오늘 문을 열어준 집: 방문완료! · 두드렸는데 아직 안 열어준 집: 대기중... · 나머지: 방문하기
       const b = document.createElement("button"), done = me && gaveToday(id, myId), wait = !done && p.knocks && p.knocks[myId] === today();
-      b.className = done || wait ? "vwait" : "green"; b.textContent = done ? "방문완료!" : wait ? "대기중..." : "방문하기";
+      b.className = done || wait ? "vwait" : "vgo"; b.textContent = done ? "방문완료!" : wait ? "대기중..." : "방문하기";
       b.onclick = () => { if (done) toast(`오늘은 ${p.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); else { knockCode = p.code; openDoor(); } };
       el.appendChild(b);
     }
