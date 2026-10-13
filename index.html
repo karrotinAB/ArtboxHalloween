@@ -160,7 +160,7 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .tour-dots{font-size:.85rem;color:var(--paper-muted)}
 .tour-row button{font-size:.95rem;padding:.45em 1em}
 .tour-row .tour-skip{background:none;box-shadow:none;border:0;color:var(--paper-muted);text-decoration:underline;padding:.45em .4em}
-.map-btn{display:block;width:100%;margin:0 0 .7em;padding:.55em 1em;font-size:1rem;background:#ffe2b8;color:var(--brown);border:3px solid var(--brown);border-radius:14px;box-shadow:0 3px 0 var(--brown)}
+button.ghost.map-btn{display:block;margin:0 0 .7em;background:#ffe2b8;border-color:#e8b97f;color:var(--brown)}
 .map-title{text-align:center;margin:.1em 0 0;color:#fff3c4}
 .map-sub{text-align:center;margin:.2em 0 .6em;color:#d9c8ea;font-size:.9rem}
 .map-count{color:#d9c8ea;font-size:.9rem}
@@ -179,7 +179,7 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .vh button.vgo{background:#f0983a;color:#3c1a10;box-shadow:0 4px 0 #b8611c}
 .vh.mine .vplate{background:#fff3c4}
 .vh .vdone{display:block;margin-top:5px;font-size:.8rem;color:#fff3c4}
-.invite-bonus{color:#d9621b;font-weight:400;font-family:"Jua",sans-serif}
+.invite-bonus{display:block;color:#d9621b;font-weight:400;font-family:"Jua",sans-serif}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -606,7 +606,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   <div class="sheet-bg" id="sheet-find" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sf-title">
       <div class="sheet-head"><h2 id="sf-title">이웃집 찾아가기</h2><button class="ghost" data-close>닫기</button></div>
-      <button class="map-btn" id="btn-map">🗺️ 마을 지도 보기</button>
+      <button class="ghost map-btn" id="btn-map">🗺️ 마을 지도</button>
       <p class="muted find-label">이웃을 골라 바로 찾아가요</p>
       <div class="scroller neighbors" id="find-neighbors"></div>
       <p class="muted find-label">또는 받은 집번호 입력</p>
