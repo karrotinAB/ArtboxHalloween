@@ -108,6 +108,16 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 #reg-msg{min-height:1.6em;margin-top:.8em}
 #btn-reg-cancel{display:none;margin:.6em auto 0}
 #v-register.edit #btn-reg-cancel{display:block}
+.mycode{display:none;margin-top:12px}
+#v-register.edit .mycode{display:block}
+#v-register.edit .relogin{display:none}
+.mycode b,#code-login b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.1rem;display:block;margin-bottom:6px}
+.mycode input{font-family:"Jua",sans-serif;font-size:1.3rem;letter-spacing:.12em;text-align:center}
+.mycode p,#code-login p{font-size:.85rem;margin:.5em 0 0;line-height:1.5}
+.relogin{margin-top:10px;text-align:center}
+.relogin .ghost-dark{color:#fff3c4;font-size:1rem}
+#code-login{text-align:left;margin-top:10px}
+#f-login{text-transform:uppercase;letter-spacing:.12em}
 
 /* 우리 집 문 앞 */
 .facade{position:relative;height:350px;margin:0 0 26px}
@@ -183,6 +193,9 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .vh.mine .vplate{background:#fff3c4}
 .vh .vdone{display:block;margin-top:5px;font-size:.8rem;color:#fff3c4}
 .invite-bonus{display:block;color:#d9621b;font-weight:400;font-family:"Jua",sans-serif}
+.sm-code{margin:.2em 0 .8em;font-size:.95rem}
+.sm-code b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.15rem;letter-spacing:.1em;margin-right:6px}
+.sm-code button{font-size:.85rem;padding:.3em .8em}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -471,9 +484,23 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       </div>
       <img class="dec d-lolli" data-deco="lolli" alt=""><img class="dec d-cane" data-deco="cane" alt="">
     </div>
+    <div class="card mycode" id="mycode-box">
+      <b>내 고유번호</b>
+      <div class="findrow"><input id="mycode" readonly aria-label="내 고유번호"><button id="mycode-copy" class="ghost">복사</button></div>
+      <p class="muted">다른 기기에서 접속할 때 '이전에 참가했었나요?'를 누르고 이 번호를 넣으면 지금 계정 그대로 들어와요. 다른 사람에게는 알려주지 마세요.</p>
+    </div>
     <button class="big" id="btn-register">참가하기</button>
     <button class="ghost" id="btn-reg-cancel">돌아가기</button>
     <p class="muted center" id="reg-msg"></p>
+    <div class="relogin" id="relogin">
+      <button class="ghost-dark" id="btn-have-code">이전에 참가했었나요? 고유번호로 들어가기</button>
+      <div class="card" id="code-login" hidden>
+        <b>고유번호로 들어가기</b>
+        <p class="muted">처음 참가한 기기의 '내 정보 수정'에서 확인할 수 있어요. 모르면 관리자에게 물어보세요. (숫자 4개 + 알파벳 1개)</p>
+        <div class="findrow"><input id="f-login" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="예: 1234K" aria-label="고유번호"><button id="btn-login" class="green">들어가기</button></div>
+        <p class="muted center" id="login-msg"></p>
+      </div>
+    </div>
   </section>
 
   <!-- 우리 집 문 앞 (홈) -->
@@ -604,6 +631,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sm-title">
       <div class="sheet-head"><h2 id="sm-title"></h2><button class="ghost" data-close>닫기</button></div>
       <p class="muted" id="sm-info" style="margin-top:0;white-space:pre-line"></p>
+      <p class="sm-code" id="sm-code"></p>
       <div id="sm-extra"></div>
       <div id="sm-grants"></div>
       <div class="reset-item" style="margin-top:12px"><b>이 회원 삭제</b><span>가짜 계정 등을 지워요. 이 회원이 주고받은 사탕도 순위에서 빠져요.</span><button class="danger" id="sm-delete">회원 삭제</button></div>
@@ -1189,7 +1217,7 @@ function visitTimes(meId, tid){
 // ===== 상태 =====
 let db = null, userApi = null, myId = null, amOwner = false, offline = false;
 let players = {}, me = null, routed = false, startWaiting = false, migrating = false;
-let knockCode = readKnock(), pendingNav = null, editMode = false, pickedNeighbor = null;
+let knockCode = readKnock(), pendingNav = null, editMode = false, pickedNeighbor = null, deviceId = null;
 // 초대 링크로 들어온 집번호 (인사이더 미션용). 새로 고침해도 남도록 브라우저에도 적어 둬요
 let inviteCode = knockCode;
 try { if (inviteCode) localStorage.setItem("invite", inviteCode); else inviteCode = localStorage.getItem("invite"); } catch {}
@@ -1246,8 +1274,8 @@ function watchProfiles(all){
   if (profilesSub === "all" || (profilesSub && !all)) return;
   profilesSub = all ? "all" : true;
   const done = () => { if (current === "admin") renderAdmin(); };
-  if (all) db.collection("profiles").limit(1000).onSnapshot(snap => { snap.docs.forEach(d => { profiles[d.id] = d.data(); }); done(); }, () => {});
-  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); }, () => {});
+  if (all) db.collection("profiles").limit(1000).onSnapshot(snap => { snap.docs.forEach(d => { profiles[d.id] = d.data(); }); profileLoaded = true; ensureLoginCode(); done(); }, () => {});
+  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); profileLoaded = true; ensureLoginCode(); if (editMode && current === "register") showMyCode(); }, () => {});
 }
 
 // ===== 등록 / 정보 수정 =====
@@ -1260,6 +1288,8 @@ function openRegister(edit){
   $("f-name").value = pr.name;
   $("f-nick").value = edit && me ? me.nick : "";
   $("reg-msg").textContent = "";
+  $("code-login").hidden = true; $("login-msg").textContent = "";
+  if (edit) showMyCode();
   show("register");
 }
 $("btn-edit").onclick = () => openRegister(true);
@@ -1596,6 +1626,48 @@ function renderMap(){
 }
 $("btn-map").onclick = openMap;
 $("btn-map-back").onclick = () => mapFrom === "dress" ? goDress() : goHome();
+// ===== 고유번호: 다른 기기에서도 같은 계정으로 (숫자 4개 + 알파벳 1개) =====
+let profileLoaded = false, codeMaking = false;
+const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const newLoginCode = () => String(Math.floor(Math.random() * 10000)).padStart(4, "0") + CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)];
+// 번호를 하나 만들어 logins/{번호} → 참가자, profiles에 기록 (이미 있는 번호면 다른 번호로)
+async function makeLoginCode(pid){
+  for (let i = 0; i < 6; i++) {
+    const code = newLoginCode();
+    try { const ex = await db.doc("logins/" + code).get(); if (ex && ex.exists) continue; } catch { return null; }
+    try { await db.doc("logins/" + code).set({ player: pid, at: Date.now() }); } catch { continue; }
+    try { await db.doc("profiles/" + pid).update({ loginCode: code }); } catch {}
+    profiles[pid] = { ...(profiles[pid] || {}), loginCode: code };
+    return code;
+  }
+  return null;
+}
+async function ensureLoginCode(){
+  if (!me || !profileLoaded || codeMaking || (profiles[myId] && profiles[myId].loginCode)) return;
+  codeMaking = true; await makeLoginCode(myId);
+}
+function showMyCode(){
+  const c = profiles[myId] && profiles[myId].loginCode;
+  $("mycode").value = c || "만드는 중…";
+}
+$("mycode-copy").onclick = async () => { const v = $("mycode").value; if (!/^\d{4}[A-Z]$/.test(v)) return; try { await navigator.clipboard.writeText(v); toast("고유번호를 복사했어요"); } catch { $("mycode").select(); toast("글자를 길게 눌러 복사해 주세요"); } };
+$("btn-have-code").onclick = () => { $("code-login").hidden = !$("code-login").hidden; if (!$("code-login").hidden) $("f-login").focus(); };
+$("f-login").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-login").click(); });
+$("btn-login").onclick = async () => {
+  const code = $("f-login").value.trim().toUpperCase(), msg = $("login-msg");
+  if (!/^\d{4}[A-Z]$/.test(code)) { msg.textContent = "숫자 4개와 알파벳 1개를 넣어 주세요. (예: 1234K)"; return; }
+  if (!db || !deviceId) { msg.textContent = "연결 정보를 확인할 수 없어요. 새로 고침해 주세요."; return; }
+  $("btn-login").disabled = true; msg.textContent = "확인하는 중…";
+  try {
+    const l = await db.doc("logins/" + code).get();
+    if (!l || !l.exists) { msg.textContent = "그 고유번호를 찾을 수 없어요. 다시 확인해 주세요."; return; }
+    const pid = l.data().player, p = players[pid];
+    await db.doc("devices/" + deviceId).set({ player: pid, code, at: Date.now() });
+    msg.textContent = `${p ? p.nick + "님, " : ""}다시 만나서 반가워요! 🎃`;
+    setTimeout(() => location.reload(), 700);
+  } catch { msg.textContent = "들어가지 못했어요. 잠시 뒤 다시 시도해 주세요."; }
+  finally { $("btn-login").disabled = false; }
+};
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -1802,6 +1874,10 @@ function renderMember(){
   const pf = profileOf(memberOpen);
   $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)} · 가입 ${p.createdAt ? `${new Date(p.createdAt).getMonth() + 1}월 ${new Date(p.createdAt).getDate()}일` : "날짜 모름"}\n접속 경로: ${viaText(memberOpen)}`;
   renderMemberExtra(p);
+  const lc = (profiles[memberOpen] || {}).loginCode, cr = $("sm-code");
+  cr.innerHTML = `고유번호: <b>${lc || "아직 없음"}</b> `;
+  if (!lc) { const mk = document.createElement("button"); mk.className = "ghost"; mk.textContent = "만들기"; mk.onclick = async () => { if (needAdmin()) return; mk.disabled = true; const c = await makeLoginCode(memberOpen); toast(c ? `고유번호 ${c}를 만들었어요` : "만들지 못했어요 (Firebase 규칙을 확인해 주세요)"); renderMember(); }; cr.appendChild(mk); }
+  else { const cp = document.createElement("button"); cp.className = "ghost"; cp.textContent = "복사"; cp.onclick = async () => { try { await navigator.clipboard.writeText(lc); toast("복사했어요"); } catch { toast(lc); } }; cr.appendChild(cp); }
   const box = $("sm-grants"); box.innerHTML = "";
   const grantBtn = ({ key, label, bought, onRevoke }) => {
     const g = granted(p, key), btn = document.createElement("button");
@@ -2493,6 +2569,7 @@ function onData(){
   checkBadges();
   if (newsChecked) checkGrants();
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
+  ensureLoginCode();
   if (me && !isHouseNo(me.code) && !migrating) {
     migrating = true;
     db.doc("players/" + myId).update({ code: newHouseNo() }).catch(() => { migrating = false; });
@@ -2521,7 +2598,9 @@ async function init(){
   const [d, u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
   db = d; userApi = u;
   if (!db) { offline = true; if (startWaiting || knockCode) show("offline"); return; }
-  if (userApi) { myId = await userApi.id(); amOwner = await userApi.isOwner(); }
+  if (userApi) { myId = deviceId = await userApi.id(); amOwner = await userApi.isOwner(); }
+  // 다른 기기에서 고유번호로 들어왔으면 원래 참가자로 접속해요
+  try { const dv = await db.doc("devices/" + deviceId).get(); if (dv && dv.exists && dv.data().player) myId = dv.data().player; } catch {}
   db.doc("config/main").onSnapshot(snap => {
     applyConfig(snap.exists ? snap.data() : null);
     if (routed) { if (current === "home") renderHome(); else if (current === "dress") renderDress(); else if (current === "admin") renderAdmin(); }
