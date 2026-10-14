@@ -197,6 +197,8 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .sm-code b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.15rem;letter-spacing:.1em;margin-right:6px}
 .sm-code button{font-size:.85rem;padding:.3em .8em}
 .merge-item select{width:100%;margin:.4em 0;padding:.5em;border-radius:10px;border:2px solid var(--soft);font-size:.95rem;background:#fff}
+.code-badge{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:92px;height:92px;border-radius:18px;background:#fff3c4;border:3px solid var(--brown);font-size:1.6rem}
+.code-badge i{font-style:normal;font-family:"Jua",sans-serif;font-size:1.05rem;letter-spacing:.06em}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -1311,7 +1313,7 @@ $("btn-register").onclick = async () => {
       goHome();
     } else {
       pendingNav = "dress";
-      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now(), seenUpdates: Object.fromEntries(UPDATES.map(u => [u.id, Date.now()])) };
+      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now(), seenUpdates: Object.fromEntries(UPDATES.filter(u => u.id !== "logincode").map(u => [u.id, Date.now()])) };
       const inviter = inviteCode && findByCode(inviteCode);
       if (inviter && inviter.id !== myId) doc.invitedBy = inviter.id;
       // 접속 경로: 링크로 왔는지(누구 링크) · 어느 앱에서 열었는지 · 기기/브라우저
@@ -1536,6 +1538,9 @@ const UPDATES = [
   { id: "sparkle", title: "새 효과 '반짝이' ✨", text: () => `사탕 ${PRICE_FX.sparkle}개로 열 수 있어요. 쓰고 사탕을 받으면 50% 확률로 사탕 ${EARN.sparkle}개!`, preview: () => withFx(charSVG(me.char, me.costume, "반짝이"), "sparkle") },
   { id: "map", title: "마을 지도가 생겼어요 🗺️", text: () => "홈의 표지판(이웃집 찾아가기)에서 '마을 지도 보기'를 눌러 보세요. 길을 따라 모든 이웃집을 구경하고 바로 방문할 수 있어요!", preview: () => doorSVG(me.code, 1, true) },
   { id: "invite7", title: () => `친구 초대하면 사탕 ${EARN.invite}개! 🍬`, text: () => `꾸미기 화면의 '링크 만들기'로 만든 링크로 동료가 참가하면 사탕 ${EARN.invite}개를 받아요.`, preview: () => `<span style="font-size:64px;line-height:1">🍬</span>` },
+  { id: "logincode", title: "나만의 고유번호가 생겼어요 🔑", ready: () => !!myLoginCode(),
+    text: () => `내 고유번호는 ${myLoginCode()}예요. 다른 폰이나 PC에서 등록 화면의 '이전에 참가했었나요?'를 누르고 이 번호를 넣으면 지금 계정 그대로 들어와요. '내 정보 수정'에서 언제든 다시 볼 수 있어요. 다른 사람에게는 알려주지 마세요!`,
+    preview: () => `<span class="code-badge">🔑<i>${myLoginCode()}</i></span>` },
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
 ];
 let noticeDone = null;
@@ -1570,10 +1575,13 @@ function checkGrants(){
   pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 열어줬어요", fresh.map(x => ({ ...x.info, text: "지금 꾸미기에서 바로 쓸 수 있어요!" })),
     () => setMine({ seenGrants: Object.fromEntries(fresh.map(x => [x.k, Date.now()])) })));
 }
+const myLoginCode = () => profiles[myId] && profiles[myId].loginCode;
+let updQueued = {};
 function checkUpdates(){
   if (!me) return;
-  const seen = me.seenUpdates || {}, fresh = UPDATES.filter(u => !seen[u.id]);
+  const seen = me.seenUpdates || {}, fresh = UPDATES.filter(u => !seen[u.id] && !updQueued[u.id] && (!u.ready || u.ready()));
   if (!fresh.length) return;
+  fresh.forEach(u => updQueued[u.id] = 1);
   pushModal(() => showNotice("📢 업데이트 소식", "새로 나왔어요!", fresh.map(u => ({ title: typeof u.title === "function" ? u.title() : u.title, text: u.text(), preview: u.preview() })),
     () => setMine({ seenUpdates: Object.fromEntries(fresh.map(u => [u.id, Date.now()])) })));
 }
@@ -1647,8 +1655,9 @@ async function makeLoginCode(pid){
   return null;
 }
 async function ensureLoginCode(){
-  if (!me || !profileLoaded || codeMaking || (profiles[myId] && profiles[myId].loginCode)) return;
-  codeMaking = true; await makeLoginCode(myId);
+  if (!me || !profileLoaded || codeMaking) return;
+  if (!(profiles[myId] && profiles[myId].loginCode)) { codeMaking = true; await makeLoginCode(myId); }
+  if (newsChecked && !tourWanted()) checkUpdates();
 }
 function showMyCode(){
   const c = profiles[myId] && profiles[myId].loginCode;
