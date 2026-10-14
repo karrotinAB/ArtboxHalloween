@@ -34,7 +34,7 @@
 input,textarea{-webkit-appearance:none;appearance:none;-webkit-text-fill-color:#3c1a10;opacity:1;-webkit-user-select:text;user-select:text;touch-action:manipulation;font-size:16px}
 input::placeholder{-webkit-text-fill-color:#9a8aa6}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;min-height:100%;background:var(--sky);background-image:linear-gradient(180deg,var(--sky) 0%,var(--sky2) 100%);color:var(--ink);font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{margin:0;min-height:100%;background:var(--sky2);background-image:linear-gradient(180deg,var(--sky) 0%,var(--sky2) 100%);background-repeat:no-repeat;color:var(--ink);font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
 h1,h2,h3,button,label,.jua{font-family:"Jua","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:400}
 .wrap{max-width:480px;margin:0 auto;padding:16px 18px 48px;overflow-x:hidden}
 .view{display:none}.view.on{display:block}
@@ -114,7 +114,7 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .mycode b,#code-login b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.1rem;display:block;margin-bottom:6px}
 .mycode input{font-family:"Jua",sans-serif;font-size:1.3rem;letter-spacing:.12em;text-align:center}
 .mycode p,#code-login p{font-size:.85rem;margin:.5em 0 0;line-height:1.5}
-.relogin{margin-top:10px;text-align:center}
+.relogin{margin-top:4px;text-align:center}
 .relogin .ghost-dark{color:#fff3c4;font-size:1rem}
 #code-login{text-align:left;margin-top:10px}
 #f-login{text-transform:uppercase;letter-spacing:.12em}
@@ -496,8 +496,6 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p class="muted">다른 기기에서 접속할 때 '이전에 참가했었나요?'를 누르고 이 번호를 넣으면 지금 계정 그대로 들어와요. 다른 사람에게는 알려주지 마세요.</p>
     </div>
     <button class="big" id="btn-register">참가하기</button>
-    <button class="ghost" id="btn-reg-cancel">돌아가기</button>
-    <p class="muted center" id="reg-msg"></p>
     <div class="relogin" id="relogin">
       <button class="ghost-dark" id="btn-have-code">이전에 참가했었나요? 고유번호로 들어가기</button>
       <div class="card" id="code-login" hidden>
@@ -506,6 +504,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
         <div class="findrow"><input id="f-login" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="예: 1234K" aria-label="고유번호"><button id="btn-login" class="green">들어가기</button></div>
         <p class="muted center" id="login-msg"></p>
       </div>
+    <button class="ghost" id="btn-reg-cancel">돌아가기</button>
+    <p class="muted center" id="reg-msg"></p>
     </div>
   </section>
 
