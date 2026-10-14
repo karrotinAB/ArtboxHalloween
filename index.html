@@ -196,6 +196,7 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .sm-code{margin:.2em 0 .8em;font-size:.95rem}
 .sm-code b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.15rem;letter-spacing:.1em;margin-right:6px}
 .sm-code button{font-size:.85rem;padding:.3em .8em}
+.merge-item select{width:100%;margin:.4em 0;padding:.5em;border-radius:10px;border:2px solid var(--soft);font-size:.95rem;background:#fff}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -634,6 +635,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p class="sm-code" id="sm-code"></p>
       <div id="sm-extra"></div>
       <div id="sm-grants"></div>
+      <div class="reset-item merge-item" style="margin-top:12px"><b>계정 합치기</b><span>같은 사람이 기기마다 따로 가입했을 때, 다른 계정의 사탕·옷·뱃지·기록을 이 계정으로 모두 옮기고 다른 계정은 지워요. 그 사람의 다른 기기도 이 계정으로 자동 연결돼요.</span>
+        <select id="sm-merge-pick" aria-label="합칠 다른 계정"></select><button class="danger" id="sm-merge">이 계정으로 합치기</button></div>
       <div class="reset-item" style="margin-top:12px"><b>이 회원 삭제</b><span>가짜 계정 등을 지워요. 이 회원이 주고받은 사탕도 순위에서 빠져요.</span><button class="danger" id="sm-delete">회원 삭제</button></div>
     </div>
   </div>
@@ -823,7 +826,8 @@ const firebaseConfig = {
       get: async () => snapDoc(await ref.get()),
       set: v => ref.set(v),
       update: v => ref.set(v, { merge: true }),
-      remove: fields => ref.update(Object.fromEntries(fields.map(f => [f, firebase.firestore.FieldValue.delete()]))),
+      // 필드 지우기: "a" 또는 ["gifts", "uid~20740"]처럼 경로 배열 (~ 같은 글자가 든 키도 지울 수 있게 FieldPath 사용)
+      remove: fields => { const del = firebase.firestore.FieldValue.delete(), args = []; fields.forEach(f => args.push(Array.isArray(f) ? new firebase.firestore.FieldPath(...f) : f, del)); return ref.update(...args); },
       delete: () => ref.delete(),
       onSnapshot: (cb, err) => ref.onSnapshot(s => cb(snapDoc(s)), err)
     };
@@ -1668,6 +1672,74 @@ $("btn-login").onclick = async () => {
   } catch { msg.textContent = "들어가지 못했어요. 잠시 뒤 다시 시도해 주세요."; }
   finally { $("btn-login").disabled = false; }
 };
+// ===== 관리자: 같은 사람의 계정 두 개 합치기 (D → P) =====
+// 사탕은 "주는사람ID" / "주는사람ID~날짜" 키로 기록되므로, D가 준 사탕·노크는 다른 사람 문서에서 P 이름으로 바꿔요
+function fillMergePick(){
+  const sel = $("sm-merge-pick"), P = memberOpen, prev = sel.value; sel.innerHTML = '<option value="">합칠 다른 계정을 고르세요</option>';
+  Object.entries(players).filter(([id]) => id !== P).sort((a, b) => (a[1].nick || "").localeCompare(b[1].nick || "", "ko")).forEach(([id, q]) => {
+    const pf = profileOf(id), o = document.createElement("option"); o.value = id;
+    o.textContent = `${q.nick} · ${pf.dept || "?"} ${pf.name || ""} · ${q.code}호 · 누적 ${earnedOf(id)}`; sel.appendChild(o);
+  });
+  if (prev && players[prev] && prev !== P) sel.value = prev;
+}
+function giftKeyDay(k, v){ const d = k.split("~")[1]; return d ? (d.length === 8 ? ymdToDay(d) : +d) : dayNo(giftTime(v)); }
+async function mergeAccounts(P, D){
+  const p = players[P], d = players[D]; if (!p || !d) throw new Error("no player");
+  // 1) 다른 사람들 문서: D가 준 사탕 · D의 노크 · D 쫓아내기 · D의 초대 → P로
+  for (const [id, q] of Object.entries(players)) {
+    if (id === P || id === D) continue;
+    const add = { gifts: {}, knocks: {}, shoo: {}, shooAt: {} }, del = [];
+    const hasP = new Set(Object.entries(q.gifts || {}).filter(([k]) => giverOf(k) === P).map(([k, v]) => giftKeyDay(k, v)));
+    const hasFirstP = !!(q.gifts && q.gifts[P] !== undefined);
+    Object.entries(q.gifts || {}).forEach(([k, v]) => {
+      if (giverOf(k) !== D) return;
+      del.push(["gifts", k]);
+      const day = giftKeyDay(k, v); if (hasP.has(day)) return; hasP.add(day);
+      const nk = !k.includes("~") && !hasFirstP ? P : `${P}~${day}`; add.gifts[nk] = v;
+    });
+    if (q.knocks && q.knocks[D]) { del.push(["knocks", D]); if (!q.knocks[P] || q.knocks[P] < q.knocks[D]) add.knocks[P] = q.knocks[D]; }
+    if (q.shoo && q.shoo[D] != null) { del.push(["shoo", D]); add.shoo[P] = Math.max(q.shoo[P] || 0, q.shoo[D]); if (q.shooAt && q.shooAt[D]) add.shooAt[P] = q.shooAt[D]; }
+    const patch = Object.fromEntries(Object.entries(add).filter(([, v]) => Object.keys(v).length));
+    if (q.invitedBy === D) patch.invitedBy = P;
+    if (!del.length && !Object.keys(patch).length) continue;
+    if (Object.keys(patch).length) await db.doc("players/" + id).update(patch);
+    if (del.length) await db.doc("players/" + id).remove(del);
+  }
+  // 2) P 문서에 D가 받은 사탕·노크·옷·권한·뱃지·사진 등 합치기 (서로 주고받은 건 자기 자신이 되니 빼요)
+  const pg = {}, seen = new Set(Object.entries(p.gifts || {}).map(([k, v]) => giverOf(k) + "~" + giftKeyDay(k, v)));
+  Object.entries(d.gifts || {}).forEach(([k, v]) => { const g = giverOf(k); if (g === P || g === D) return; const key = g + "~" + giftKeyDay(k, v); if (seen.has(key)) return; seen.add(key); pg[p.gifts && p.gifts[k] !== undefined ? `${g}~${giftKeyDay(k, v)}` : k] = v; });
+  const pk = {}; Object.entries(d.knocks || {}).forEach(([k, v]) => { if (k !== P && k !== D && (!p.knocks || !p.knocks[k] || p.knocks[k] < v)) pk[k] = v; });
+  const merged = { gifts: pg, knocks: pk };
+  for (const f of ["owned", "grants", "photos", "badges", "visits", "shoo", "shooAt", "seenUpdates", "seenGrants"]) {
+    const src = { ...(d[f] || {}) }; delete src[P]; delete src[D];
+    Object.keys(src).forEach(k => { if (p[f] && p[f][k] !== undefined && f !== "visits") delete src[k]; });
+    if (Object.keys(src).length) merged[f] = src;
+  }
+  if (!p.invitedBy && d.invitedBy && d.invitedBy !== P) merged.invitedBy = d.invitedBy;
+  merged.mailSeen = Math.max(p.mailSeen || 0, d.mailSeen || 0);
+  merged.createdAt = Math.min(p.createdAt || Date.now(), d.createdAt || Date.now());
+  Object.keys(merged).forEach(k => { if (merged[k] && typeof merged[k] === "object" && !Object.keys(merged[k]).length) delete merged[k]; });
+  await db.doc("players/" + P).update(merged);
+  const selfKeys = Object.keys(p.gifts || {}).filter(k => giverOf(k) === D).map(k => ["gifts", k]).concat(p.knocks && p.knocks[D] ? [["knocks", D]] : []);
+  if (selfKeys.length) await db.doc("players/" + P).remove(selfKeys);
+  // 3) D의 기기는 이제 P로 접속 · D 계정·고유번호·프로필 지우기
+  try { await db.doc("devices/" + D).set({ player: P, code: "merge", at: Date.now() }); } catch {}
+  const dc = profiles[D] && profiles[D].loginCode;
+  if (dc) { try { await db.doc("logins/" + dc).delete(); } catch {} }
+  try { await db.doc("profiles/" + D).delete(); } catch {}
+  await db.doc("players/" + D).delete();
+}
+$("sm-merge").onclick = async () => {
+  const P = memberOpen, D = $("sm-merge-pick").value; if (!D) { toast("합칠 다른 계정을 골라 주세요"); return; }
+  if (needAdmin()) return;
+  const p = players[P], d = players[D];
+  const ok = prompt(`'${d.nick}'(${d.code}호, 누적 ${earnedOf(D)})의 모든 기록을\n'${p.nick}'(${p.code}호, 누적 ${earnedOf(P)})로 옮기고 '${d.nick}' 계정은 지워요.\n되돌릴 수 없어요.\n\n계속하려면 '합치기'라고 입력하세요.`);
+  if (ok === null || ok.trim() !== "합치기") return;
+  $("sm-merge").disabled = true;
+  try { await mergeAccounts(P, D); toast(`합쳤어요! ${p.nick} 누적 ${earnedOf(P)}`); }
+  catch { toast("합치지 못했어요. 다시 시도해 주세요."); }
+  finally { $("sm-merge").disabled = false; }
+};
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -1874,6 +1946,7 @@ function renderMember(){
   const pf = profileOf(memberOpen);
   $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)} · 가입 ${p.createdAt ? `${new Date(p.createdAt).getMonth() + 1}월 ${new Date(p.createdAt).getDate()}일` : "날짜 모름"}\n접속 경로: ${viaText(memberOpen)}`;
   renderMemberExtra(p);
+  fillMergePick();
   const lc = (profiles[memberOpen] || {}).loginCode, cr = $("sm-code");
   cr.innerHTML = `고유번호: <b>${lc || "아직 없음"}</b> `;
   if (!lc) { const mk = document.createElement("button"); mk.className = "ghost"; mk.textContent = "만들기"; mk.onclick = async () => { if (needAdmin()) return; mk.disabled = true; const c = await makeLoginCode(memberOpen); toast(c ? `고유번호 ${c}를 만들었어요` : "만들지 못했어요 (Firebase 규칙을 확인해 주세요)"); renderMember(); }; cr.appendChild(mk); }
