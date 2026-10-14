@@ -173,6 +173,9 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 #sf-title{white-space:nowrap;font-size:clamp(1rem,4.6vw,1.2rem)}
 #sheet-find .sheet-head{gap:6px}
 #sheet-find .sheet-head button{white-space:nowrap;padding:.4em clamp(.5em,2vw,.75em);font-size:clamp(.8rem,3.6vw,.9rem)}
+.tot-head{gap:6px;margin-bottom:.5em}
+.tot-head h2{font-size:clamp(.98rem,4.5vw,1.35rem);white-space:nowrap}
+.tot-head .map-btn{padding:.35em clamp(.5em,2vw,.75em);font-size:clamp(.78rem,3.5vw,.9rem);flex:none}
 button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;color:var(--brown)}
 .map-title{text-align:center;margin:.1em 0 0;color:#fff3c4}
 .map-sub{text-align:center;margin:.2em 0 .6em;color:#d9c8ea;font-size:.9rem}
@@ -685,7 +688,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     </div>
 
     <div class="card">
-      <h2>Trick or treat 하러 가기</h2>
+      <div class="sheet-head tot-head"><h2>Trick or treat 하러 가기</h2><button class="ghost map-btn" id="btn-map2">🗺️ 마을 지도</button></div>
       <p class="muted" style="margin-top:-.3em;margin-bottom:0">누구네 문을 두드릴까요?</p>
       <p class="go-note">*친구네 놀러가야 사탕을 모을 수 있습니다! 같은 친구네는 하루에 한 번씩 갈 수 있어요. (한국 시간 자정에 새 날이 시작돼요)</p>
       <div class="scroller neighbors" id="neighbors"></div>
@@ -1637,6 +1640,7 @@ function renderMap(){
   });
 }
 $("btn-map").onclick = openMap;
+$("btn-map2").onclick = openMap;
 $("btn-map-back").onclick = () => mapFrom === "dress" ? goDress() : goHome();
 // ===== 고유번호: 다른 기기에서도 같은 계정으로 (숫자 4개 + 알파벳 1개) =====
 let profileLoaded = false, codeMaking = false;
