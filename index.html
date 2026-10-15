@@ -202,6 +202,10 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .merge-item select{width:100%;margin:.4em 0;padding:.5em;border-radius:10px;border:2px solid var(--soft);font-size:.95rem;background:#fff}
 .code-badge{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:92px;height:92px;border-radius:18px;background:#fff3c4;border:3px solid var(--brown);font-size:1.6rem}
 .code-badge i{font-style:normal;font-family:"Jua",sans-serif;font-size:1.05rem;letter-spacing:.06em}
+.house-note{margin:-.3em 0 .4em;font-size:.88rem}
+.house-h{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem;margin:.6em 0 .2em}
+.scroller .chip.hc{flex-basis:76px;width:76px}
+.chip.hc svg{width:48px;height:auto;display:block;margin:0 auto 2px}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -517,7 +521,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="nameplate" id="h-nameplate"></div>
       <div class="frontdoor" aria-hidden="true"><div class="win"></div><div class="plate" id="h-plate"></div><div class="knob"></div></div>
       <button class="signpost" id="btn-find" aria-label="받은 집번호 찾아가기"><svg viewBox="0 0 100 104" aria-hidden="true"><rect x="60" y="40" width="9" height="66" rx="2" fill="#3c1a10"/><path d="M5 26 L22 6 H95 V46 H22 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/></svg><span>이웃집<br>찾아가기</span></button>
-      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 52" aria-hidden="true"><path d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/><g class="flag"><rect x="46" y="12" width="5" height="28" rx="2" fill="#3c1a10"/><path class="flag-cloth" d="M49 12 H63 V23 H49Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/><circle cx="48.5" cy="38" r="3.5" fill="#3c1a10"/></g></svg><span class="mail-dot" id="mail-dot" hidden><svg viewBox="0 0 16 34" aria-hidden="true"><path d="M3 4 Q3 1.5 8 1.5 Q13 1.5 13 4 L11 21 Q10.6 23 8 23 Q5.4 23 5 21Z" fill="#e8392e" stroke="#3c1a10" stroke-width="2.5" stroke-linejoin="round"/><circle cx="8" cy="28.5" r="3.8" fill="#e8392e" stroke="#3c1a10" stroke-width="2.5"/></svg></span></button>
+      <button class="mailbox" id="btn-mail" aria-label="우편함 보기"><svg viewBox="0 0 78 52" aria-hidden="true"><path class="mb-w" d="M4 48 V24 Q4 8 20 8 H44 Q58 8 58 24 V48 Z" fill="#e0883a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path class="mb-l" d="M4 48 V24 Q4 8 20 8 Q36 8 36 24 V48" fill="#f2a65a" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><rect x="12" y="26" width="16" height="5" rx="2.5" fill="#3c1a10"/><g class="flag"><rect x="46" y="12" width="5" height="28" rx="2" fill="#3c1a10"/><path class="flag-cloth" d="M49 12 H63 V23 H49Z" fill="#e8392e" stroke="#3c1a10" stroke-width="3" stroke-linejoin="round"/><circle cx="48.5" cy="38" r="3.5" fill="#3c1a10"/></g></svg><span class="mail-dot" id="mail-dot" hidden><svg viewBox="0 0 16 34" aria-hidden="true"><path d="M3 4 Q3 1.5 8 1.5 Q13 1.5 13 4 L11 21 Q10.6 23 8 23 Q5.4 23 5 21Z" fill="#e8392e" stroke="#3c1a10" stroke-width="2.5" stroke-linejoin="round"/><circle cx="8" cy="28.5" r="3.8" fill="#e8392e" stroke="#3c1a10" stroke-width="2.5"/></svg></span></button>
       <button class="bell-talk" id="bell-talk" hidden>누가 왔어요!</button>
       <button class="bell" id="btn-bell" aria-label="문 앞에 온 손님 보기">
         <svg viewBox="0 8 60 56" aria-hidden="true"><path d="M12 44 Q12 14 30 12 Q48 14 48 44 L54 50 H6Z" fill="#ffc53d" stroke="#3c1a10" stroke-width="4" stroke-linejoin="round"/><path d="M20 26 Q22 18 29 17" stroke="#fff3c4" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="56" r="6" fill="#e0883a" stroke="#3c1a10" stroke-width="4"/></svg>
@@ -685,6 +689,15 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="card">
       <h2>효과</h2>
       <div class="scroller" id="effects"></div>
+    </div>
+
+    <div class="card">
+      <h2>🚪 우리 집 꾸미기</h2>
+      <p class="muted house-note">홈 화면과 마을 지도에 보이는 문과 우편함 색을 바꿔요</p>
+      <h3 class="house-h">문</h3>
+      <div class="scroller" id="door-colors"></div>
+      <h3 class="house-h">우편함</h3>
+      <div class="scroller" id="mail-colors"></div>
     </div>
 
     <div class="card">
@@ -1085,6 +1098,20 @@ const EFFECTS = [
   { id: "sparkle", name: "반짝이", icon: "spAll", info: "반짝이를 쓰고 사탕을 받으면 50% 확률로 사탕을 3개씩 받아요!" }
 ];
 const PRICE_FX = { fly: 20, sparkle: 15 };
+// 우리 집 꾸미기: 문 색 · 우편함 색 (색 하나당 따로 사요, 주황은 기본)
+const HOUSE_COLORS = [
+  { id: "orange", name: "주황", w: "#e0883a", l: "#c46f28", lt: "#f2a65a" }, { id: "red", name: "빨강", w: "#d9534a", l: "#b03c34", lt: "#ec7d74" },
+  { id: "yellow", name: "노랑", w: "#f2c14e", l: "#d4a032", lt: "#f8d77f" }, { id: "green", name: "초록", w: "#6fae6b", l: "#4f8a4a", lt: "#93c98f" },
+  { id: "mint", name: "민트", w: "#7fd6c2", l: "#5bb5a1", lt: "#a8e6d8" }, { id: "blue", name: "파랑", w: "#5f8fc4", l: "#45729f", lt: "#8db0da" },
+  { id: "pink", name: "핑크", w: "#f29bbf", l: "#d97aa0", lt: "#f7bdd5" }, { id: "purple", name: "보라", w: "#9a77c9", l: "#7a58a8", lt: "#b89ddd" },
+  { id: "white", name: "흰색", w: "#f4efe6", l: "#d3cabb", lt: "#ffffff" }, { id: "black", name: "검정", w: "#3e3746", l: "#2a2430", lt: "#5a5164" }
+];
+const PRICE_HOUSE = { color: 5 };
+const houseColor = id => HOUSE_COLORS.find(c => c.id === id) || HOUSE_COLORS[0];
+// 문(d:색) · 우편함(m:색)을 가졌는지
+const ownsHouse = (p, part, id) => id === "orange" || !!(p && p.owned && p.owned[`${part}:${id}`]);
+const doorOf = p => houseColor(p && ownsHouse(p, "d", p.doorColor) ? p.doorColor : "orange");
+const mailOf = p => houseColor(p && ownsHouse(p, "m", p.mailColor) ? p.mailColor : "orange");
 const FAVOR_CHANCE = 0.25, SPARKLE_CHANCE = 0.5;
 let givenPts = {};
 // 사탕 기록: 받은 사람 gifts에 "주는사람" (첫 사탕) 또는 "주는사람~날짜번호" (그다음부터, 하루 1개)
@@ -1145,7 +1172,7 @@ function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = k
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
 function earnedOf(id){ const p = players[id]; return receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p) + EARN.invite * insiderCount(id); }
 function spentOf(p){
-  return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : (PRICE_COS[b] || 0)); }, 0);
+  return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : t === "d" || t === "m" ? (a === "orange" ? 0 : PRICE_HOUSE.color) : (PRICE_COS[b] || 0)); }, 0);
 }
 function balanceOf(id){ return earnedOf(id) - spentOf(players[id]); }
 const granted = (p, c) => !!(p && p.grants && p.grants[c] === true);
@@ -1373,6 +1400,7 @@ function renderHome(){
     row.appendChild(b); box.appendChild(row);
   });
   renderMailDot();
+  paintMyHouse();
   renderLeague();
   const nShots = albumShots().length;
   $("gallery-count").textContent = nShots ? `(${nShots}장)` : "";
@@ -1544,6 +1572,8 @@ const UPDATES = [
   { id: "logincode", title: "나만의 고유번호가 생겼어요 🔑", ready: () => !!myLoginCode(),
     text: () => `내 고유번호는 ${myLoginCode()}예요. 다른 폰이나 PC에서 등록 화면의 '이전에 참가했었나요?'를 누르고 이 번호를 넣으면 지금 계정 그대로 들어와요. '내 정보 수정'에서 언제든 다시 볼 수 있어요. 다른 사람에게는 알려주지 마세요!`,
     preview: () => `<span class="code-badge">🔑<i>${myLoginCode()}</i></span>` },
+  { id: "house", title: "우리 집 꾸미기가 생겼어요 🚪", text: () => `꾸미기 화면의 효과 칸 아래에서 문과 우편함 색을 따로따로 바꿀 수 있어요. 한 색당 사탕 ${PRICE_HOUSE.color}개! 홈 화면과 마을 지도에 보여요.`,
+    preview: () => doorSVG(me.code, 1, true, houseColor("pink"), houseColor("mint")) },
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
 ];
 let noticeDone = null;
@@ -1591,11 +1621,11 @@ function checkUpdates(){
 // ===== 마을 지도: 가입 순서대로 길 양쪽에 집이 생겨요 =====
 const hashOf = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 // 집 그림: 우리 집처럼 아치형 문 + 집번호 + 덤불 + 작은 우편함
-function doorSVG(code, seed, mailLeft){
-  const W = "#e0883a", L = "#c46f28", B = "#3c1a10";
+function doorSVG(code, seed, mailLeft, dc, mc){
+  const D = dc || HOUSE_COLORS[0], M = mc || HOUSE_COLORS[0], W = D.w, L = D.l, B = "#3c1a10";
   const bush = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" stroke="${B}" stroke-width="3.5"><circle cx="-10" cy="4" r="11" fill="#4f8a4a"/><circle cx="10" cy="4" r="11" fill="#4f8a4a"/><circle cx="0" cy="-6" r="13" fill="#6fae6b"/></g>`;
   const mx = mailLeft ? 4 : 104;
-  const mail = `<g transform="translate(${mx} 62)"><rect x="13" y="20" width="5" height="34" rx="1.5" fill="${B}"/><rect x="${mailLeft ? 24 : 2}" y="-2" width="3" height="14" fill="${B}"/><path d="M${mailLeft ? 25 : 3} -2 H${mailLeft ? 33 : 11} V5 H${mailLeft ? 25 : 3}Z" fill="#e8392e" stroke="${B}" stroke-width="2"/><path d="M2 24 V10 Q2 2 10 2 H22 Q30 2 30 10 V24Z" fill="#e0883a" stroke="${B}" stroke-width="3" stroke-linejoin="round"/><path d="M2 24 V10 Q2 2 10 2 Q18 2 18 10 V24" fill="#f2a65a" stroke="${B}" stroke-width="3" stroke-linejoin="round"/></g>`;
+  const mail = `<g transform="translate(${mx} 62)"><rect x="13" y="20" width="5" height="34" rx="1.5" fill="${B}"/><rect x="${mailLeft ? 24 : 2}" y="-2" width="3" height="14" fill="${B}"/><path d="M${mailLeft ? 25 : 3} -2 H${mailLeft ? 33 : 11} V5 H${mailLeft ? 25 : 3}Z" fill="#e8392e" stroke="${B}" stroke-width="2"/><path d="M2 24 V10 Q2 2 10 2 H22 Q30 2 30 10 V24Z" fill="${M.w}" stroke="${B}" stroke-width="3" stroke-linejoin="round"/><path d="M2 24 V10 Q2 2 10 2 Q18 2 18 10 V24" fill="${M.lt}" stroke="${B}" stroke-width="3" stroke-linejoin="round"/></g>`;
   const planks = [52, 62, 72, 82, 92].map(x => `<line x1="${x}" y1="${x < 62 || x > 82 ? 22 : 12}" x2="${x}" y2="118" stroke="${L}" stroke-width="2"/>`).join("");
   return `<svg class="vhouse" viewBox="0 0 140 122" aria-hidden="true"><path d="M42 120 V42 A30 30 0 0 1 102 42 V120Z" fill="${W}"/>${planks}<path d="M42 120 V42 A30 30 0 0 1 102 42 V120" fill="none" stroke="${B}" stroke-width="5" stroke-linejoin="round"/>`
     + `<circle cx="72" cy="32" r="10" fill="#ffcf6e" stroke="${B}" stroke-width="4"/><rect x="55" y="48" width="34" height="15" rx="4" fill="#ffc53d" stroke="${B}" stroke-width="3"/><text x="72" y="59.5" text-anchor="middle" font-family="Jua, sans-serif" font-size="10" fill="${B}">${code}</text><circle cx="93" cy="88" r="3.6" fill="#ffc53d" stroke="${B}" stroke-width="2"/>`
@@ -1627,7 +1657,7 @@ function renderMap(){
   spots.forEach(({ id, p, r, left, x, y }) => {
     const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
     el.style.left = x + "px"; el.style.top = y + "px";
-    el.innerHTML = `<span class="vplate"><span class="nm"></span></span>` + doorSVG(p.code, r, left) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span>`;
+    el.innerHTML = `<span class="vplate"><span class="nm"></span></span>` + doorSVG(p.code, r, left, doorOf(p), mailOf(p)) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span>`;
     el.querySelector(".nm").textContent = id === myId ? `${p.nick} (우리 집)` : p.nick;
     if (id !== myId) {
       // 오늘 문을 열어준 집: 방문완료! · 두드렸는데 아직 안 열어준 집: 대기중... · 나머지: 방문하기
@@ -1753,6 +1783,40 @@ $("sm-merge").onclick = async () => {
   catch { toast("합치지 못했어요. 다시 시도해 주세요."); }
   finally { $("sm-merge").disabled = false; }
 };
+// ===== 우리 집 꾸미기 (문 · 우편함 색) =====
+function swatchSVG(part, c){
+  const B = "#3c1a10";
+  return part === "d"
+    ? `<svg viewBox="0 0 60 70" aria-hidden="true"><path d="M8 68 V30 A22 22 0 0 1 52 30 V68Z" fill="${c.w}"/>${[20, 30, 40].map(x => `<line x1="${x}" y1="12" x2="${x}" y2="68" stroke="${c.l}" stroke-width="2"/>`).join("")}<path d="M8 68 V30 A22 22 0 0 1 52 30 V68" fill="none" stroke="${B}" stroke-width="4"/><circle cx="30" cy="26" r="7" fill="#ffcf6e" stroke="${B}" stroke-width="3"/><circle cx="43" cy="50" r="2.6" fill="#ffc53d" stroke="${B}" stroke-width="1.5"/></svg>`
+    : `<svg viewBox="0 0 60 70" aria-hidden="true"><rect x="27" y="40" width="6" height="28" rx="2" fill="${B}"/><path d="M6 42 V22 Q6 10 18 10 H42 Q54 10 54 22 V42Z" fill="${c.w}" stroke="${B}" stroke-width="3.5" stroke-linejoin="round"/><path d="M6 42 V22 Q6 10 18 10 Q30 10 30 22 V42" fill="${c.lt}" stroke="${B}" stroke-width="3.5" stroke-linejoin="round"/><rect x="11" y="24" width="14" height="4" rx="2" fill="${B}"/></svg>`;
+}
+function renderHouseChips(){
+  [["d", "door-colors", "doorColor", "문"], ["m", "mail-colors", "mailColor", "우편함"]].forEach(([part, boxId, field, label]) => {
+    const box = $(boxId), keep = box.scrollLeft; box.innerHTML = "";
+    const cur = (part === "d" ? doorOf(me) : mailOf(me)).id;
+    HOUSE_COLORS.forEach(c => {
+      const owned = ownsHouse(me, part, c.id), b = document.createElement("button");
+      b.type = "button"; b.className = "chip hc" + (owned ? "" : " locked-soft");
+      b.setAttribute("aria-pressed", cur === c.id);
+      b.innerHTML = swatchSVG(part, c) + `<span>${c.name}</span><small>${owned ? (cur === c.id ? "쓰는 중" : "바꾸기") : "🍬 " + PRICE_HOUSE.color + "개"}</small>`;
+      b.onclick = () => {
+        if (owned) { if (cur !== c.id) setMine({ [field]: c.id }); return; }
+        const dc = part === "d" ? c : doorOf(me), mc = part === "m" ? c : mailOf(me);
+        openBuy({ key: `${part}:${c.id}`, price: PRICE_HOUSE.color, name: `${c.name} ${label}`, kind: `${label} 색`, preview: doorSVG(me.code, 1, true, dc, mc), patch: { [field]: c.id } });
+      };
+      box.appendChild(b);
+    });
+    box.scrollLeft = keep;
+  });
+}
+// 홈 화면 문·우편함과 문 장면(우리 집 문)에 내 색 칠하기
+function paintMyHouse(){
+  if (!me) return;
+  const d = doorOf(me), m = mailOf(me), root = document.documentElement.style;
+  root.setProperty("--wood", d.w); root.setProperty("--wood-line", d.l);
+  document.querySelectorAll("#btn-mail .mb-w").forEach(e => e.setAttribute("fill", m.w));
+  document.querySelectorAll("#btn-mail .mb-l").forEach(e => e.setAttribute("fill", m.lt));
+}
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -1831,6 +1895,7 @@ function renderDress(){
   $("star-note").textContent = look.char !== "cat" ? "게왹이일 때만 함께 나와요" : freeMode ? "미리보기 · 저장되지 않아요" : "문 앞과 사진에 같이 나와요";
   $("d-candy").textContent = bal;
   $("invite-bonus").textContent = `내 링크로 들어오면 사탕 +${EARN.invite}!`;
+  renderHouseChips();
 
   const cc = $("char-chips"); cc.innerHTML = "";
   Object.entries(CHARS).forEach(([k, c]) => {
@@ -1911,12 +1976,13 @@ function renderNeighborChips(nb, onPick){
 const ADMIN_PIN = "0930";
 let adminUnlocked = false;
 function openAdmin(){ if (!adminUnlocked) return; closeSheets(); renderAdmin(); show("admin"); }
-const DEFAULTS = { char: { ...PRICE_CHAR }, cos: { ...PRICE_COS }, fx: { ...PRICE_FX }, earn: { ...EARN } };
+const DEFAULTS = { char: { ...PRICE_CHAR }, cos: { ...PRICE_COS }, fx: { ...PRICE_FX }, earn: { ...EARN }, house: { ...PRICE_HOUSE } };
 function applyConfig(cfg){
   Object.keys(PRICE_CHAR).forEach(k => delete PRICE_CHAR[k]); Object.assign(PRICE_CHAR, DEFAULTS.char, (cfg && cfg.priceChar) || {});
   Object.keys(PRICE_COS).forEach(k => delete PRICE_COS[k]); Object.assign(PRICE_COS, DEFAULTS.cos, (cfg && cfg.priceCos) || {});
   Object.assign(EARN, DEFAULTS.earn, (cfg && cfg.earn) || {});
   Object.assign(PRICE_FX, DEFAULTS.fx, (cfg && cfg.priceFx) || {});
+  Object.assign(PRICE_HOUSE, DEFAULTS.house, (cfg && cfg.priceHouse) || {});
   PRICE_CHAR.cat = 0; PRICE_CHAR.special = 0; PRICE_CHAR.boss = 0; PRICE_COS.none = 0;
 }
 let memberOpen = null;
@@ -2107,6 +2173,7 @@ function renderAdmin(){
   let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}${row("거지왹을 입고 받으면", "earn.beggar", EARN.beggar)}${row("파리 거지왹에게 주면 잃는 사탕", "earn.steal", EARN.steal)}${row("호의 보상 (가끔)", "earn.favor", EARN.favor)}${row("반짝이 당첨되면 받는 사탕 (50%)", "earn.sparkle", EARN.sparkle)}${row("내 링크로 친구가 참가하면", "earn.invite", EARN.invite)}</div>`;
   html += `<div class="price-group"><h3>캐릭터 열기</h3>${Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0)).join("")}</div>`;
   html += `<div class="price-group"><h3>효과</h3>${EFFECTS.filter(e => e.id !== "none").map(e => row(e.name, "fx." + e.id, PRICE_FX[e.id] || 0)).join("")}</div>`;
+  html += `<div class="price-group"><h3>우리 집 꾸미기</h3>${row("문·우편함 색 (한 색당)", "house.color", PRICE_HOUSE.color)}</div>`;
   Object.entries(CHARS).filter(([, c]) => !c.adminOnly).forEach(([k, c]) => {
     const cos = artCostumes(k).filter(x => x.id !== "none" && !x.grantOnly);
     if (cos.length) html += `<div class="price-group"><h3>${esc(c.name)} 코스튬</h3>${cos.map(x => row(x.name, "cos." + x.id, PRICE_COS[x.id] || 0)).join("")}</div>`;
@@ -2125,10 +2192,10 @@ $("adm-flydoor").onclick = startFlyDoor;
 $("adm-free").onclick = () => { freeStar = true; freeMode = true; freeLook = { char: me.char, costume: me.costume, effect: me.effect || "none" }; browseLook = null; renderDress(); show("dress"); };
 $("adm-save").onclick = async () => {
   if (needAdmin()) return;
-  const cfg = { priceChar: {}, priceCos: {}, priceFx: {}, earn: {} };
+  const cfg = { priceChar: {}, priceCos: {}, priceFx: {}, earn: {}, priceHouse: {} };
   document.querySelectorAll("#adm-prices input").forEach(i => {
     const [g, k] = i.dataset.key.split("."), v = Math.max(0, Math.round(Number(i.value) || 0));
-    (g === "char" ? cfg.priceChar : g === "cos" ? cfg.priceCos : g === "fx" ? cfg.priceFx : cfg.earn)[k] = v;
+    (g === "char" ? cfg.priceChar : g === "cos" ? cfg.priceCos : g === "fx" ? cfg.priceFx : g === "house" ? cfg.priceHouse : cfg.earn)[k] = v;
   });
   $("adm-save").disabled = true;
   try { await db.doc("config/main").set(cfg); $("adm-msg").textContent = "저장했어요. 모든 참가자에게 적용됐어요."; }
@@ -2653,6 +2720,7 @@ function onData(){
     if (Object.keys(fix).length) db.doc("players/" + myId).update(fix).catch(() => {});
   }
   checkBadges();
+  paintMyHouse();
   if (newsChecked) checkGrants();
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
   ensureLoginCode();
