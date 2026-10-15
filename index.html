@@ -1535,13 +1535,36 @@ function maybeNews(){
   newsChecked = true;
   if (tourWanted()) return;
   checkUpdates(); checkGrants();
-  const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last);
-  if (!guests.length && !mails.length) return;
-  pushModal(() => showNews(guests, mails));
+  const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
+  trackTop();
+  if (!guests.length && !mails.length && !lost) return;
+  pushModal(() => showNews(guests, mails, lost));
 }
-function showNews(guests, mails){
+// 1등 자리: 내가 1등인 걸 본 적이 있으면 wasTop을 기록해 두고, 다음 접속 때 1등이 아니면 알려줘요
+function leagueRank(id){
+  const n = earnedOf(id); return 1 + Object.keys(players).filter(k => k !== id && earnedOf(k) > n).length;
+}
+function leaderId(){ return Object.keys(players).sort((a, b) => earnedOf(b) - earnedOf(a) || (players[a].createdAt || 0) - (players[b].createdAt || 0))[0]; }
+function lostTop(){
+  if (!me || !me.wasTop || leagueRank(myId) === 1) return null;
+  const lid = leaderId(); return lid ? { rank: leagueRank(myId), lid, lp: players[lid], ln: earnedOf(lid) } : null;
+}
+let topSaving = false;
+function trackTop(){
+  if (!me || topSaving || me.wasTop || earnedOf(myId) <= 0 || leagueRank(myId) !== 1) return;
+  topSaving = true; setMine({ wasTop: true }).finally(() => { topSaving = false; });
+}
+function showNews(guests, mails, lost){
   const box = $("news"); box.innerHTML = "";
   const head = t => { const h = document.createElement("p"); h.className = "news-h"; h.textContent = t; box.appendChild(h); };
+  if (lost) {
+    head("👑 1등 자리를 뺏겼어요!");
+    const row = document.createElement("div"); row.className = "mail new";
+    row.innerHTML = `<span>${lookSVG(lost.lp, lost.lid)}</span><span><b></b><small></small></span>`;
+    row.querySelector("b").textContent = `${lost.lp.nick}${josa(lost.lp.nick, "이", "가")} 1등이 됐어요 (누적 ${lost.ln})`;
+    row.querySelector("small").textContent = `지금 나는 ${lost.rank}등 · 누적 ${earnedOf(myId)} · 다시 1등을 되찾아 봐요!`;
+    box.appendChild(row);
+  }
   if (guests.length) {
     head(`🔔 문 앞에서 기다리는 친구 ${guests.length}명`);
     guests.slice(0, 5).forEach(g => {
@@ -1567,7 +1590,7 @@ function showNews(guests, mails){
   }
   openSheet("sheet-news");
 }
-function markNewsSeen(){ if (me && mailUnread()) setMine({ mailSeen: Date.now() }); }
+function markNewsSeen(){ if (me && mailUnread()) setMine({ mailSeen: Date.now() }); if (me && me.wasTop && leagueRank(myId) !== 1) setMine({ wasTop: false }); }
 $("nw-ok").onclick = nextModal;
 // ===== 알림: 관리자가 열어준 것 · 새 코스튬/효과 업데이트 =====
 // 새로 나온 것만 여기에 추가해요 (id는 한 번 정하면 바꾸지 않기). 이미 본 건 내 문서 seenUpdates에 기록돼요.
@@ -2728,6 +2751,7 @@ function onData(){
   }
   checkBadges();
   paintMyHouse();
+  if (newsChecked) trackTop();
   if (newsChecked) checkGrants();
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
   ensureLoginCode();
