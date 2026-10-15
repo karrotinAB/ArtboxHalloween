@@ -692,15 +692,6 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     </div>
 
     <div class="card">
-      <h2>🚪 우리 집 꾸미기</h2>
-      <p class="muted house-note">홈 화면과 마을 지도에 보이는 문과 우편함 색을 바꿔요</p>
-      <h3 class="house-h">문</h3>
-      <div class="scroller" id="door-colors"></div>
-      <h3 class="house-h">우편함</h3>
-      <div class="scroller" id="mail-colors"></div>
-    </div>
-
-    <div class="card">
       <div class="sheet-head tot-head"><h2>Trick or treat 하러 가기</h2><button class="ghost map-btn" id="btn-map2">🗺️ 마을 지도</button></div>
       <p class="muted" style="margin-top:-.3em;margin-bottom:0">누구네 문을 두드릴까요?</p>
       <p class="go-note">*친구네 놀러가야 사탕을 모을 수 있습니다! 같은 친구네는 하루에 한 번씩 갈 수 있어요. (한국 시간 자정에 새 날이 시작돼요)</p>
@@ -714,6 +705,15 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
         <textarea id="share-text" rows="4" readonly></textarea>
         <button id="btn-copy" style="margin-top:8px">복사하기</button>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>🚪 우리 집 꾸미기</h2>
+      <p class="muted house-note">홈 화면과 마을 지도에 보이는 문과 우편함 색을 바꿔요</p>
+      <h3 class="house-h">문</h3>
+      <div class="scroller" id="door-colors"></div>
+      <h3 class="house-h">우편함</h3>
+      <div class="scroller" id="mail-colors"></div>
     </div>
   </section>
 
@@ -1572,7 +1572,7 @@ const UPDATES = [
   { id: "logincode", title: "나만의 고유번호가 생겼어요 🔑", ready: () => !!myLoginCode(),
     text: () => `내 고유번호는 ${myLoginCode()}예요. 다른 폰이나 PC에서 등록 화면의 '이전에 참가했었나요?'를 누르고 이 번호를 넣으면 지금 계정 그대로 들어와요. '내 정보 수정'에서 언제든 다시 볼 수 있어요. 다른 사람에게는 알려주지 마세요!`,
     preview: () => `<span class="code-badge">🔑<i>${myLoginCode()}</i></span>` },
-  { id: "house", title: "우리 집 꾸미기가 생겼어요 🚪", text: () => `꾸미기 화면의 효과 칸 아래에서 문과 우편함 색을 따로따로 바꿀 수 있어요. 한 색당 사탕 ${PRICE_HOUSE.color}개! 홈 화면과 마을 지도에 보여요.`,
+  { id: "house", title: "우리 집 꾸미기가 생겼어요 🚪", text: () => `꾸미기 화면 맨 아래(친구네 놀러 가기 밑)에서 문과 우편함 색을 따로따로 바꿀 수 있어요. 한 색당 사탕 ${PRICE_HOUSE.color}개! 홈 화면과 마을 지도에 보여요.`,
     preview: () => doorSVG(me.code, 1, true, houseColor("pink"), houseColor("mint")) },
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
 ];
