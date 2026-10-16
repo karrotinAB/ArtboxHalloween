@@ -332,6 +332,25 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
 .admin-tag{font-family:"Jua",sans-serif;background:var(--lamp);color:var(--brown);border-radius:999px;padding:.2em .9em;font-size:.95rem}
 .adm-wrap{overflow-x:auto;margin:0 -18px;padding:0 18px}
 .adm-table{border-collapse:collapse;width:100%;font-size:.85rem}
+.jn-list{display:flex;flex-direction:column}
+.jn-row{box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px dashed var(--soft);cursor:pointer;text-align:left;background:none;border-left:0;border-right:0;border-top:0;width:100%;font:inherit;color:inherit;border-radius:0;box-shadow:none}
+.jn-row:hover{background:#f3ecfa}
+.jn-row svg{width:34px;flex:none}
+.jn-main{flex:1;min-width:0}
+.jn-main b{font-family:"Jua",sans-serif;font-weight:400;font-size:1rem}
+.jn-main .pf{display:block;font-size:.85rem}
+.jn-main .by{display:block;font-size:.8rem;color:#b5611b}
+.jn-main .by.none{color:var(--paper-muted)}
+.jn-when{flex:none;font-size:.78rem;color:var(--paper-muted);text-align:right;white-space:nowrap}
+.jn-when.new{color:#d9621b;font-weight:700}
+.jn-inv{border:2px solid var(--soft);border-radius:14px;margin:0 0 10px;overflow:hidden}
+.jn-inv>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;background:#fff4e6;list-style:none}
+.jn-inv>summary::-webkit-details-marker{display:none}
+.jn-inv>summary svg{width:34px;flex:none}
+.jn-inv>summary .cnt{flex:none;font-family:"Jua",sans-serif;color:#d9621b;font-size:1.05rem}
+.jn-inv .jn-row{padding-left:14px;padding-right:12px}
+#v-admin .tabs{overflow-x:auto;scrollbar-width:none}
+#v-admin .tabs button{white-space:nowrap;flex:1 0 auto;padding:.5em .55em}
 .adm-table td.who{white-space:normal}
 .adm-table td.who b{display:block;font-family:"Jua",sans-serif;font-weight:400;font-size:1rem}
 .adm-table td.who .via{display:block;color:#b5611b}
@@ -754,9 +773,10 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
   <section class="view" id="v-admin">
     <div class="topbar"><button class="ghost" id="btn-admin-back">← 우리 집으로</button><span class="admin-tag">관리자 화면</span></div>
     <div class="tabs" role="tablist">
-      <button role="tab" data-tab="lab" aria-selected="true">실험하기</button>
-      <button role="tab" data-tab="members" aria-selected="false">회원 · 순위</button>
-      <button role="tab" data-tab="prices" aria-selected="false">가격 · 규칙</button>
+      <button role="tab" data-tab="lab" aria-selected="true">실험</button>
+      <button role="tab" data-tab="members" aria-selected="false">회원·순위</button>
+      <button role="tab" data-tab="joins" aria-selected="false">가입·초대</button>
+      <button role="tab" data-tab="prices" aria-selected="false">가격·규칙</button>
       <button role="tab" data-tab="reset" aria-selected="false">초기화</button>
     </div>
     <div class="card admin-key" id="adm-key" hidden>
@@ -786,6 +806,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p class="muted" style="margin-top:-.3em;font-size:.85rem">회원을 누르면 캐릭터나 코스튬을 사탕 없이 열어줄 수 있어요. 자세한 접속 경로도 회원 창에서 볼 수 있어요.</p>
       <p class="via-sum" id="adm-via"></p>
       <div class="adm-wrap"><table class="adm-table" id="adm-table"></table></div>
+    </div>
+    <div class="card" data-pane="joins" hidden>
+      <h2>최신 가입자 <small class="muted" id="jn-count"></small></h2>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">가장 최근에 가입한 사람이 맨 위에 있어요. 누르면 회원 창이 열려요.</p>
+      <div class="jn-list" id="jn-list"></div>
+      <h2 style="margin-top:1.2em">누가 누구를 데려왔나 <small class="muted" id="jn-inv-count"></small></h2>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">초대 링크로 데려온 사람이 많은 순서예요.</p>
+      <div id="jn-inv"></div>
     </div>
     <div class="card" data-pane="prices" hidden>
       <h2>가격 · 규칙 편집</h2>
@@ -2302,8 +2330,45 @@ $("sm-delete").onclick = async () => {
   try { await db.doc("players/" + memberOpen).delete(); db.doc("profiles/" + memberOpen).delete().catch(() => {}); closeSheets(); toast(`${p.nick} 회원을 삭제했어요`); }
   catch { toast("삭제하지 못했어요."); }
 };
+// 관리자: 최신 가입자 · 초대 관계 (부서·이름이 꼭 보이게)
+function renderJoins(){
+  const pic = p => charSVG(p.char, p.costume, p.nick).replace(/class="lids"/g, 'class="x" style="display:none"');
+  const when = t => { if (!t) return "날짜 모름"; const d = new Date(t), m = Date.now() - t;
+    if (m < 36e5) return `${Math.max(1, Math.round(m / 6e4))}분 전`; if (m < 864e5) return `${Math.round(m / 36e5)}시간 전`;
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+  const pfText = id => { const pf = profileOf(id); return `${pf.dept || "부서 없음"} · ${pf.name || "이름 없음"}`; };
+  const row = (id, showBy) => { const p = players[id], b = document.createElement("button"); b.type = "button"; b.className = "jn-row"; b.onclick = () => openMember(id);
+    const recent = p.createdAt && Date.now() - p.createdAt < 864e5;
+    b.innerHTML = `${pic(p)}<span class="jn-main"><b></b><span class="pf"></span>${showBy ? '<span class="by"></span>' : ""}</span><span class="jn-when${recent ? " new" : ""}"></span>`;
+    b.querySelector("b").textContent = `${p.nick || ""} (${p.code}호)`;
+    b.querySelector(".pf").textContent = pfText(id);
+    b.querySelector(".jn-when").textContent = when(p.createdAt);
+    if (showBy) { const by = b.querySelector(".by"), inv = p.invitedBy && players[p.invitedBy];
+      if (inv) by.textContent = `🔗 ${inv.nick}님이 초대 · ${pfText(p.invitedBy)}`;
+      else if (p.invitedBy) by.textContent = "🔗 초대 링크 (보낸 사람 탈퇴)";
+      else { by.textContent = "🏠 링크 없이 직접 가입"; by.classList.add("none"); } }
+    return b; };
+  const ids = Object.keys(players).filter(id => players[id].code).sort((a, b) => (players[b].createdAt || 0) - (players[a].createdAt || 0));
+  $("jn-count").textContent = `${ids.length}명`;
+  const list = $("jn-list"); list.innerHTML = "";
+  ids.forEach(id => list.appendChild(row(id, true)));
+  if (!ids.length) list.innerHTML = '<p class="muted">아직 가입한 사람이 없어요.</p>';
+  const by = {}; ids.forEach(id => { const r = players[id].invitedBy; if (r) (by[r] = by[r] || []).push(id); });
+  const inviters = Object.keys(by).sort((a, b) => by[b].length - by[a].length || (players[a] ? 0 : 1) - (players[b] ? 0 : 1));
+  const open = new Set([...document.querySelectorAll("#jn-inv details[open]")].map(d => d.dataset.id));
+  const box = $("jn-inv"); box.innerHTML = "";
+  $("jn-inv-count").textContent = `초대한 사람 ${inviters.length}명 · 초대로 온 사람 ${ids.filter(id => players[id].invitedBy).length}명`;
+  inviters.forEach(r => { const d = document.createElement("details"); d.className = "jn-inv"; d.dataset.id = r; if (open.has(r)) d.open = true;
+    const inv = players[r];
+    d.innerHTML = `<summary>${inv ? pic(inv) : '<span style="width:34px;text-align:center">❔</span>'}<span class="jn-main"><b></b><span class="pf"></span></span><span class="cnt">${by[r].length}명 ▾</span></summary>`;
+    d.querySelector("b").textContent = inv ? `${inv.nick} (${inv.code}호)` : "탈퇴한 회원";
+    d.querySelector(".pf").textContent = inv ? pfText(r) : "";
+    by[r].forEach(id => d.appendChild(row(id, false)));
+    box.appendChild(d); });
+  if (!inviters.length) box.innerHTML = '<p class="muted">아직 초대 링크로 들어온 사람이 없어요.</p>';
+}
 function renderAdmin(){
-  checkServerAdmin(); renderAdminKey();
+  checkServerAdmin(); renderAdminKey(); renderJoins();
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
