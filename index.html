@@ -210,6 +210,7 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 #league li{cursor:pointer}
 #sp-fav.on{background:#fff3c4;color:#8a5a00}
 .sm-phrase{margin:.6em 0;font-size:.9rem}
+.sm-bonus{margin:.8em 0;padding:10px 12px;border:2px dashed #f0b35a;border-radius:14px;background:#fff8ec}
 .sm-phrase:empty{display:none}
 .sm-phrase button{margin-left:6px}
 .adm-table .phr{display:block;font-size:.76rem;color:#6b4fa0}
@@ -713,6 +714,11 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p class="sm-code" id="sm-code"></p>
       <div class="sm-warn" id="sm-warn"></div>
       <div class="sm-phrase" id="sm-phrase"></div>
+      <div class="sm-bonus" id="sm-bonus">
+        <b>🎁 사탕 선물하기</b> <small class="muted" id="sm-bonus-sum"></small>
+        <p class="muted" style="margin:.2em 0 .4em;font-size:.82rem">쓸 수 있는 사탕(보유)에만 더해지고 누적·리그 순위에는 영향이 없어요. 받는 사람에게는 다음 접속 때 선물 알림이 떠요.</p>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><button class="ghost" data-bonus="5">+5</button><button class="ghost" data-bonus="10">+10</button><button class="ghost" data-bonus="20">+20</button><input id="sm-bonus-in" type="number" min="1" max="999" inputmode="numeric" placeholder="개수" style="width:6em"><button class="green" id="sm-bonus-send">보내기</button></div>
+      </div>
       <div id="sm-extra"></div>
       <div id="sm-grants"></div>
       <div class="reset-item merge-item" style="margin-top:12px"><b>계정 합치기</b><span>같은 사람이 기기마다 따로 가입했을 때, 다른 계정의 사탕·옷·뱃지·기록을 이 계정으로 모두 옮기고 다른 계정은 지워요. 그 사람의 다른 기기도 이 계정으로 자동 연결돼요.</span>
@@ -786,7 +792,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <h3 class="house-h">우편함</h3>
       <div class="scroller" id="mail-colors"></div>
       <h3 class="house-h">💬 문구 바꾸기</h3>
-      <p class="muted house-note">친구가 문을 열어 줄 때 'Trick or Treat!' 대신 내가 외칠 말이에요. 한 번 바꿀 때마다 사탕 <b id="phrase-price">10</b>개!</p>
+      <p class="muted house-note">친구가 문을 열어 줄 때 'Trick or Treat!' 대신 내가 외칠 말이에요. 바꿀 때마다 내 사탕 <b id="phrase-price">10</b>개가 사용돼요.</p>
       <p class="phrase-now">지금 문구 <span class="phrase-bub" id="phrase-now"></span></p>
       <div class="findrow"><input id="phrase-in" maxlength="20" autocomplete="off" placeholder="새 문구 (20자까지)" aria-label="새 문구"><button class="green" id="btn-phrase">바꾸기</button></div>
       <p class="go-note" style="margin:.5em 0 0">*욕설이나 부적절한 언어를 사용하면 삭제될 수 있어요.</p>
@@ -1307,7 +1313,9 @@ function earnedOf(id){ const p = players[id]; return receivedOf(p, id) + (givenP
 function spentOf(p){
   return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : t === "p" ? PRICE_HOUSE.phrase : t === "d" || t === "m" ? (a === "orange" ? 0 : PRICE_HOUSE.color) : (PRICE_COS[b] || 0)); }, 0);
 }
-function balanceOf(id){ return earnedOf(id) - spentOf(players[id]); }
+// 관리자가 준 사탕 선물 (players.bonus = { 시각: 개수 }) · 보유 사탕에만 더하고 누적(리그)에는 안 들어가요
+const bonusOf = p => Object.values((p && p.bonus) || {}).reduce((n, v) => n + (Number(v) > 0 ? Math.round(Number(v)) : 0), 0);
+function balanceOf(id){ return earnedOf(id) - spentOf(players[id]) + bonusOf(players[id]); }
 const granted = (p, c) => !!(p && p.grants && p.grants[c] === true);
 // 히든 미션 보상 캐릭터(mission)는 사탕으로 살 수 없고 미션을 달성하면 열려요
 const ownsChar = (p, c) => c === "cat" || granted(p, c) || (CHARS[c] && CHARS[c].adminOnly ? (freeMode && p !== me) : CHARS[c] && CHARS[c].mission ? (freeMode && p !== me) || missionDoneP(p, CHARS[c].mission) : !!(p && p.owned && p.owned["c:" + c]));
@@ -1665,7 +1673,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants();
+  checkUpdates(); checkGrants(); checkBonus();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -1737,7 +1745,7 @@ const UPDATES = [
   { id: "cloud", title: "새 캐릭터 '구름이' ☁️", text: () => `꾸미기의 캐릭터에서 사탕 ${PRICE_CHAR.cloud}개로 열 수 있어요!`, preview: () => charSVG("cloud", "none", "구름이") },
   { id: "skeleton", title: "보스 새 코스튬 '스켈레톤' 💀", text: () => `보스 옷장에서 사탕 ${PRICE_COS.skeleton}개로 열 수 있어요.`, preview: () => charSVG("boss", "skeleton", "스켈레톤") },
   { id: "favs", title: "즐겨찾기가 생겼어요 ★", text: () => "사탕 리그에서 캐릭터를 누르면 즐겨찾기 할 수 있어요. 즐겨찾기한 이웃은 리그에 ★로 보이고, 마을 지도 맨 위와 방문 목록 앞쪽에 나와요!", preview: () => `<span style="font-size:4rem;color:#f5b301">★</span>` },
-  { id: "phrase", title: "문구 바꾸기가 생겼어요 💬", text: () => `꾸미기 화면 '우리 집 꾸미기' 맨 아래에서 친구가 문을 열어 줄 때 외칠 말을 'Trick or Treat!' 대신 바꿀 수 있어요. 한 번 바꿀 때마다 사탕 ${PRICE_HOUSE.phrase}개! (욕설이나 부적절한 언어는 삭제될 수 있어요)`, preview: () => `<span style="font-size:4rem">💬</span>` },
+  { id: "phrase", title: "문구 바꾸기가 생겼어요 💬", text: () => `꾸미기 화면 '우리 집 꾸미기' 맨 아래에서 친구가 문을 열어 줄 때 외칠 말을 'Trick or Treat!' 대신 바꿀 수 있어요. 바꿀 때마다 내 사탕 ${PRICE_HOUSE.phrase}개가 사용돼요. (욕설이나 부적절한 언어는 삭제될 수 있어요)`, preview: () => `<span style="font-size:4rem">💬</span>` },
   { id: "ballet", title: "구름이 새 코스튬 '발레리나' 🩰", text: () => `구름이 옷장에서 사탕 ${PRICE_COS.ballet}개로 열 수 있어요.`, preview: () => charSVG("cloud", "ballet", "발레리나") },
   { id: "swing", title: "게왹이 새 코스튬 '스윙왹' ⚾", text: () => `게왹이 옷장에서 사탕 ${PRICE_COS.swing}개로 열 수 있어요. 별이도 야구 모자를 써요!`, preview: () => charSVG("cat", "swing", "스윙왹") },
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
@@ -1773,6 +1781,16 @@ function checkGrants(){
   fresh.forEach(x => grantQueued[x.k] = 1);
   pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 열어줬어요", fresh.map(x => ({ ...x.info, text: "지금 꾸미기에서 바로 쓸 수 있어요!" })),
     () => setMine({ seenGrants: Object.fromEntries(fresh.map(x => [x.k, Date.now()])) })));
+}
+let bonusQueued = {};
+function checkBonus(){
+  if (!me || !me.bonus) return;
+  const seen = me.seenBonus || {}, fresh = Object.keys(me.bonus).filter(k => Number(me.bonus[k]) > 0 && !seen[k] && !bonusQueued[k]);
+  if (!fresh.length) return;
+  fresh.forEach(k => bonusQueued[k] = 1);
+  const n = fresh.reduce((t, k) => t + Math.round(Number(me.bonus[k])), 0);
+  pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 사탕을 보냈어요", [{ title: `사탕 ${n}개 🍬`, text: "쓸 수 있는 사탕에 더해졌어요. 옷이나 효과를 사는 데 써 보세요! (리그 누적 순위에는 들어가지 않아요)", preview: `<span style="font-size:4rem">🍬</span>` }],
+    () => setMine({ seenBonus: Object.fromEntries(fresh.map(k => [k, Date.now()])) })));
 }
 const myLoginCode = () => profiles[myId] && profiles[myId].loginCode;
 let updQueued = {};
@@ -1921,7 +1939,7 @@ async function mergeAccounts(P, D){
   Object.entries(d.gifts || {}).forEach(([k, v]) => { const g = giverOf(k); if (g === P || g === D) return; const key = g + "~" + giftKeyDay(k, v); if (seen.has(key)) return; seen.add(key); pg[p.gifts && p.gifts[k] !== undefined ? `${g}~${giftKeyDay(k, v)}` : k] = v; });
   const pk = {}; Object.entries(d.knocks || {}).forEach(([k, v]) => { if (k !== P && k !== D && (!p.knocks || !p.knocks[k] || p.knocks[k] < v)) pk[k] = v; });
   const merged = { gifts: pg, knocks: pk };
-  for (const f of ["owned", "grants", "photos", "badges", "visits", "shoo", "shooAt", "seenUpdates", "seenGrants"]) {
+  for (const f of ["owned", "grants", "photos", "badges", "visits", "shoo", "shooAt", "seenUpdates", "seenGrants", "bonus", "seenBonus", "favs"]) {
     const src = { ...(d[f] || {}) }; delete src[P]; delete src[D];
     Object.keys(src).forEach(k => { if (p[f] && p[f][k] !== undefined && f !== "visits") delete src[k]; });
     if (Object.keys(src).length) merged[f] = src;
@@ -2087,6 +2105,17 @@ $("btn-phrase-reset").onclick = async () => {
   if (!confirm("기본 문구 'Trick or Treat!'로 되돌릴까요? (사탕은 돌려받지 않아요)")) return;
   try { await db.doc("players/" + myId).remove(["phrase"]); toast("기본 문구로 되돌렸어요"); } catch { toast("저장하지 못했어요. 다시 눌러 주세요."); }
 };
+// 관리자: 사탕 선물
+async function sendBonus(n){
+  const id = memberOpen, p = players[id]; n = Math.round(Number(n));
+  if (!p || needAdmin()) return;
+  if (!(n > 0 && n <= 999)) { toast("1~999 사이 숫자를 넣어 주세요"); return; }
+  if (!confirm(`${p.nick}에게 사탕 ${n}개를 선물할까요?`)) return;
+  try { await db.doc("players/" + id).update({ bonus: { [String(Date.now())]: n } }); $("sm-bonus-in").value = ""; toast(`${p.nick}에게 사탕 ${n}개를 보냈어요 🎁`); }
+  catch { toast("보내지 못했어요. 관리자 등록을 확인해 주세요."); }
+}
+document.querySelectorAll("#sm-bonus [data-bonus]").forEach(b => b.onclick = () => sendBonus(b.dataset.bonus));
+$("sm-bonus-send").onclick = () => sendBonus($("sm-bonus-in").value);
 // 관리자: 회원 문구 보기 · 삭제
 function renderMemberPhrase(id){
   const box = $("sm-phrase"), p = players[id] || {}, v = (p.phrase || "").trim();
@@ -2311,6 +2340,7 @@ function renderMember(){
   renderMemberExtra(p);
   renderMemberWarn(memberOpen);
   renderMemberPhrase(memberOpen);
+  const bs = bonusOf(p); $("sm-bonus-sum").textContent = bs ? `지금까지 ${bs}개 선물함` : "";
   fillMergePick();
   const lc = (profiles[memberOpen] || {}).loginCode, cr = $("sm-code");
   cr.innerHTML = `고유번호: <b>${lc || "아직 없음"}</b> `;
@@ -3066,7 +3096,7 @@ function onData(){
   checkWarnGate();
   paintMyHouse();
   if (newsChecked) trackTop();
-  if (newsChecked) checkGrants();
+  if (newsChecked) { checkGrants(); checkBonus(); }
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
   ensureLoginCode();
   if (me && !isHouseNo(me.code) && !migrating) {
