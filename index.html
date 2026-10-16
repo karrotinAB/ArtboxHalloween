@@ -206,6 +206,20 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .house-h{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem;margin:.6em 0 .2em}
 .scroller .chip.hc{flex-basis:76px;width:76px}
 .chip.hc svg{width:48px;height:auto;display:block;margin:0 auto 2px}
+.warn-gate{position:fixed;inset:0;z-index:120;background:rgba(30,12,40,.92);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.warn-gate[hidden]{display:none}
+.warn-card{width:100%;max-width:420px;text-align:center}
+.warn-card .wg-big{font-size:1.1rem;line-height:1.6;margin:.2em 0 .6em;word-break:keep-all}
+.warn-card .wg-q{font-family:"Jua",sans-serif;font-size:1.2rem;margin:.4em 0 .8em}
+.warn-card button.big{width:100%;margin:6px 0}
+.warn-card .ghost-b{background:#ece4f2;box-shadow:0 4px 0 #c9bfd2}
+.warn-card .field{text-align:left}
+.warn-card textarea{width:100%;box-sizing:border-box;border-radius:14px;border:2px solid var(--soft);padding:.6em;font:inherit}
+.sm-warn{margin:.4em 0 .9em;padding:10px 12px;border-radius:14px;background:#fff1e6;border:2px dashed #e0883a}
+.sm-warn b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem}
+.sm-warn p{margin:.3em 0;font-size:.92rem;white-space:pre-wrap}
+.sm-warn button{font-size:.9rem;padding:.4em 1em;margin:4px 6px 0 0}
+.adm-table .warn-tag{display:inline-block;margin-left:4px;font-size:.75rem;padding:0 .4em;border-radius:6px;background:#ffd9c2;color:#8a3a10}
 .mail-dot{position:absolute;right:22px;top:-29px;width:16.2px;animation:mailpop 1.2s ease-in-out infinite;transform-origin:50% 100%}
 .mail-dot svg{display:block;width:100%;height:auto}
 @keyframes mailpop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-3px) rotate(-8deg)}60%{transform:translateY(0) rotate(6deg)}}
@@ -338,6 +352,24 @@ button.danger{background:#e25c4b;color:#fff;box-shadow:0 4px 0 #9e3527;justify-s
 .grant-row b{font-family:"Jua",sans-serif;font-weight:400;display:block;font-size:1.05rem;color:var(--brown)}
 .grant-row span{font-size:.8rem;color:var(--paper-muted)}
 .grant-row button{font-size:.9rem;padding:.4em .9em}
+.pe-group{margin:10px 0;border:2px solid var(--soft);border-radius:16px;background:#fffaf4;overflow:hidden}
+.pe-group summary{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:10px 14px;cursor:pointer;font-family:"Jua",sans-serif;font-size:1.08rem;background:#fff1e0;list-style:none}
+.pe-group summary::-webkit-details-marker{display:none}
+.pe-group summary small{font-family:inherit;font-size:.8rem;color:var(--paper-muted)}
+.pe-row{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:8px 12px;border-top:1px dashed var(--soft)}
+.pe-row.changed{background:#ffe9cf}
+.pe-pic{width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+.pe-pic svg,.pe-pic img{max-width:44px;max-height:44px;width:auto;height:auto}
+.pe-emoji{font-size:1.6rem}
+.pe-name b{display:block;font-weight:400;font-family:"Jua",sans-serif;font-size:1rem;line-height:1.3}
+.pe-name small{display:block;font-size:.76rem;color:var(--paper-muted);line-height:1.35}
+.pe-step{display:flex;align-items:center;gap:4px}
+.pe-step input{width:56px;text-align:center;padding:.35em .2em;font-size:1.05rem;font-family:"Jua",sans-serif}
+.pe-row.changed input{border-color:#e0883a;color:#c4561b}
+.pe-btn{width:32px;height:32px;padding:0;border-radius:50%;font-size:1.1rem;background:#f3ebf8;color:var(--brown);box-shadow:none;border:2px solid var(--soft)}
+.pe-bar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border-radius:16px;background:var(--paper);border:3px solid var(--brown);box-shadow:0 4px 0 var(--brown);z-index:5}
+.pe-bar #adm-dirty{flex:1;font-size:.88rem;color:var(--paper-muted)}
+.pe-bar button{font-size:.95rem;padding:.45em 1em}
 .price-group{margin:10px 0 14px}
 .price-group h3{font-size:1rem;margin:0 0 6px}
 .price-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--soft)}
@@ -642,6 +674,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="sheet-head"><h2 id="sm-title"></h2><button class="ghost" data-close>닫기</button></div>
       <p class="muted" id="sm-info" style="margin-top:0;white-space:pre-line"></p>
       <p class="sm-code" id="sm-code"></p>
+      <div class="sm-warn" id="sm-warn"></div>
       <div id="sm-extra"></div>
       <div id="sm-grants"></div>
       <div class="reset-item merge-item" style="margin-top:12px"><b>계정 합치기</b><span>같은 사람이 기기마다 따로 가입했을 때, 다른 계정의 사탕·옷·뱃지·기록을 이 계정으로 모두 옮기고 다른 계정은 지워요. 그 사람의 다른 기기도 이 계정으로 자동 연결돼요.</span>
@@ -758,7 +791,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <h2>가격 · 규칙 편집</h2>
       <p class="muted" style="margin-top:-.3em">저장하면 모든 참가자에게 바로 적용돼요.</p>
       <div id="adm-prices"></div>
-      <button class="big" id="adm-save" style="margin-top:10px">저장하기</button>
+      <div class="pe-bar"><span id="adm-dirty"></span><button class="ghost" id="adm-reset-prices" hidden>되돌리기</button><button class="green" id="adm-save">저장하기</button></div>
       <p class="muted center" id="adm-msg"></p>
     </div>
     <div class="card" data-pane="reset" hidden>
@@ -808,6 +841,30 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     </div>
   </section>
 
+</div>
+<div class="warn-gate" id="warn-gate" hidden>
+  <div class="card warn-card">
+    <div id="wg-ask">
+      <p class="wg-big">안타깝게도 해당 게임은 <b>아트박스 임직원</b>들만 접속할 수 있습니다.</p>
+      <p class="wg-q">아트박스 임직원이십니까?</p>
+      <button class="big" data-wg="hq">1. 본사직원입니다</button>
+      <button class="big" data-wg="store">2. 매장직원입니다</button>
+      <button class="big ghost-b" data-wg="etc">3. 기타</button>
+    </div>
+    <div id="wg-form" hidden>
+      <p class="wg-q" id="wg-form-q"></p>
+      <div class="field" id="wg-f1"><label for="wg-a" id="wg-la"></label><input id="wg-a" maxlength="30"></div>
+      <div class="field" id="wg-f2"><label for="wg-b" id="wg-lb"></label><input id="wg-b" maxlength="30"></div>
+      <div class="field" id="wg-f3"><label for="wg-t">자유롭게 적어 주세요</label><textarea id="wg-t" rows="4" maxlength="300"></textarea></div>
+      <button class="big green" id="wg-submit">제출하기</button>
+      <button class="ghost-dark" id="wg-back">← 다시 고르기</button>
+      <p class="muted center" id="wg-msg"></p>
+    </div>
+    <div id="wg-wait" hidden>
+      <p class="wg-big">관리자가 확인중에 있습니다.<br>감사합니다 🙏</p>
+      <p class="muted center">확인이 끝나면 다시 게임을 할 수 있어요.</p>
+    </div>
+  </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -1329,7 +1386,7 @@ function watchProfiles(all){
   profilesSub = all ? "all" : true;
   const done = () => { if (current === "admin") renderAdmin(); };
   if (all) db.collection("profiles").limit(1000).onSnapshot(snap => { snap.docs.forEach(d => { profiles[d.id] = d.data(); }); profileLoaded = true; ensureLoginCode(); done(); }, () => {});
-  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); profileLoaded = true; ensureLoginCode(); if (editMode && current === "register") showMyCode(); }, () => {});
+  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); profileLoaded = true; checkWarnGate(); ensureLoginCode(); if (editMode && current === "register") showMyCode(); }, () => {});
 }
 
 // ===== 등록 / 정보 수정 =====
@@ -1526,7 +1583,7 @@ const modalOpen = () => [...document.querySelectorAll(".sheet-bg[data-modal]")].
 function pushModal(fn){ modalQ.push(fn); flushModal(); }
 // 홈·꾸미기 화면에서, 다른 팝업·안내가 없을 때만 하나씩 띄워요
 function flushModal(){
-  if (!modalQ.length || modalOpen() || tourStep >= 0 || !(current === "home" || current === "dress")) return;
+  if (!modalQ.length || modalOpen() || tourStep >= 0 || !$("warn-gate").hidden || !(current === "home" || current === "dress")) return;
   if ([...document.querySelectorAll(".sheet-bg")].some(e => !e.hidden)) return;
   modalQ.shift()();
 }
@@ -1865,6 +1922,56 @@ function paintMyHouse(){
   document.querySelectorAll("#btn-mail .mb-w").forEach(e => e.setAttribute("fill", m.w));
   document.querySelectorAll("#btn-mail .mb-l").forEach(e => e.setAttribute("fill", m.lt));
 }
+// ===== 경고: 관리자가 경고를 보내면 승인될 때까지 게임을 막아요 =====
+// players.warn = { at } (관리자만 쓰기) · 답변은 profiles.warnReply = { type, a, b, text, at } (본인·관리자만 읽기)
+const WARN_TYPES = { hq: { label: "본사직원", q: "부서와 이름을 다시 정확하게 기입해주세요", a: "부서", b: "이름" }, store: { label: "매장직원", q: "매장명과 직책을 기입해주세요", a: "매장명", b: "직책" }, etc: { label: "기타", q: "자유롭게 적어 주세요" } };
+let wgType = null;
+const warnOf = p => p && p.warn && p.warn.at ? p.warn : null;
+const warnReplyOf = id => { const w = warnOf(players[id]), r = profiles[id] && profiles[id].warnReply; return w && r && r.at > w.at ? r : null; };
+function checkWarnGate(){
+  const w = me && warnOf(me), g = $("warn-gate");
+  if (!w) { g.hidden = true; return; }
+  if (g.hidden) { closeSheets(); if (tourStep >= 0) { tourStep = -1; $("tour").hidden = true; } }
+  g.hidden = false;
+  const replied = !!warnReplyOf(myId);
+  $("wg-wait").hidden = !replied; $("wg-ask").hidden = replied || !!wgType; $("wg-form").hidden = replied || !wgType;
+}
+function wgPick(t){
+  wgType = t; const T = WARN_TYPES[t];
+  $("wg-form-q").textContent = T.q; $("wg-msg").textContent = "";
+  $("wg-f1").hidden = $("wg-f2").hidden = !T.a; $("wg-f3").hidden = !!T.a;
+  if (T.a) { $("wg-la").textContent = T.a; $("wg-lb").textContent = T.b; $("wg-a").value = ""; $("wg-b").value = ""; } else $("wg-t").value = "";
+  checkWarnGate();
+}
+document.querySelectorAll("[data-wg]").forEach(b => b.onclick = () => wgPick(b.dataset.wg));
+$("wg-back").onclick = () => { wgType = null; checkWarnGate(); };
+$("wg-submit").onclick = async () => {
+  const T = WARN_TYPES[wgType], a = $("wg-a").value.trim(), bb = $("wg-b").value.trim(), t = $("wg-t").value.trim();
+  if (T.a ? !a || !bb : !t) { $("wg-msg").textContent = "빈칸을 채워 주세요."; return; }
+  const reply = { type: wgType, at: Date.now(), ...(T.a ? { a, b: bb } : { text: t }) };
+  $("wg-submit").disabled = true;
+  try { await db.doc("profiles/" + myId).update({ warnReply: reply }); profiles[myId] = { ...(profiles[myId] || {}), warnReply: reply }; wgType = null; checkWarnGate(); }
+  catch { $("wg-msg").textContent = "보내지 못했어요. 다시 눌러 주세요."; }
+  finally { $("wg-submit").disabled = false; }
+};
+// 관리자 회원 창: 경고 보내기 · 답변 보기 · 승인
+function renderMemberWarn(id){
+  const box = $("sm-warn"), p = players[id], w = warnOf(p); box.innerHTML = "";
+  const btn = (txt, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = txt; b.onclick = fn; box.appendChild(b); return b; };
+  if (!w) {
+    box.innerHTML = "<b>⚠️ 수상한 계정이면</b><p>경고를 보내면 이 사람은 다음 접속 때 임직원 확인 창이 떠요. 승인할 때까지 게임을 못 해요.</p>";
+    btn("경고 메시지 보내기", "danger", async () => { if (needAdmin()) return; if (!confirm(`${p.nick}에게 경고를 보낼까요?`)) return; try { await db.doc("players/" + id).update({ warn: { at: Date.now() } }); toast("경고를 보냈어요"); } catch { toast("보내지 못했어요"); } });
+    return;
+  }
+  const r = warnReplyOf(id), T = r && WARN_TYPES[r.type];
+  box.innerHTML = `<b>⚠️ 경고 보냄 · ${new Date(w.at).getMonth() + 1}/${new Date(w.at).getDate()}</b>`;
+  const pr = document.createElement("p");
+  pr.textContent = !r ? "아직 답변이 없어요." : `답변: ${T ? T.label : r.type}\n` + (r.text ? r.text : `${T.a}: ${r.a}\n${T.b}: ${r.b}`);
+  box.appendChild(pr);
+  const ok = async msg => { if (needAdmin()) return; try { await db.doc("players/" + id).remove(["warn"]); toast(msg); } catch { toast("저장하지 못했어요"); } };
+  btn("✅ 승인 (다시 이용 가능)", "green", () => ok(`${p.nick}을(를) 승인했어요`));
+  btn("경고 취소", "ghost", () => ok("경고를 취소했어요"));
+}
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -2073,6 +2180,7 @@ function renderMember(){
   const pf = profileOf(memberOpen);
   $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)} · 가입 ${p.createdAt ? `${new Date(p.createdAt).getMonth() + 1}월 ${new Date(p.createdAt).getDate()}일` : "날짜 모름"}\n접속 경로: ${viaText(memberOpen)}`;
   renderMemberExtra(p);
+  renderMemberWarn(memberOpen);
   fillMergePick();
   const lc = (profiles[memberOpen] || {}).loginCode, cr = $("sm-code");
   cr.innerHTML = `고유번호: <b>${lc || "아직 없음"}</b> `;
@@ -2212,22 +2320,40 @@ function renderAdmin(){
     const pf = profileOf(p.id);
     tr.querySelector(".who span").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 🏅${MISSIONS.filter(m => hasBadge(p.id, m.id)).length}`;
     const vs = document.createElement("span"); vs.className = "via"; vs.textContent = viaText(p.id, true); tr.querySelector(".who").appendChild(vs);
+    if (warnOf(p)) { const wt = document.createElement("span"); wt.className = "warn-tag"; wt.textContent = warnReplyOf(p.id) ? "⚠️ 답변 도착" : "⚠️ 경고 중"; tr.querySelector(".who b").after(wt); }
     t.appendChild(tr);
   });
   if (!list.length) t.insertAdjacentHTML("beforeend", '<tr><td colspan="5" class="muted">아직 가입한 사람이 없어요.</td></tr>');
-  if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#adm-prices")) return;
+  if ([...document.querySelectorAll("#adm-prices input")].some(i => i.value !== i.dataset.orig)) return;
   const box = $("adm-prices"); box.innerHTML = "";
-  const row = (label, key, val) => `<label class="price-row"><span>${esc(label)}</span><input type="number" min="0" max="999" inputmode="numeric" data-key="${key}" value="${val}"></label>`;
-  let html = `<div class="price-group"><h3>사탕 적립</h3>${row("받으면", "earn.receive", EARN.receive)}${row("주면", "earn.give", EARN.give)}${row("처음 보는 코스튬과 사진", "earn.photo", EARN.photo)}${row("코스튬 열 때마다 보너스", "earn.unlock", EARN.unlock)}${row("거지왹을 입고 받으면", "earn.beggar", EARN.beggar)}${row("파리 거지왹에게 주면 잃는 사탕", "earn.steal", EARN.steal)}${row("호의 보상 (가끔)", "earn.favor", EARN.favor)}${row("반짝이 당첨되면 받는 사탕 (50%)", "earn.sparkle", EARN.sparkle)}${row("내 링크로 친구가 참가하면", "earn.invite", EARN.invite)}</div>`;
-  html += `<div class="price-group"><h3>캐릭터 열기</h3>${Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0)).join("")}</div>`;
-  html += `<div class="price-group"><h3>효과</h3>${EFFECTS.filter(e => e.id !== "none").map(e => row(e.name, "fx." + e.id, PRICE_FX[e.id] || 0)).join("")}</div>`;
-  html += `<div class="price-group"><h3>우리 집 꾸미기</h3>${row("문·우편함 색 (한 색당)", "house.color", PRICE_HOUSE.color)}</div>`;
+  const thumb = svg => `<span class="pe-pic">${String(svg).replace(/class="lids"/g, 'class="x" style="display:none"')}</span>`;
+  const row = (label, key, val, pic, note) => `<div class="pe-row">${pic ? thumb(pic) : `<span class="pe-pic pe-emoji">🍬</span>`}<span class="pe-name"><b>${esc(label)}</b>${note ? `<small>${esc(note)}</small>` : ""}</span><span class="pe-step"><button type="button" class="pe-btn" data-d="-1" aria-label="1 줄이기">−</button><input type="number" min="0" max="999" inputmode="numeric" data-key="${key}" data-orig="${val}" value="${val}" aria-label="${esc(label)}"><button type="button" class="pe-btn" data-d="1" aria-label="1 늘리기">+</button></span></div>`;
+  const group = (title, sub, rows) => `<details class="pe-group" open><summary><span>${title}</span><small>${sub}</small></summary>${rows}</details>`;
+  const EARN_ROWS = [
+    ["receive", "사탕 받으면", "친구가 문을 열어 사탕을 줄 때 받는 개수"], ["give", "사탕 주면", "내가 손님에게 사탕을 줄 때 받는 개수"],
+    ["photo", "처음 보는 코스튬과 사진", "새 코스튬 친구와 사진 찍으면"], ["unlock", "코스튬 열 때 보너스", "사탕으로 코스튬 하나 열 때마다"],
+    ["invite", "친구 초대", "내 링크로 동료가 참가하면"], ["beggar", "거지왹으로 받으면", "거지왹을 입고 받을 때 (보통 대신)"],
+    ["sparkle", "반짝이 당첨", "반짝이 50% 당첨 시 받는 개수"], ["steal", "파리 거지왹에게 뺏기는 개수", "집주인이 잃는 사탕"], ["favor", "호의 보상", "파리 거지왹에게 줬을 때 25% 확률"]];
+  let html = group("🍬 사탕 받는 규칙", "언제 몇 개를 받는지", EARN_ROWS.map(([k, l, n]) => row(l, "earn." + k, EARN[k] ?? 0, null, n)).join(""));
+  html += group("🧸 캐릭터 열기", "사탕으로 여는 캐릭터", Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0, charSVG(k, "none", c.name))).join(""));
+  html += group("✨ 효과", "캐릭터 주변 효과", EFFECTS.filter(e => e.id !== "none").map(e => row(e.name, "fx." + e.id, PRICE_FX[e.id] || 0, `<img alt="" src="data:image/webp;base64,${DECO[e.icon]}">`)).join(""));
+  html += group("🚪 우리 집 꾸미기", "문·우편함 색", row("색 하나당", "house.color", PRICE_HOUSE.color, swatchSVG("d", houseColor("pink")), "문과 우편함 각각"));
   Object.entries(CHARS).filter(([, c]) => !c.adminOnly).forEach(([k, c]) => {
     const cos = artCostumes(k).filter(x => x.id !== "none" && !x.grantOnly);
-    if (cos.length) html += `<div class="price-group"><h3>${esc(c.name)} 코스튬</h3>${cos.map(x => row(x.name, "cos." + x.id, PRICE_COS[x.id] || 0)).join("")}</div>`;
+    if (cos.length) html += group(`👗 ${esc(c.name)} 코스튬`, `${cos.length}개`, cos.map(x => row(x.name, "cos." + x.id, PRICE_COS[x.id] || 0, charSVG(k, x.id, x.name), PRICE_COS[x.id] ? "" : "무료")).join(""));
   });
   box.innerHTML = html;
+  peCount();
 }
+function peCount(){
+  const ch = [...document.querySelectorAll("#adm-prices input")].filter(i => String(Math.max(0, Math.round(Number(i.value) || 0))) !== i.dataset.orig);
+  document.querySelectorAll("#adm-prices .pe-row").forEach(r => r.classList.toggle("changed", ch.includes(r.querySelector("input"))));
+  $("adm-dirty").textContent = ch.length ? `바뀐 항목 ${ch.length}개 · 저장해야 적용돼요` : "바뀐 항목 없음";
+  $("adm-save").disabled = !ch.length;
+  $("adm-reset-prices").hidden = !ch.length;
+}
+$("adm-prices").addEventListener("click", e => { const b = e.target.closest(".pe-btn"); if (!b) return; const inp = b.parentElement.querySelector("input"); inp.value = Math.max(0, Math.min(999, (Number(inp.value) || 0) + Number(b.dataset.d))); peCount(); });
+$("adm-prices").addEventListener("input", peCount);
 $("btn-admin-back").onclick = goHome;
 document.querySelectorAll(".tabs [data-tab]").forEach(t => t.onclick = () => {
   document.querySelectorAll(".tabs [data-tab]").forEach(x => x.setAttribute("aria-selected", x === t));
@@ -2246,10 +2372,11 @@ $("adm-save").onclick = async () => {
     (g === "char" ? cfg.priceChar : g === "cos" ? cfg.priceCos : g === "fx" ? cfg.priceFx : g === "house" ? cfg.priceHouse : cfg.earn)[k] = v;
   });
   $("adm-save").disabled = true;
-  try { await db.doc("config/main").set(cfg); $("adm-msg").textContent = "저장했어요. 모든 참가자에게 적용됐어요."; }
+  try { await db.doc("config/main").set(cfg); document.querySelectorAll("#adm-prices input").forEach(i => { i.value = i.dataset.orig = String(Math.max(0, Math.round(Number(i.value) || 0))); }); $("adm-msg").textContent = "저장했어요. 모든 참가자에게 적용됐어요."; }
   catch { $("adm-msg").textContent = "저장하지 못했어요. 다시 눌러 주세요."; }
-  finally { $("adm-save").disabled = false; }
+  finally { peCount(); }
 };
+$("adm-reset-prices").onclick = () => { document.querySelectorAll("#adm-prices input").forEach(i => i.value = i.dataset.orig); peCount(); };
 function josa(w, a, b){ const c = w.charCodeAt(w.length - 1); if (c < 0xAC00 || c > 0xD7A3) return b; return (c - 0xAC00) % 28 ? a : b; }
 function tryLook(l){ freeLook = { ...freeLook, ...l }; renderDress(); }
 $("btn-free-end").onclick = () => { freeMode = false; freeLook = null; openAdmin(); };
@@ -2768,6 +2895,7 @@ function onData(){
     if (Object.keys(fix).length) db.doc("players/" + myId).update(fix).catch(() => {});
   }
   checkBadges();
+  checkWarnGate();
   paintMyHouse();
   if (newsChecked) trackTop();
   if (newsChecked) checkGrants();
