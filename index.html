@@ -210,6 +210,7 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 #league li{cursor:pointer}
 #sp-fav.on{background:#fff3c4;color:#8a5a00}
 .sm-phrase{margin:.6em 0;font-size:.9rem}
+.mail-gift{display:flex;align-items:center;justify-content:center;font-size:2rem;width:100%;height:100%}
 .sm-bonus{margin:.8em 0;padding:10px 12px;border:2px dashed #f0b35a;border-radius:14px;background:#fff8ec}
 .sm-phrase:empty{display:none}
 .sm-phrase button{margin-left:6px}
@@ -716,7 +717,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="sm-phrase" id="sm-phrase"></div>
       <div class="sm-bonus" id="sm-bonus">
         <b>🎁 사탕 선물하기</b> <small class="muted" id="sm-bonus-sum"></small>
-        <p class="muted" style="margin:.2em 0 .4em;font-size:.82rem">쓸 수 있는 사탕(보유)에만 더해지고 누적·리그 순위에는 영향이 없어요. 받는 사람에게는 다음 접속 때 선물 알림이 떠요.</p>
+        <p class="muted" style="margin:.2em 0 .4em;font-size:.82rem">쓸 수 있는 사탕(보유)에만 더해지고 누적·리그 순위에는 영향이 없어요. 받는 사람 우편함에 선물 소식이 도착해요.</p>
         <div class="row" style="gap:6px;flex-wrap:wrap"><button class="ghost" data-bonus="5">+5</button><button class="ghost" data-bonus="10">+10</button><button class="ghost" data-bonus="20">+20</button><input id="sm-bonus-in" type="number" min="1" max="999" inputmode="numeric" placeholder="개수" style="width:6em"><button class="green" id="sm-bonus-send">보내기</button></div>
       </div>
       <div id="sm-extra"></div>
@@ -1574,6 +1575,11 @@ function mailItems(){
     if (id === myId || p.invitedBy !== myId) return;
     out.push({ t: p.createdAt || 0, p, id, text: `${p.nick}${josa(p.nick, "이", "가")} 내 링크로 들어왔어요! 🎉`, sub: `초대 보너스 사탕 +${EARN.invite}` });
   });
+  // 관리자가 보낸 사탕 선물
+  Object.entries(me.bonus || {}).forEach(([k, v]) => {
+    const n = Math.round(Number(v)); if (!(n > 0)) return;
+    out.push({ t: Number(k) || 0, pic: '<span class="mail-gift">🎁</span>', text: `관리자가 사탕 ${n}개를 선물했어요! 🍬`, sub: "쓸 수 있는 사탕 +" + n + " · 리그 누적 제외" });
+  });
   return out.sort((a, b) => b.t - a.t).slice(0, 60);
 }
 const mailUnread = () => mailItems().filter(m => m.t > (me && me.mailSeen || 0)).length;
@@ -1592,7 +1598,7 @@ function openMail(){
   box.innerHTML = list.length ? "" : '<p class="muted">아직 소식이 없어요. 친구네 문을 두드려 보세요!</p>';
   list.forEach(m => {
     const row = document.createElement("div"); row.className = "mail" + (m.t > last ? " new" : "");
-    row.innerHTML = `<span>${lookSVG(m.p, m.id)}</span><span><b></b><small></small></span>`;
+    row.innerHTML = `<span>${m.pic || lookSVG(m.p, m.id)}</span><span><b></b><small></small></span>`;
     row.querySelector("b").textContent = m.text;
     row.querySelector("small").textContent = `${mailWhen(m.t)} · ${m.sub}`;
     box.appendChild(row);
@@ -1673,7 +1679,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants(); checkBonus();
+  checkUpdates(); checkGrants();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -1720,7 +1726,7 @@ function showNews(guests, mails, lost){
     head(`📮 내가 놀러 간 집 소식 ${mails.length}개`);
     mails.slice(0, 5).forEach(m => {
       const row = document.createElement("div"); row.className = "mail new";
-      row.innerHTML = `<span>${lookSVG(m.p, m.id)}</span><span><b></b><small></small></span>`;
+      row.innerHTML = `<span>${m.pic || lookSVG(m.p, m.id)}</span><span><b></b><small></small></span>`;
       row.querySelector("b").textContent = m.text;
       row.querySelector("small").textContent = `${mailWhen(m.t)} · ${m.sub}`;
       box.appendChild(row);
@@ -1781,16 +1787,6 @@ function checkGrants(){
   fresh.forEach(x => grantQueued[x.k] = 1);
   pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 열어줬어요", fresh.map(x => ({ ...x.info, text: "지금 꾸미기에서 바로 쓸 수 있어요!" })),
     () => setMine({ seenGrants: Object.fromEntries(fresh.map(x => [x.k, Date.now()])) })));
-}
-let bonusQueued = {};
-function checkBonus(){
-  if (!me || !me.bonus) return;
-  const seen = me.seenBonus || {}, fresh = Object.keys(me.bonus).filter(k => Number(me.bonus[k]) > 0 && !seen[k] && !bonusQueued[k]);
-  if (!fresh.length) return;
-  fresh.forEach(k => bonusQueued[k] = 1);
-  const n = fresh.reduce((t, k) => t + Math.round(Number(me.bonus[k])), 0);
-  pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 사탕을 보냈어요", [{ title: `사탕 ${n}개 🍬`, text: "쓸 수 있는 사탕에 더해졌어요. 옷이나 효과를 사는 데 써 보세요! (리그 누적 순위에는 들어가지 않아요)", preview: `<span style="font-size:4rem">🍬</span>` }],
-    () => setMine({ seenBonus: Object.fromEntries(fresh.map(k => [k, Date.now()])) })));
 }
 const myLoginCode = () => profiles[myId] && profiles[myId].loginCode;
 let updQueued = {};
@@ -3096,7 +3092,7 @@ function onData(){
   checkWarnGate();
   paintMyHouse();
   if (newsChecked) trackTop();
-  if (newsChecked) { checkGrants(); checkBonus(); }
+  if (newsChecked) checkGrants();
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
   ensureLoginCode();
   if (me && !isHouseNo(me.code) && !migrating) {
