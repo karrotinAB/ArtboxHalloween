@@ -209,6 +209,9 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .fav-star{color:#f5b301;margin-right:3px}
 #league li{cursor:pointer}
 #sp-fav.on{background:#fff3c4;color:#8a5a00}
+.thief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:65vh;overflow:auto}
+.thief-grid figure{margin:0;background:#fff4e6;border-radius:12px;padding:4px;text-align:center;font-size:.75rem;color:var(--paper-muted)}
+.thief-grid svg{width:100%;height:auto}
 .sm-phrase{margin:.6em 0;font-size:.9rem}
 .mail-gift{display:flex;align-items:center;justify-content:center;font-size:2rem;width:100%;height:100%}
 .sm-bonus{margin:.8em 0;padding:10px 12px;border:2px dashed #f0b35a;border-radius:14px;background:#fff8ec}
@@ -701,6 +704,13 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big" id="sp-fav"></button>
     </div>
   </div>
+  <div class="sheet-bg" id="sheet-thief" hidden>
+    <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="th-title">
+      <div class="sheet-head"><h2 id="th-title">🦹 사탕도둑 가면</h2><button class="ghost" data-close>닫기</button></div>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">옷장에서만 보이는 모습이에요. (아직 참가자에게는 안 보여요)</p>
+      <div class="thief-grid" id="thief-grid"></div>
+    </div>
+  </div>
   <div class="sheet-bg" id="sheet-pw" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="pw-title">
       <div class="sheet-head"><h2 id="pw-title">🔒</h2><button class="ghost" data-close>닫기</button></div>
@@ -830,6 +840,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="adm-free" style="margin-top:12px">전체 미리보기 (모든 캐릭터·코스튬·보스·별이)</button>
       <button class="big" id="adm-badges" style="margin-top:12px">히든 미션 뱃지 창 미리보기 (모두 달성)</button>
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
+      <button class="big" id="adm-thief" style="margin-top:12px">사탕도둑 가면 미리보기 (모든 캐릭터·코스튬·별이)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
     </div>
@@ -1291,6 +1302,60 @@ function withFx(svg, fx){
     : P.map(([x, y, w], i) => `<image class="spk s${i + 1}" href="data:image/webp;base64,${DECO["sp" + (i + 1)]}" x="${x}" y="${y}" width="${w}" height="${w}"/>`).join("");
   const i = svg.lastIndexOf("</svg>");
   return svg.slice(0, i) + img + svg.slice(i);
+}
+// ===== 사탕도둑 가면 (눈가리개): 옷장에서만 보여요 =====
+// 사탕도둑 가면: 캐릭터별 기본 자세 기준 (viewBox 좌표). eyes는 절대좌표 [x, y, rx, ry, 기울기]
+const THIEF = {
+  cat:     { c: [100, 107], rot: 0, W: 80, top: [27, 14], bot: [10, 22, 16.5], clip: "e:100,100,68.5,52.5",
+             eyes: [[67.6, 107.4, 27.6, 16.6, 32], [132.4, 107.4, 27.6, 16.6, -32]] },
+  monkey:  { c: [101, 104], rot: 0, W: 62, top: [17, 12], bot: [7, 12, -3], clip: "e:100,98,53,62",
+             eyes: [[80.1, 105.6, 7.5, 7.5, 0], [122.7, 105.6, 7.5, 7.5, 0]] },
+  special: { c: [101, 106], rot: 0, W: 62, top: [13, 8], bot: [5, 11, 7], clip: "e:100,120,55,50",
+             eyes: [[79.7, 105.3, 8.5, 5.2, -32], [123, 106.5, 8.5, 5.2, 32]] },
+  boss:    { c: [99, 67.5], rot: 8, W: 80, top: [10.5, 0], bot: [9, 11, 7.5],
+             clip: "p:M29 46 Q40 41 60 41 Q80 34 100 31 Q126 35 141 50 Q151 63 156 80 Q159 95 160 110 L159 140 L18 140 L26 100 Q31 78 30 62 Q26 50 29 46Z",
+             eyes: [[76.4, 64.5, 6.5, 6.5, 0], [121.3, 70.9, 6.5, 6.5, 0]] },
+  cloud:   { c: [96.5, 122.5], rot: 9.3, W: 80, top: [14, 7], bot: [4, 11.5, -1.5], clip: "e:99,112,70,53",
+             eyes: [[72.7, 119.1, 9, 8, 0], [120.4, 126.9, 9, 8, 0]] },
+  // 별이 (꾸미기 화면 기본 위치: x 116, y 153.09, 너비 84 기준)
+  star:    { c: [157.3, 193.8], rot: -8, W: 44, top: [10.5, 7], bot: [4.5, 9, 4.3],
+             clip: "p:M154.8 159.1 L174.8 171.8 L190.6 179.7 L184.5 198.6 L187.0 221.7 L161.4 218.0 L135.9 229.0 L132.3 204.6 L122.5 191.3 L142.0 177.8Z",
+             eyes: [[147.3, 195, 5.6, 7.3, 0], [167.2, 192.2, 5.6, 7.3, 0]] },
+  // 코스튬 머리가 기본과 많이 다르면 따로
+  "boss:skeleton": { c: [94.7, 80.5], rot: 3.5, W: 60, top: [12, 9], bot: [7, 10.5, 6.5], clip: "e:95,83,50.5,29",
+             eyes: [[74.5, 79.5, 12.5, 12, 0], [115, 82, 12.5, 12, 0]] }
+};
+let thiefN = 0;
+function thiefMaskSVG(d, dx = 0, dy = 0, s = 1){
+  const [cx, cy] = d.c, r = d.rot * Math.PI / 180, W = d.W, [tC, tS] = d.top, [bS, bL, nB] = d.bot;
+  // 눈 사이 거리의 절반 (가면 아래쪽이 눈 밑에서 가장 내려와요)
+  const lx = d.eyes.reduce((t, [x, y]) => t + Math.abs((x - cx) * Math.cos(r) + (y - cy) * Math.sin(r)), 0) / d.eyes.length;
+  const half = sg => `C${sg * (lx + (W - lx) * .55)} ${bS + (bL - bS) * .2} ${sg * (lx + (W - lx) * .3)} ${bL} ${sg * lx} ${bL}`;
+  const band = `M${-W} ${-tS} Q0 ${-(2 * tC - tS)} ${W} ${-tS} L${W} ${bS} ${half(1)} C${lx * .45} ${bL} ${lx * .35} ${nB} 0 ${nB} C${-lx * .35} ${nB} ${-lx * .45} ${bL} ${-lx} ${bL} C${-(lx + (W - lx) * .3)} ${bL} ${-(lx + (W - lx) * .55)} ${bS + (bL - bS) * .2} ${-W} ${bS}Z`;
+  const holes = d.eyes.map(([x, y, rx, ry, a]) => {
+    const lx = (x - cx) * Math.cos(r) + (y - cy) * Math.sin(r), ly = -(x - cx) * Math.sin(r) + (y - cy) * Math.cos(r), t = (a - d.rot) * Math.PI / 180;
+    const ux = rx * Math.cos(t), uy = rx * Math.sin(t);
+    return `M${(lx + ux).toFixed(2)} ${(ly + uy).toFixed(2)} A${rx} ${ry} ${a - d.rot} 1 0 ${(lx - ux).toFixed(2)} ${(ly - uy).toFixed(2)} A${rx} ${ry} ${a - d.rot} 1 0 ${(lx + ux).toFixed(2)} ${(ly + uy).toFixed(2)}Z`;
+  }).join(" ");
+  const id = "thf" + (++thiefN), [k, v] = d.clip.split(":"), e = v.split(",").map(Number);
+  const clip = k === "e" ? `<ellipse cx="${e[0]}" cy="${e[1]}" rx="${e[2]}" ry="${e[3]}"/>` : `<path d="${v}"/>`;
+  return `<g class="thief" transform="translate(${dx} ${dy}) translate(${cx} ${cy}) scale(${s}) translate(${-cx} ${-cy})"><clipPath id="${id}">${clip}</clipPath><g clip-path="url(#${id})"><path transform="translate(${cx} ${cy}) rotate(${d.rot})" d="${band} ${holes}" fill="#141414" fill-rule="evenodd"/></g></g>`;
+}
+function withThief(svg, ch, cos){
+  const d = THIEF[ch + ":" + cos] || THIEF[ch]; if (!d) return svg;
+  const o = THIEF[ch + ":" + cos] ? [0, 0, 1] : (THIEF_OFF[ch + ":" + cos]) || [0, 0, 1];
+  const i = svg.lastIndexOf("</svg>");
+  return svg.slice(0, i) + thiefMaskSVG(d, o[0], o[1], o[2]) + svg.slice(i);
+}
+const THIEF_OFF = { "cat:witch": [0, 2, 1], "cat:pband": [0, 2, 1], "cat:bat": [0, 2, 1], "cat:ghost": [0.5, 2, 1.01], "cat:vamp": [0, 2, 1], "cat:clown": [0, 2, 1], "cat:princess": [0, 2, 1], "cat:beggar": [0, 0.5, 0.99], "cat:swing": [0, -0.5, 0.95], "cat:hanbok": [0, -3, 0.95], "monkey:mwitch": [0.5, -0.5, 1.02], "monkey:gws": [0, -1, 1.04], "monkey:gamer": [-1, -1, 1.01], "monkey:surf": [-1, -0.5, 1.01], "monkey:kawaii": [-1, 8.5, 0.99], "cloud:ballet": [5, -0.5, 0.99] };
+
+// 별이에게도 가면 (withStar 다음에 불러요)
+function withThiefStar(svg, look, side){
+  if (!look || !look.star || svg.includes('class="ch up"')) return svg;
+  const w = 84, x = side === "l" ? 0 : 200 - w, y = 230 - w * STAR_FRAME_H + 2, k = w / 84;
+  const g = thiefMaskSVG(THIEF.star).replace('<g class="thief"', `<g class="thief" transform="translate(${x} ${y}) scale(${k}) translate(-116 -153.09)"><g`) + "</g>";
+  const i = svg.lastIndexOf("</svg>");
+  return svg.slice(0, i) + g + svg.slice(i);
 }
 const giftTime = v => v && typeof v === "object" ? +v.t || 0 : +v || 0;
 function giftDay(k, v){ const d = k.split("~")[1]; return d ? (d.length === 8 ? ymdToDay(d) : +d) : dayNo(giftTime(v)); }
@@ -2557,6 +2622,17 @@ $("adm-door").onclick = () => { previewFrom = "admin"; freeMode = false; startPr
 $("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSheet("sheet-badges"); };
 $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
+$("adm-thief").onclick = () => {
+  const box = $("thief-grid"); box.innerHTML = "";
+  Object.keys(CHARS).forEach(ch => artCostumes(ch).forEach(k => {
+    const look = { costume: k.id, star: ch === "cat" };
+    const f = document.createElement("figure");
+    f.innerHTML = withThiefStar(withStar(withThief(charSVG(ch, k.id, k.name), ch, k.id), look), look).replace(/class="lids"/g, 'class="x" style="display:none"') + `<figcaption></figcaption>`;
+    f.querySelector("figcaption").textContent = `${CHARS[ch].name} · ${k.name}`;
+    box.appendChild(f);
+  }));
+  openSheet("sheet-thief");
+};
 $("adm-free").onclick = () => { freeStar = true; freeMode = true; freeLook = { char: me.char, costume: me.costume, effect: me.effect || "none" }; browseLook = null; renderDress(); show("dress"); };
 $("adm-save").onclick = async () => {
   if (needAdmin()) return;
