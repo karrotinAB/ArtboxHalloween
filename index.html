@@ -203,6 +203,16 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .code-badge{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:92px;height:92px;border-radius:18px;background:#fff3c4;border:3px solid var(--brown);font-size:1.6rem}
 .code-badge i{font-style:normal;font-family:"Jua",sans-serif;font-size:1.05rem;letter-spacing:.06em}
 .house-note{margin:-.3em 0 .4em;font-size:.88rem}
+.phrase-now{margin:.2em 0 .5em;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.9rem;color:var(--paper-muted)}
+.phrase-bub,.bubble-prev{display:inline-block;background:#fff;color:var(--brown);border:3px solid var(--brown);font-family:"Jua",sans-serif;padding:.2em .8em;border-radius:16px;word-break:keep-all}
+.bubble-prev{font-size:1.3rem;margin:10px auto}
+.fav-star{color:#f5b301;margin-right:3px}
+#league li{cursor:pointer}
+#sp-fav.on{background:#fff3c4;color:#8a5a00}
+.sm-phrase{margin:.6em 0;font-size:.9rem}
+.sm-phrase:empty{display:none}
+.sm-phrase button{margin-left:6px}
+.adm-table .phr{display:block;font-size:.76rem;color:#6b4fa0}
 .house-h{font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem;margin:.6em 0 .2em}
 .scroller .chip.hc{flex-basis:76px;width:76px}
 .chip.hc svg{width:48px;height:auto;display:block;margin:0 auto 2px}
@@ -501,7 +511,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .sfx.on{animation:sfxpop .45s cubic-bezier(.3,1.7,.5,1) 1.25s forwards}
 @keyframes sfxpop{to{transform:scale(1) rotate(-14deg)}}
 @keyframes sfxwob{0%,100%{transform:scale(1) rotate(-14deg)}50%{transform:scale(1.12) rotate(-6deg)}}
-.bubble{position:absolute;left:62%;top:7%;transform:translate(-50%,0) scale(0);background:#fff;color:var(--brown);border:3px solid var(--brown);font-family:"Jua",sans-serif;font-size:1.3rem;padding:.3em .9em;border-radius:18px;white-space:nowrap;z-index:5;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.bubble{position:absolute;left:62%;top:7%;transform:translate(-50%,0) scale(0);width:max-content;max-width:72%;text-align:center;word-break:keep-all;background:#fff;color:var(--brown);border:3px solid var(--brown);font-family:"Jua",sans-serif;font-size:1.3rem;padding:.3em .9em;border-radius:18px;white-space:normal;z-index:5;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
 .bubble.on{transform:translate(-50%,0) scale(1)}
 .who-tag{margin:14px 0 4px;color:var(--ink);min-height:1.6em;font-family:"Jua",sans-serif;font-size:1.25rem}
 .who-tag b{font-weight:400;color:#ffc53d}
@@ -681,6 +691,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="btn-buy"></button>
     </div>
   </div>
+  <div class="sheet-bg" id="sheet-player" hidden>
+    <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sp-title">
+      <div class="sheet-head"><h2 id="sp-title"></h2><button class="ghost" data-close>닫기</button></div>
+      <div class="buy-prev" id="sp-look"></div>
+      <p class="center muted" id="sp-info" style="white-space:pre-line"></p>
+      <button class="big" id="sp-fav"></button>
+    </div>
+  </div>
   <div class="sheet-bg" id="sheet-pw" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="pw-title">
       <div class="sheet-head"><h2 id="pw-title">🔒</h2><button class="ghost" data-close>닫기</button></div>
@@ -694,6 +712,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p class="muted" id="sm-info" style="margin-top:0;white-space:pre-line"></p>
       <p class="sm-code" id="sm-code"></p>
       <div class="sm-warn" id="sm-warn"></div>
+      <div class="sm-phrase" id="sm-phrase"></div>
       <div id="sm-extra"></div>
       <div id="sm-grants"></div>
       <div class="reset-item merge-item" style="margin-top:12px"><b>계정 합치기</b><span>같은 사람이 기기마다 따로 가입했을 때, 다른 계정의 사탕·옷·뱃지·기록을 이 계정으로 모두 옮기고 다른 계정은 지워요. 그 사람의 다른 기기도 이 계정으로 자동 연결돼요.</span>
@@ -766,6 +785,12 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="scroller" id="door-colors"></div>
       <h3 class="house-h">우편함</h3>
       <div class="scroller" id="mail-colors"></div>
+      <h3 class="house-h">💬 문구 바꾸기</h3>
+      <p class="muted house-note">친구가 문을 열어 줄 때 'Trick or Treat!' 대신 내가 외칠 말이에요. 한 번 바꿀 때마다 사탕 <b id="phrase-price">10</b>개!</p>
+      <p class="phrase-now">지금 문구 <span class="phrase-bub" id="phrase-now"></span></p>
+      <div class="findrow"><input id="phrase-in" maxlength="20" autocomplete="off" placeholder="새 문구 (20자까지)" aria-label="새 문구"><button class="green" id="btn-phrase">바꾸기</button></div>
+      <p class="go-note" style="margin:.5em 0 0">*욕설이나 부적절한 언어를 사용하면 삭제될 수 있어요.</p>
+      <button class="ghost" id="btn-phrase-reset" style="margin-top:8px" hidden>기본 문구로 되돌리기 (무료)</button>
     </div>
   </section>
 
@@ -1214,7 +1239,7 @@ const HOUSE_COLORS = [
   { id: "pink", name: "핑크", w: "#f29bbf", l: "#d97aa0", lt: "#f7bdd5" }, { id: "purple", name: "보라", w: "#9a77c9", l: "#7a58a8", lt: "#b89ddd" },
   { id: "white", name: "흰색", w: "#f4efe6", l: "#d3cabb", lt: "#ffffff" }, { id: "black", name: "검정", w: "#3e3746", l: "#2a2430", lt: "#5a5164" }
 ];
-const PRICE_HOUSE = { color: 5 };
+const PRICE_HOUSE = { color: 5, phrase: 10 };
 const houseColor = id => HOUSE_COLORS.find(c => c.id === id) || HOUSE_COLORS[0];
 // 문(d:색) · 우편함(m:색)을 가졌는지
 const ownsHouse = (p, part, id) => id === "orange" || !!(p && p.owned && p.owned[`${part}:${id}`]);
@@ -1280,7 +1305,7 @@ function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = k
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
 function earnedOf(id){ const p = players[id]; return receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p) + EARN.invite * insiderCount(id); }
 function spentOf(p){
-  return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : t === "d" || t === "m" ? (a === "orange" ? 0 : PRICE_HOUSE.color) : (PRICE_COS[b] || 0)); }, 0);
+  return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : t === "p" ? PRICE_HOUSE.phrase : t === "d" || t === "m" ? (a === "orange" ? 0 : PRICE_HOUSE.color) : (PRICE_COS[b] || 0)); }, 0);
 }
 function balanceOf(id){ return earnedOf(id) - spentOf(players[id]); }
 const granted = (p, c) => !!(p && p.grants && p.grants[c] === true);
@@ -1711,6 +1736,8 @@ const UPDATES = [
     preview: () => doorSVG(me.code, 1, true, houseColor("pink"), houseColor("mint")) },
   { id: "cloud", title: "새 캐릭터 '구름이' ☁️", text: () => `꾸미기의 캐릭터에서 사탕 ${PRICE_CHAR.cloud}개로 열 수 있어요!`, preview: () => charSVG("cloud", "none", "구름이") },
   { id: "skeleton", title: "보스 새 코스튬 '스켈레톤' 💀", text: () => `보스 옷장에서 사탕 ${PRICE_COS.skeleton}개로 열 수 있어요.`, preview: () => charSVG("boss", "skeleton", "스켈레톤") },
+  { id: "favs", title: "즐겨찾기가 생겼어요 ★", text: () => "사탕 리그에서 캐릭터를 누르면 즐겨찾기 할 수 있어요. 즐겨찾기한 이웃은 리그에 ★로 보이고, 마을 지도 맨 위와 방문 목록 앞쪽에 나와요!", preview: () => `<span style="font-size:4rem;color:#f5b301">★</span>` },
+  { id: "phrase", title: "문구 바꾸기가 생겼어요 💬", text: () => `꾸미기 화면 '우리 집 꾸미기' 맨 아래에서 친구가 문을 열어 줄 때 외칠 말을 'Trick or Treat!' 대신 바꿀 수 있어요. 한 번 바꿀 때마다 사탕 ${PRICE_HOUSE.phrase}개! (욕설이나 부적절한 언어는 삭제될 수 있어요)`, preview: () => `<span style="font-size:4rem">💬</span>` },
   { id: "ballet", title: "구름이 새 코스튬 '발레리나' 🩰", text: () => `구름이 옷장에서 사탕 ${PRICE_COS.ballet}개로 열 수 있어요.`, preview: () => charSVG("cloud", "ballet", "발레리나") },
   { id: "swing", title: "게왹이 새 코스튬 '스윙왹' ⚾", text: () => `게왹이 옷장에서 사탕 ${PRICE_COS.swing}개로 열 수 있어요. 별이도 야구 모자를 써요!`, preview: () => charSVG("cat", "swing", "스윙왹") },
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
@@ -1774,7 +1801,9 @@ let mapFrom = null;
 function openMap(){ mapFrom = current; closeSheets(); show("map"); renderMap(); }
 function renderMap(){
   const box = $("village"); box.innerHTML = "";
-  const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
+  // 즐겨찾기한 이웃은 지도 맨 위에
+  const fv = id => id !== myId && isFav(id) ? 0 : 1;
+  const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => fv(a[0]) - fv(b[0]) || (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
   $("map-count").textContent = `이웃 ${list.length}집`;
   const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 180, top = 16, H = top + list.length * ROW + 150;
   box.style.height = H + "px";
@@ -1797,7 +1826,7 @@ function renderMap(){
     const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
     el.style.left = x + "px"; el.style.top = y + "px";
     el.innerHTML = `<span class="vplate"><span class="nm"></span></span>` + doorSVG(p.code, r, left, doorOf(p), mailOf(p)) + `<span class="vch">${lookSVG(p, id, left ? "l" : "r")}</span>`;
-    el.querySelector(".nm").textContent = id === myId ? `${p.nick} (우리 집)` : p.nick;
+    el.querySelector(".nm").textContent = id === myId ? `${p.nick} (우리 집)` : (isFav(id) ? "★ " : "") + p.nick;
     if (id !== myId) {
       // 오늘 문을 열어준 집: 방문완료! · 두드렸는데 아직 안 열어준 집: 대기중... · 나머지: 방문하기
       const b = document.createElement("button"), done = me && gaveToday(id, myId), wait = !done && p.knocks && p.knocks[myId] === today();
@@ -2006,6 +2035,70 @@ function renderMemberWarn(id){
   btn("✅ 승인 (다시 이용 가능)", "green", () => ok(`${p.nick}을(를) 승인했어요`));
   btn("경고 취소", "ghost", () => ok("경고를 취소했어요"));
 }
+// ===== 즐겨찾기 (내 문서 favs = { 이웃id: 시각 }) · 문 문구 (players.phrase) =====
+const DEFAULT_PHRASE = "Trick or Treat!";
+const phraseOf = p => ((p && p.phrase) || "").trim() || DEFAULT_PHRASE;
+const isFav = id => !!(me && me.favs && me.favs[id]);
+let playerOpen = null;
+function openPlayer(id){
+  const p = players[id]; if (!p) return;
+  playerOpen = id; renderPlayer(); openSheet("sheet-player");
+}
+function renderPlayer(){
+  const id = playerOpen, p = players[id]; if (!p) return;
+  $("sp-title").textContent = (id !== myId && isFav(id) ? "★ " : "") + p.nick;
+  $("sp-look").innerHTML = lookSVG(p, id);
+  const st = (p.status || "").trim();
+  $("sp-info").textContent = `${p.code}호 · 누적 사탕 ${earnedOf(id)}개${st ? `\n"${st}"` : ""}`;
+  const b = $("sp-fav"), on = isFav(id);
+  b.hidden = id === myId;
+  b.textContent = on ? "★ 즐겨찾기 해제" : "☆ 즐겨찾기 추가";
+  b.classList.toggle("on", on);
+}
+$("sp-fav").onclick = async () => {
+  const id = playerOpen, p = players[id]; if (!p || !me || id === myId) return;
+  const on = isFav(id), b = $("sp-fav"); b.disabled = true;
+  try {
+    if (on) await db.doc("players/" + myId).remove([["favs", id]]);
+    else await db.doc("players/" + myId).update({ favs: { [id]: Date.now() } });
+    me.favs = { ...(me.favs || {}) }; if (on) delete me.favs[id]; else me.favs[id] = Date.now();
+    toast(on ? `${p.nick}${josa(p.nick, "을", "를")} 즐겨찾기에서 뺐어요` : `${p.nick}${josa(p.nick, "을", "를")} 즐겨찾기 했어요 ★\n마을 지도 맨 위, 방문 목록 앞쪽에 보여요`);
+    renderPlayer(); renderLeague();
+  } catch { toast("저장하지 못했어요. 다시 눌러 주세요."); }
+  b.disabled = false;
+};
+function renderPhrase(){
+  if (!me) return;
+  const cur = (me.phrase || "").trim();
+  $("phrase-now").textContent = phraseOf(me);
+  $("phrase-price").textContent = PRICE_HOUSE.phrase;
+  $("btn-phrase-reset").hidden = !cur;
+}
+$("btn-phrase").onclick = () => {
+  const v = $("phrase-in").value.replace(/\s+/g, " ").trim().slice(0, 20);
+  if (!v) { toast("새 문구를 적어 주세요"); $("phrase-in").focus(); return; }
+  if (v === phraseOf(me)) { toast("지금 문구와 같아요"); return; }
+  const bub = document.createElement("div"); bub.className = "bubble-prev"; bub.textContent = v;
+  openBuy({ key: "p:" + Date.now(), price: PRICE_HOUSE.phrase, name: "새 문구", kind: "문구", title: "💬 문구 바꾸기", verbs: ["바꾸려면", "바꿀까요", "바꾸기"],
+    preview: bub.outerHTML, extra: "친구가 문을 열어 주면 내 캐릭터가 이렇게 외쳐요!", patch: { phrase: v }, done: "문구를 바꿨어요! 💬", after: () => { $("phrase-in").value = ""; } });
+};
+$("phrase-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-phrase").click(); });
+$("btn-phrase-reset").onclick = async () => {
+  if (!confirm("기본 문구 'Trick or Treat!'로 되돌릴까요? (사탕은 돌려받지 않아요)")) return;
+  try { await db.doc("players/" + myId).remove(["phrase"]); toast("기본 문구로 되돌렸어요"); } catch { toast("저장하지 못했어요. 다시 눌러 주세요."); }
+};
+// 관리자: 회원 문구 보기 · 삭제
+function renderMemberPhrase(id){
+  const box = $("sm-phrase"), p = players[id] || {}, v = (p.phrase || "").trim();
+  box.innerHTML = "";
+  if (!v) return;
+  box.append("💬 문 문구: ");
+  const b = document.createElement("b"); b.textContent = `"${v}"`; box.appendChild(b);
+  const del = document.createElement("button"); del.className = "ghost"; del.textContent = "문구 삭제";
+  del.onclick = async () => { if (needAdmin() || !confirm(`${p.nick}의 문구를 지우고 기본 문구로 되돌릴까요?`)) return;
+    try { await db.doc("players/" + id).remove(["phrase"]); toast("문구를 삭제했어요"); } catch { toast("삭제하지 못했어요."); } };
+  box.appendChild(del);
+}
 function renderLeague(){
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
@@ -2016,6 +2109,8 @@ function renderLeague(){
     const li = document.createElement("li"); if (p.id === myId) li.className = "mine";
     li.innerHTML = `<span class="rk">${rank === 1 && p.n > 0 ? "👑" : rank}</span><span class="lg-ch">${lookSVG(p, p.id)}</span><span class="who"><b></b></span><span class="n">${p.n}</span>`;
     li.querySelector(".who b").textContent = p.nick;
+    if (p.id !== myId && isFav(p.id)) li.querySelector(".who b").insertAdjacentHTML("afterbegin", '<span class="fav-star" aria-label="즐겨찾기">★</span>');
+    li.onclick = () => openPlayer(p.id);
     const st = (p.status || "").trim();
     if (st) { const say = document.createElement("span"), t = document.createElement("span"); say.className = "say"; t.textContent = st; say.title = st; say.appendChild(t); li.querySelector(".who").appendChild(say); }
     ol.appendChild(li);
@@ -2084,7 +2179,7 @@ function renderDress(){
   $("star-note").textContent = look.char !== "cat" ? "게왹이일 때만 함께 나와요" : freeMode ? "미리보기 · 저장되지 않아요" : "문 앞과 사진에 같이 나와요";
   $("d-candy").textContent = bal;
   $("invite-bonus").textContent = `내 링크로 들어오면 사탕 +${EARN.invite}!`;
-  renderHouseChips();
+  renderHouseChips(); renderPhrase();
 
   const cc = $("char-chips"); cc.innerHTML = "";
   Object.entries(CHARS).forEach(([k, c]) => {
@@ -2145,13 +2240,13 @@ function renderNeighborChips(nb, onPick){
   const keepN = nb.scrollLeft; nb.innerHTML = "";
   // 오늘 더 못 가는 집(사탕 받음 · 이미 두드림)은 회색으로 뒤쪽에
   const usedToday = id => gaveToday(id, myId) || !!(players[id].knocks && players[id].knocks[myId] === today());
-  const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (usedToday(a[0]) - usedToday(b[0])) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
+  const others = Object.entries(players).filter(([id]) => id !== myId).sort((a, b) => (usedToday(a[0]) - usedToday(b[0])) || (isFav(b[0]) - isFav(a[0])) || (a[1].nick || "").localeCompare(b[1].nick || "", "ko"));
   if (!others.length) nb.innerHTML = '<p class="muted" style="margin:0">아직 다른 참가자가 없어요.</p>';
   others.forEach(([id, p]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "chip";
     b.setAttribute("aria-pressed", nb.id === "neighbors" && pickedNeighbor === id);
     b.innerHTML = lookSVG(p, id) + "<span></span><small></small><small class=\"visits\"></small>";
-    b.querySelector("span").textContent = p.nick;
+    b.querySelector("span").textContent = (isFav(id) ? "★ " : "") + p.nick;
     const done = gaveToday(id, myId), wait = !done && usedToday(id), n = visitTimes(myId, id);
     b.querySelector("small").textContent = done ? "오늘 받음 ✓" : wait ? "대기중..." : p.code + "호";
     b.querySelector(".visits").textContent = n ? `${n}번 방문` : "첫 방문";
@@ -2215,6 +2310,7 @@ function renderMember(){
   $("sm-info").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 누적 ${earnedOf(memberOpen)} · 보유 ${balanceOf(memberOpen)} · 가입 ${p.createdAt ? `${new Date(p.createdAt).getMonth() + 1}월 ${new Date(p.createdAt).getDate()}일` : "날짜 모름"}\n접속 경로: ${viaText(memberOpen)}`;
   renderMemberExtra(p);
   renderMemberWarn(memberOpen);
+  renderMemberPhrase(memberOpen);
   fillMergePick();
   const lc = (profiles[memberOpen] || {}).loginCode, cr = $("sm-code");
   cr.innerHTML = `고유번호: <b>${lc || "아직 없음"}</b> `;
@@ -2390,6 +2486,7 @@ function renderAdmin(){
     tr.querySelector(".who b").textContent = p.nick || "";
     const pf = profileOf(p.id);
     tr.querySelector(".who span").textContent = `${pf.dept} · ${pf.name} · ${p.code}호 · 🏅${MISSIONS.filter(m => hasBadge(p.id, m.id)).length}`;
+    if ((p.phrase || "").trim()) { const ph = document.createElement("span"); ph.className = "phr"; ph.textContent = `💬 "${p.phrase}"`; tr.querySelector(".who").appendChild(ph); }
     const vs = document.createElement("span"); vs.className = "via"; vs.textContent = viaText(p.id, true); tr.querySelector(".who").appendChild(vs);
     if (warnOf(p)) { const wt = document.createElement("span"); wt.className = "warn-tag"; wt.textContent = warnReplyOf(p.id) ? "⚠️ 답변 도착" : "⚠️ 경고 중"; tr.querySelector(".who b").after(wt); }
     t.appendChild(tr);
@@ -2408,7 +2505,7 @@ function renderAdmin(){
   let html = group("🍬 사탕 받는 규칙", "언제 몇 개를 받는지", EARN_ROWS.map(([k, l, n]) => row(l, "earn." + k, EARN[k] ?? 0, null, n)).join(""));
   html += group("🧸 캐릭터 열기", "사탕으로 여는 캐릭터", Object.entries(CHARS).filter(([k, c]) => k !== "cat" && !c.adminOnly && !c.mission).map(([k, c]) => row(c.name, "char." + k, PRICE_CHAR[k] || 0, charSVG(k, "none", c.name))).join(""));
   html += group("✨ 효과", "캐릭터 주변 효과", EFFECTS.filter(e => e.id !== "none").map(e => row(e.name, "fx." + e.id, PRICE_FX[e.id] || 0, `<img alt="" src="data:image/webp;base64,${DECO[e.icon]}">`)).join(""));
-  html += group("🚪 우리 집 꾸미기", "문·우편함 색", row("색 하나당", "house.color", PRICE_HOUSE.color, swatchSVG("d", houseColor("pink")), "문과 우편함 각각"));
+  html += group("🚪 우리 집 꾸미기", "문·우편함 색", row("색 하나당", "house.color", PRICE_HOUSE.color, swatchSVG("d", houseColor("pink")), "문과 우편함 각각") + row("문구 바꾸기", "house.phrase", PRICE_HOUSE.phrase, null, "문 열 때 외치는 말 · 한 번 바꿀 때마다"));
   Object.entries(CHARS).filter(([, c]) => !c.adminOnly).forEach(([k, c]) => {
     const cos = artCostumes(k).filter(x => x.id !== "none" && !x.grantOnly);
     if (cos.length) html += group(`👗 ${esc(c.name)} 코스튬`, `${cos.length}개`, cos.map(x => row(x.name, "cos." + x.id, PRICE_COS[x.id] || 0, charSVG(k, x.id, x.name), PRICE_COS[x.id] ? "" : "무료")).join(""));
@@ -2477,17 +2574,17 @@ function openInfo(item){
 function openBuy(item){
   buying = item;
   const bal = balanceOf(myId), short = item.price - bal;
-  $("sb-title").textContent = `${item.name} 열기`;
+  $("sb-title").textContent = item.title || `${item.name} 열기`;
   $("buy-prev").innerHTML = item.preview;
   const obj = item.kind + josa(item.kind, "을", "를"), bonus = item.key.startsWith("k:") ? EARN.unlock : 0;
   // 첫 줄은 질문, 나머지 설명은 다음 줄에 작은 글씨로
-  const main = short > 0 ? `${obj} 열려면 사탕 ${item.price}개가 필요해요.` : `사탕 ${item.price}개를 써서 ${obj} 열까요?`;
+  const main = short > 0 ? `${obj} ${item.verbs ? item.verbs[0] : "열려면"} 사탕 ${item.price}개가 필요해요.` : `사탕 ${item.price}개를 써서 ${obj} ${item.verbs ? item.verbs[1] : "열까요"}?`;
   const subs = short > 0 ? [`${short}개 더 모아 보세요!`] : [`${bonus ? `새 코스튬 보너스 +${bonus}까지 받으면 ` : ""}남는 사탕은 ${bal - item.price + bonus}개예요.`, "리그 순위는 줄지 않아요."];
   const special = item.key.endsWith(":beggar") ? `거지왹을 입고 사탕을 받으러 가면 한 번에 ${EARN.beggar}개씩 받아요!` : item.extra || "";
   const bt = $("buy-text"); bt.textContent = main;
   if (special) { const sp = document.createElement("span"); sp.className = "buy-special"; sp.textContent = special; bt.appendChild(sp); }
   subs.forEach(t => { const sm = document.createElement("small"); sm.className = "buy-sub"; sm.textContent = t; bt.appendChild(sm); });
-  $("btn-buy").textContent = short > 0 ? "사탕이 부족해요" : `🍬 ${item.price}개로 열기`;
+  $("btn-buy").textContent = short > 0 ? "사탕이 부족해요" : `🍬 ${item.price}개로 ${item.verbs ? item.verbs[2] : "열기"}`;
   $("btn-buy").disabled = short > 0;
   openSheet("sheet-buy");
 }
@@ -2497,7 +2594,7 @@ $("btn-buy").onclick = async () => {
   try {
     await db.doc("players/" + myId).update({ owned: { [buying.key]: Date.now() }, ...buying.patch });
     if (buying.after) buying.after();
-    closeSheets(); toast(`${buying.name}${josa(buying.name, "을", "를")} 열었어요!${buying.key.startsWith("k:") && EARN.unlock ? `\n새 코스튬 보너스 사탕 +${EARN.unlock} 🍬` : ""}`); renderDress();
+    closeSheets(); toast(buying.done || `${buying.name}${josa(buying.name, "을", "를")} 열었어요!${buying.key.startsWith("k:") && EARN.unlock ? `\n새 코스튬 보너스 사탕 +${EARN.unlock} 🍬` : ""}`); renderDress();
   } catch { toast("열지 못했어요. 다시 눌러 주세요."); $("btn-buy").disabled = false; }
 };
 async function setMine(patch){
@@ -2635,7 +2732,7 @@ function openDoor(preview){
     doorPhase = "open"; house.classList.remove("knock"); house.classList.add("open");
     if ($("sfx").textContent) $("sfx").classList.add("on");
     $("knock-word").textContent = ""; acts.innerHTML = "";
-    setTimeout(() => { $("bubble").textContent = "Trick or Treat!"; $("bubble").classList.add("on"); renderDoorActions(); }, 1550);
+    setTimeout(() => { $("bubble").textContent = phraseOf(doorTarget); $("bubble").classList.add("on"); renderDoorActions(); }, 1550);
   };
   acts.appendChild(b);
 }
@@ -2992,6 +3089,7 @@ function onData(){
   else if (current === "admin") { renderAdmin(); if (!$("sheet-member").hidden) renderMember(); }
   else if (current === "door" && !previewMode) renderDoorActions();
   else if (current === "dress" && buying && !$("sheet-buy").hidden) openBuy(buying);
+  if (!$("sheet-player").hidden) renderPlayer();
 }
 
 async function init(){
