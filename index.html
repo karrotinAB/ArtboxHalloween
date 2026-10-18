@@ -209,6 +209,13 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .fav-star{color:#f5b301;margin-right:3px}
 #league li{cursor:pointer}
 #sp-fav.on{background:#fff3c4;color:#8a5a00}
+.ph-row{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px dashed var(--soft)}
+.ph-row svg{width:34px;flex:none}
+.ph-row .ph-main{flex:1;min-width:0}
+.ph-row .ph-main b{font-family:"Jua",sans-serif;font-weight:400}
+.ph-row .ph-main small{display:block;font-size:.78rem;color:var(--paper-muted)}
+.ph-row .phrase-bub{margin-top:4px;font-size:.95rem}
+.ph-row button{flex:none}
 .sm-phrase{margin:.6em 0;font-size:.9rem}
 .mail-gift{display:flex;align-items:center;justify-content:center;font-size:2rem;width:100%;height:100%}
 .sm-bonus{margin:.8em 0;padding:10px 12px;border:2px dashed #f0b35a;border-radius:14px;background:#fff8ec}
@@ -808,6 +815,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button role="tab" data-tab="lab" aria-selected="true">실험</button>
       <button role="tab" data-tab="members" aria-selected="false">회원·순위</button>
       <button role="tab" data-tab="joins" aria-selected="false">가입·초대</button>
+      <button role="tab" data-tab="phrases" aria-selected="false">문구</button>
       <button role="tab" data-tab="prices" aria-selected="false">가격·규칙</button>
       <button role="tab" data-tab="reset" aria-selected="false">초기화</button>
     </div>
@@ -846,6 +854,11 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <h2 style="margin-top:1.2em">누가 누구를 데려왔나 <small class="muted" id="jn-inv-count"></small></h2>
       <p class="muted" style="margin-top:-.3em;font-size:.85rem">초대 링크로 데려온 사람이 많은 순서예요.</p>
       <div id="jn-inv"></div>
+    </div>
+    <div class="card" data-pane="phrases" hidden>
+      <h2>💬 바꾼 문구 <small class="muted" id="ph-count"></small></h2>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">최근에 바꾼 순서예요. 삭제하면 기본 문구(Trick or Treat!)로 돌아가고, 그 사람 우편함에 알림이 가요.</p>
+      <div id="ph-list"></div>
     </div>
     <div class="card" data-pane="prices" hidden>
       <h2>가격 · 규칙 편집</h2>
@@ -1575,6 +1588,8 @@ function mailItems(){
     if (id === myId || p.invitedBy !== myId) return;
     out.push({ t: p.createdAt || 0, p, id, text: `${p.nick}${josa(p.nick, "이", "가")} 내 링크로 들어왔어요! 🎉`, sub: `초대 보너스 사탕 +${EARN.invite}` });
   });
+  // 관리자가 문구를 지웠을 때
+  if (me.phraseDel && me.phraseDel.at) out.push({ t: me.phraseDel.at, pic: '<span class="mail-gift">💬</span>', text: "내 문구가 기본 문구(Trick or Treat!)로 바뀌었어요", sub: `관리자가 "${me.phraseDel.text || ""}" 문구를 지웠어요` });
   // 관리자가 보낸 사탕 선물
   Object.entries(me.bonus || {}).forEach(([k, v]) => {
     const n = Math.round(Number(v)); if (!(n > 0)) return;
@@ -2112,6 +2127,30 @@ async function sendBonus(n){
 }
 document.querySelectorAll("#sm-bonus [data-bonus]").forEach(b => b.onclick = () => sendBonus(b.dataset.bonus));
 $("sm-bonus-send").onclick = () => sendBonus($("sm-bonus-in").value);
+// 관리자: 문구 삭제 → 기본 문구로 + 그 사람 우편함에 알림 (players.phraseDel = { at, text })
+async function adminDeletePhrase(id){
+  const p = players[id], v = ((p && p.phrase) || "").trim();
+  if (!p || !v || needAdmin() || !confirm(`${p.nick}의 문구 "${v}"를 지우고 기본 문구로 되돌릴까요?\n${p.nick}에게 알림이 가요.`)) return;
+  try { await db.doc("players/" + id).update({ phraseDel: { at: Date.now(), text: v } }); await db.doc("players/" + id).remove(["phrase"]); toast("문구를 삭제했어요"); }
+  catch { toast("삭제하지 못했어요. 관리자 등록을 확인해 주세요."); }
+}
+// 마지막으로 문구를 바꾼 시각 (문구 살 때 owned에 p:시각 이 남아요)
+const phraseAt = p => Math.max(0, ...Object.keys((p && p.owned) || {}).filter(k => k.startsWith("p:")).map(k => +k.slice(2) || 0));
+function renderPhrases(){
+  const ids = Object.keys(players).filter(id => (players[id].phrase || "").trim()).sort((a, b) => phraseAt(players[b]) - phraseAt(players[a]));
+  $("ph-count").textContent = `${ids.length}명`;
+  const box = $("ph-list"); box.innerHTML = "";
+  if (!ids.length) { box.innerHTML = '<p class="muted">아직 문구를 바꾼 사람이 없어요.</p>'; return; }
+  ids.forEach(id => {
+    const p = players[id], pf = profileOf(id), t = phraseAt(p), d = new Date(t), row = document.createElement("div"); row.className = "ph-row";
+    row.innerHTML = `${charSVG(p.char, p.costume, p.nick).replace(/class="lids"/g, 'class="x" style="display:none"')}<span class="ph-main"><b></b><small></small><span class="phrase-bub"></span></span><button class="ghost">삭제</button>`;
+    row.querySelector("b").textContent = `${p.nick} (${p.code}호)`;
+    row.querySelector("small").textContent = `${pf.dept} · ${pf.name}${t ? ` · ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : ""}`;
+    row.querySelector(".phrase-bub").textContent = p.phrase;
+    row.querySelector("button").onclick = () => adminDeletePhrase(id);
+    box.appendChild(row);
+  });
+}
 // 관리자: 회원 문구 보기 · 삭제
 function renderMemberPhrase(id){
   const box = $("sm-phrase"), p = players[id] || {}, v = (p.phrase || "").trim();
@@ -2120,8 +2159,7 @@ function renderMemberPhrase(id){
   box.append("💬 문 문구: ");
   const b = document.createElement("b"); b.textContent = `"${v}"`; box.appendChild(b);
   const del = document.createElement("button"); del.className = "ghost"; del.textContent = "문구 삭제";
-  del.onclick = async () => { if (needAdmin() || !confirm(`${p.nick}의 문구를 지우고 기본 문구로 되돌릴까요?`)) return;
-    try { await db.doc("players/" + id).remove(["phrase"]); toast("문구를 삭제했어요"); } catch { toast("삭제하지 못했어요."); } };
+  del.onclick = () => adminDeletePhrase(id);
   box.appendChild(del);
 }
 function renderLeague(){
@@ -2496,7 +2534,7 @@ function renderJoins(){
   if (!inviters.length) box.innerHTML = '<p class="muted">아직 초대 링크로 들어온 사람이 없어요.</p>';
 }
 function renderAdmin(){
-  checkServerAdmin(); renderAdminKey(); renderJoins();
+  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases();
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
