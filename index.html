@@ -216,8 +216,11 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .ph-row .ph-main small{display:block;font-size:.78rem;color:var(--paper-muted)}
 .ph-row .phrase-bub{margin-top:4px;font-size:.95rem}
 .ph-row button{flex:none}
-.raid-bang{position:absolute;left:50%;top:30%;font-size:7rem;transform:translate(-50%,-50%) scale(0);z-index:8;pointer-events:none;animation:rbang 1.9s cubic-bezier(.3,1.7,.5,1) forwards;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
-@keyframes rbang{0%{transform:translate(-50%,-50%) scale(0) rotate(-20deg)}18%{transform:translate(-50%,-50%) scale(1.25) rotate(8deg)}28%{transform:translate(-50%,-50%) scale(1) rotate(-4deg)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+.raid-bang{position:absolute;left:50%;top:22%;width:46%;display:flex;flex-direction:column;align-items:center;gap:14px;transform:translateX(-50%);z-index:8;pointer-events:none}
+.raid-bang .rb-mark{font-size:6rem;line-height:1;transform:scale(0);animation:rbang .9s cubic-bezier(.3,1.7,.5,1) forwards;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
+@keyframes rbang{0%{transform:scale(0) rotate(-20deg)}30%{transform:scale(1.25) rotate(8deg)}50%{transform:scale(1) rotate(-4deg)}100%{transform:scale(1) rotate(0)}}
+.raid-mask{display:block;width:100%;animation:rmask .7s ease-out}
+@keyframes rmask{0%{opacity:0;transform:translateY(-40px) rotate(-12deg)}100%{opacity:1;transform:none}}
 .raid-note{text-align:center;font-size:1.1rem;line-height:1.7;margin:.4em 0 1em}
 .raid-note b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.3rem;color:#d9621b}
 .th-tour{text-align:center}
@@ -2930,6 +2933,7 @@ function openDoor(preview){
   $("preview-flag").hidden = !previewMode || peekMode;
   const house = $("house"), acts = $("door-actions");
   house.className = "house"; $("bubble").className = "bubble"; $("who-tag").textContent = "";
+  document.querySelectorAll(".raid-bang").forEach(e => e.remove()); raidBang = "";
   show("door");
   if (!doorTarget) {
     $("knock-word").textContent = "…"; $("v-char").innerHTML = "";
@@ -3010,12 +3014,13 @@ function renderDoorActions(){
   const acts = $("door-actions");
   const tg = gaveToday(myId, doorTarget.id) ? todayGift(myId, doorTarget.id) : null;
   if (doorRaid || (tg && tg.th !== undefined)) {
-    $("who-tag").textContent = ""; $("v-char").innerHTML = ""; $("bubble").className = "bubble";
+    $("who-tag").textContent = ""; $("bubble").className = "bubble";
+    $("v-char").innerHTML = "";
     acts.innerHTML = "";
     const n = document.createElement("p"), nm = esc(t.nick || ""); n.className = "raid-note";
-    n.innerHTML = !tg ? "…" : `🍂 …아무도 없네?<br><b>아니, ${nm}${josa(t.nick || "", "이", "가")} 사탕도둑이었다니! 🦹</b><br>` + (tg.th ? (thiefAmt(tg.n) ? `누적 사탕 ${thiefAmt(tg.n)}개를 도둑맞았어요 😱` : "다행히 훔쳐 갈 사탕이 없었어요 😅") : `오늘 이미 ${THIEF_DAY_MAX}번 공격받아서 효과가 없었어요 🛡️`);
+    n.innerHTML = !tg ? "…" : `헉.. 내 사탕!<br><b>아니, ${nm}${josa(t.nick || "", "이", "가")} 사탕도둑이었다니! 🦹</b><br>` + (tg.th ? (thiefAmt(tg.n) ? `누적 사탕 ${thiefAmt(tg.n)}개를 도둑맞았어요 😱` : "다행히 훔쳐 갈 사탕이 없었어요 😅") : `오늘 이미 ${THIEF_DAY_MAX}번 공격받아서 효과가 없었어요 🛡️`);
     acts.append(n, backBtn());
-    if (tg && raidBang !== doorTarget.id + tg.t) { raidBang = doorTarget.id + tg.t; const bang = document.createElement("div"); bang.className = "raid-bang"; bang.textContent = "❗"; $("house").parentElement.appendChild(bang); setTimeout(() => bang.remove(), 1900); }
+    if (tg && raidBang !== doorTarget.id + tg.t) { raidBang = doorTarget.id + tg.t; document.querySelectorAll(".raid-bang").forEach(e => e.remove()); const bang = document.createElement("div"); bang.className = "raid-bang"; bang.innerHTML = `<span class="rb-mark">❗</span><img class="raid-mask" alt="떨어진 도둑 가면" src="data:image/webp;base64,${DECO.thMask}">`; $("house").parentElement.appendChild(bang); }
     return;
   }
   setWhoTag(t);
