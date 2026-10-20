@@ -1654,6 +1654,9 @@ function mailItems(){
     seen.add(g + "~" + d);
     const o = v && typeof v === "object" ? v : {}, n = gotOf({ b: !!o.b, sl: !!o.sl }), nm = p.nick + josa(p.nick, "이", "가");
     if ("th" in o) { out.push({ t: giftTime(v), p, id: g, text: o.th ? `🦹 ${p.nick}네에서 누적 사탕 ${thiefAmt(o.n)}개를 훔쳤어요!` : `😮 ${p.nick}네는 오늘 이미 ${THIEF_DAY_MAX}번 공격받은 집이라 효과가 없었어요`, sub: o.th ? `사탕 +${thiefAmt(o.n)} · 가면은 사라졌어요` : "가면은 그대로! 다음 날 다시 쓸 수 있어요" }); return; }
+    const rd = me.raid && me.raid[g];
+    // 도둑으로 갔던 집이 그날 이후 처음 준 사탕 = 그 공격의 결과 (이미 2번 공격받아 평범한 손님이 됐던 것)
+    if (rd && !("th" in o) && d === Math.min(...Object.entries(me.gifts || {}).filter(([k2, v2]) => giverOf(k2) === g && giftDay(k2, v2) >= ymdToDay(rd)).map(([k2, v2]) => giftDay(k2, v2)))) { out.push({ t: giftTime(v), p, id: g, text: `😮 ${p.nick}네는 오늘 이미 ${THIEF_DAY_MAX}번 공격받은 집이라 효과가 없었어요`, sub: `대신 사탕 +${n}을 받았어요 · 가면은 그대로! 내일 다시 쓸 수 있어요` }); return; }
     const text = o.f ? (o.l ? `${nm} 호의를 베풀어 문을 열어줬어요 🍀` : `${p.nick}네 누적 사탕 1개를 뺏었어요 🪰`)
       : `${nm} 문을 열어줬어요!${o.sl && n > gotOf({ b: !!o.b }) ? " ✨" : ""}`;
     out.push({ t: giftTime(v), p, id: g, text, sub: `사탕 +${n}` });
@@ -1846,7 +1849,6 @@ const UPDATES = [
     preview: () => doorSVG(me.code, 1, true, houseColor("pink"), houseColor("mint")) },
   { id: "cloud", title: "새 캐릭터 '구름이' ☁️", text: () => `꾸미기의 캐릭터에서 사탕 ${PRICE_CHAR.cloud}개로 열 수 있어요!`, preview: () => charSVG("cloud", "none", "구름이") },
   { id: "skeleton", title: "보스 새 코스튬 '스켈레톤' 💀", text: () => `보스 옷장에서 사탕 ${PRICE_COS.skeleton}개로 열 수 있어요.`, preview: () => charSVG("boss", "skeleton", "스켈레톤") },
-  { id: "thief", title: "새 효과 '사탕도둑' 🦹", text: () => `꾸미기의 효과에서 사탕 ${PRICE_FX.thief}개로 가면을 사면 도둑으로 변신! 이웃집을 몰래 두드려 누적 사탕 ${EARN.thief}개를 훔칠 수 있어요. 자세한 건 '사탕도둑이 뭐예요?'를 눌러 보세요.`, preview: () => `<img alt="" src="data:image/webp;base64,${DECO.thMask}" style="width:110px">` },
   { id: "favs", title: "즐겨찾기가 생겼어요 ★", text: () => "사탕 리그에서 캐릭터를 누르면 즐겨찾기 할 수 있어요. 즐겨찾기한 이웃은 리그에 ★로 보이고, 마을 지도 맨 위와 방문 목록 앞쪽에 나와요!", preview: () => `<span style="font-size:4rem;color:#f5b301">★</span>` },
   { id: "phrase", title: "문구 바꾸기가 생겼어요 💬", text: () => `꾸미기 화면 '우리 집 꾸미기' 맨 아래에서 친구가 문을 열어 줄 때 외칠 말을 'Trick or Treat!' 대신 바꿀 수 있어요. 바꿀 때마다 내 사탕 ${PRICE_HOUSE.phrase}개가 사용돼요. (욕설이나 부적절한 언어는 삭제될 수 있어요)`, preview: () => `<span style="font-size:4rem">💬</span>` },
   { id: "ballet", title: "구름이 새 코스튬 '발레리나' 🩰", text: () => `구름이 옷장에서 사탕 ${PRICE_COS.ballet}개로 열 수 있어요.`, preview: () => charSVG("cloud", "ballet", "발레리나") },
@@ -2842,8 +2844,8 @@ let doorTarget = null, doorPhase = "closed", doorRaid = false, raidBang = "";
 // 도둑 손님: 문을 열면 아무도 없고, 오늘 털린 횟수가 남았으면 누적 사탕을 도둑맞아요 (도둑 문서 gifts에 th:1, 실패는 th:0)
 async function resolveRaid(){
   const vid = doorTarget && doorTarget.id; if (!vid || !me) return;
-  const ok = stolenToday(myId) < THIEF_DAY_MAX, key = gave(myId, vid) ? `${myId}~${todayNo()}` : myId, n = Math.min(EARN.thief, Math.max(0, earnedOf(myId)));
-  try { if (!gaveToday(myId, vid)) await db.doc("players/" + vid).update({ gifts: { [key]: ok ? { t: Date.now(), th: 1, n } : { t: Date.now(), th: 0 } } }); }
+  const key = gave(myId, vid) ? `${myId}~${todayNo()}` : myId, n = Math.min(EARN.thief, Math.max(0, earnedOf(myId)));
+  try { if (!gaveToday(myId, vid)) await db.doc("players/" + vid).update({ gifts: { [key]: { t: Date.now(), th: 1, n } } }); }
   catch { toast("문을 다시 열어 주세요."); }
   renderDoorActions();
 }
@@ -2935,7 +2937,8 @@ function openDoor(preview){
     acts.appendChild(backBtn()); return;
   }
   doorPhase = "closed";
-  doorRaid = !previewMode && isRaidKnock(doorTarget.id);
+  // 오늘 이미 2번 공격받은 집이면 도둑도 평범한 손님으로 와요 (집주인은 몰라요)
+  doorRaid = !previewMode && isRaidKnock(doorTarget.id) && stolenToday(myId) < THIEF_DAY_MAX;
   const startN = previewMode ? earnedOf(myId) : earnedOf(doorTarget.id);
   $("v-char").innerHTML = withFx(withStar(charSVG(doorTarget.char, doorTarget.costume, doorTarget.nick, { n: startN }), { costume: doorTarget.costume, star: starOn(doorTarget, previewMode ? myId : doorTarget.id) }), visitorFx(doorTarget));
   basketShown = startN;
