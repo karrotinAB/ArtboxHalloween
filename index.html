@@ -1587,7 +1587,7 @@ $("btn-register").onclick = async () => {
       goHome();
     } else {
       pendingNav = "dress";
-      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now(), seenUpdates: Object.fromEntries(UPDATES.filter(u => u.id !== "logincode").map(u => [u.id, Date.now()])) };
+      const doc = { code: newHouseNo(), nick, char: "cat", costume: "none", gifts: {}, knocks: {}, createdAt: Date.now(), seenUpdates: Object.fromEntries(UPDATES.filter(u => u.id !== "logincode" && !(u.id === "thief" && today() === "20261021")).map(u => [u.id, Date.now()])) };
       const inviter = inviteCode && findByCode(inviteCode);
       if (inviter && inviter.id !== myId) doc.invitedBy = inviter.id;
       // 접속 경로: 링크로 왔는지(누구 링크) · 어느 앱에서 열었는지 · 기기/브라우저
