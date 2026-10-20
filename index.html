@@ -216,6 +216,8 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .ph-row .ph-main small{display:block;font-size:.78rem;color:var(--paper-muted)}
 .ph-row .phrase-bub{margin-top:4px;font-size:.95rem}
 .ph-row button{flex:none}
+.raid-bang{position:absolute;left:50%;top:30%;font-size:7rem;transform:translate(-50%,-50%) scale(0);z-index:8;pointer-events:none;animation:rbang 1.9s cubic-bezier(.3,1.7,.5,1) forwards;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
+@keyframes rbang{0%{transform:translate(-50%,-50%) scale(0) rotate(-20deg)}18%{transform:translate(-50%,-50%) scale(1.25) rotate(8deg)}28%{transform:translate(-50%,-50%) scale(1) rotate(-4deg)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 .raid-note{text-align:center;font-size:1.1rem;line-height:1.7;margin:.4em 0 1em}
 .raid-note b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.3rem;color:#d9621b}
 .th-tour{text-align:center}
@@ -1348,7 +1350,8 @@ const thiefAmt = n => n == null ? EARN.thief : Math.max(0, +n || 0);
 const thiefBuys = p => Object.keys((p && p.owned) || {}).filter(k => k.startsWith("x:"));
 const thiefWins = p => Object.values((p && p.gifts) || {}).filter(v => v && typeof v === "object" && v.th === 1).length;
 function thiefArmed(p){ return thiefBuys(p).length > thiefWins(p); }
-const thiefBoughtToday = p => thiefBuys(p).some(k => dayNo(+k.slice(2) || 0) === todayNo());
+// 공격은 하루 1회 (오늘 털러 간 기록이 있으면 끝)
+const attackedToday = p => Object.values((p && p.raid) || {}).includes(today());
 // 오늘 hostId가 털린 횟수
 function stolenToday(hostId){
   const t = todayNo(); let n = 0;
@@ -1624,10 +1627,10 @@ function renderHome(){
   $("btn-bell").setAttribute("aria-label", gs.length ? `문 앞에 온 손님 ${gs.length}명 보기` : "문 앞에 온 손님 보기");
   if (!gs.length) box.innerHTML = '<p class="muted">아직 아무도 문을 두드리지 않았어요.</p>';
   gs.forEach(g => {
-    const row = document.createElement("div"), raid = isRaidKnock(g.id); row.className = "guest";
-    row.innerHTML = `<span>${raid ? '<span class="raid-q">❓</span>' : lookSVG(g, g.id)}</span><span><b></b><span class="gm"></span></span>`;
-    row.querySelector("b").textContent = raid ? "누군가" : g.nick;
-    row.querySelector(".gm").textContent = raid ? "똑똑… 누구지?" : `${g.code}호`;
+    const row = document.createElement("div"); row.className = "guest";
+    row.innerHTML = `<span>${lookSVG(g, g.id)}</span><span><b></b><span class="gm"></span></span>`;
+    row.querySelector("b").textContent = g.nick;
+    row.querySelector(".gm").textContent = `${g.code}호`;
     const b = document.createElement("button"); b.className = "green"; b.textContent = "문 열기";
     b.onclick = () => { knockCode = g.code; closeSheets(); openDoor(); };
     row.appendChild(b); box.appendChild(row);
@@ -1650,7 +1653,7 @@ function mailItems(){
     if (g === myId || !p || seen.has(g + "~" + d)) return;
     seen.add(g + "~" + d);
     const o = v && typeof v === "object" ? v : {}, n = gotOf({ b: !!o.b, sl: !!o.sl }), nm = p.nick + josa(p.nick, "이", "가");
-    if ("th" in o) { out.push({ t: giftTime(v), p, id: g, text: o.th ? `🦹 ${p.nick}네에서 누적 사탕 ${thiefAmt(o.n)}개를 훔쳤어요!` : `😮 ${p.nick}네는 오늘 이미 ${THIEF_DAY_MAX}번 털린 집이었어요`, sub: o.th ? `사탕 +${thiefAmt(o.n)} · 가면은 사라졌어요` : "실패! 가면은 그대로 남아 있어요" }); return; }
+    if ("th" in o) { out.push({ t: giftTime(v), p, id: g, text: o.th ? `🦹 ${p.nick}네에서 누적 사탕 ${thiefAmt(o.n)}개를 훔쳤어요!` : `😮 ${p.nick}네는 오늘 이미 ${THIEF_DAY_MAX}번 공격받은 집이라 효과가 없었어요`, sub: o.th ? `사탕 +${thiefAmt(o.n)} · 가면은 사라졌어요` : "가면은 그대로! 다음 날 다시 쓸 수 있어요" }); return; }
     const text = o.f ? (o.l ? `${nm} 호의를 베풀어 문을 열어줬어요 🍀` : `${p.nick}네 누적 사탕 1개를 뺏었어요 🪰`)
       : `${nm} 문을 열어줬어요!${o.sl && n > gotOf({ b: !!o.b }) ? " ✨" : ""}`;
     out.push({ t: giftTime(v), p, id: g, text, sub: `사탕 +${n}` });
@@ -1665,7 +1668,7 @@ function mailItems(){
     out.push({ t: p.createdAt || 0, p, id, text: `${p.nick}${josa(p.nick, "이", "가")} 내 링크로 들어왔어요! 🎉`, sub: `초대 보너스 사탕 +${EARN.invite}` });
   });
   // 우리 집이 털렸을 때 (누가 털었는지는 비밀)
-  Object.entries(players).forEach(([id, q]) => { if (id === myId) return; Object.entries(q.gifts || {}).forEach(([k, v]) => { if (giverOf(k) === myId && v && typeof v === "object" && v.th === 1) out.push({ t: giftTime(v), pic: '<span class="mail-gift">🦹</span>', text: "사탕도둑이 우리 집을 털어 갔어요!", sub: `누적 사탕 -${thiefAmt(v.n)}` }); }); });
+  Object.entries(players).forEach(([id, q]) => { if (id === myId) return; Object.entries(q.gifts || {}).forEach(([k, v]) => { if (giverOf(k) === myId && v && typeof v === "object" && v.th === 1) out.push({ t: giftTime(v), p: q, id, text: `🦹 ${q.nick}${josa(q.nick, "이", "가")} 사탕도둑이었어요! 우리 집을 털어 갔어요`, sub: `누적 사탕 -${thiefAmt(v.n)}` }); }); });
   // 관리자가 문구를 지웠을 때
   if (me.phraseDel && me.phraseDel.at) out.push({ t: me.phraseDel.at, pic: '<span class="mail-gift">💬</span>', text: "내 문구가 기본 문구(Trick or Treat!)로 바뀌었어요", sub: `관리자가 "${me.phraseDel.text || ""}" 문구를 지웠어요` });
   // 관리자가 보낸 사탕 선물
@@ -2385,13 +2388,13 @@ let ttStep = 0, ttBuy = false;
 const maskImg = w => `<img alt="" src="data:image/webp;base64,${DECO.thMask}" style="width:${w}px">`;
 const TT = [
   { h: "가면을 쓰면 도둑으로 변신!", art: () => `${me ? thiefSVG(me.char, starOn(me, myId)) : ""}`,
-    text: () => `사탕 <b>${PRICE_FX.thief}개</b>로 사탕도둑 가면을 사면 내 캐릭터가 샤라락~ 도둑으로 변해요.<br>가면은 <b>하루에 한 번</b>만 살 수 있어요. (도둑 모습은 옷장에서만 보여요)` },
+    text: () => `사탕 <b>${PRICE_FX.thief}개</b>로 사탕도둑 가면을 사면 내 캐릭터가 샤라락~ 도둑으로 변해요.<br>공격은 <b>하루에 1회</b>만 가능해요. (도둑 모습은 옷장에서만 보여요)` },
   { h: "털 집을 골라 똑똑!", art: () => `${doorSVG("???", 3, false, houseColor("purple"), houseColor("black"))}${me ? thiefSVG(me.char, false) : ""}`,
-    text: () => `가면을 쓴 채로 이웃집 문을 두드려요. 상대는 누가 왔는지 몰라요!<br>상대가 문을 열면… 아무도 없고, <b>상대의 누적 사탕 ${EARN.thief}개</b>가 내 점수가 돼요 🍬` },
-  { h: "한 집은 하루 두 번까지만", art: () => `<span class="big-e">🏠</span><span class="big-e">🛡️</span><span class="big-e">✌️</span>`,
-    text: () => `한 집은 하루에 <b>${THIEF_DAY_MAX}번</b>까지만 털려요.<br>이미 ${THIEF_DAY_MAX}번 털린 집이면 실패! 그래도 <b>가면은 그대로</b> 남아서 다른 집이나 내일 쓸 수 있어요.` },
+    text: () => `가면을 쓴 채로 이웃집 문을 두드려요. 상대는 내가 온 건 알지만 <b>도둑인 건 몰라요!</b><br>상대가 문을 여는 순간… 아무도 없고, <b>상대의 누적 사탕 ${EARN.thief}개</b>가 내 점수가 돼요 🍬` },
+  { h: "한 집은 하루 2번까지", art: () => `<span class="big-e">🏠</span><span class="big-e">🛡️</span><span class="big-e">✌️</span>`,
+    text: () => `한 집은 하루에 <b>${THIEF_DAY_MAX}번까지</b> 공격받을 수 있어요.<br>이미 ${THIEF_DAY_MAX}번 공격받은 집을 공격하면 효과가 없고, 내가 산 <b>가면은 그대로</b> 다음 날 쓸 수 있어요.` },
   { h: "성공하면 가면은 사라져요", art: () => `${maskImg(150)}<span class="big-e">💨</span>`,
-    text: () => `도둑질에 성공하면 가면은 <b>1회용</b>이라 사라지고, 원래 모습으로 돌아와요.<br>또 하고 싶으면 가면을 다시 사야 해요. 한 번에 한 집만 털러 갈 수 있어요.` }
+    text: () => `도둑질에 성공하면 가면은 <b>1회용</b>이라 사라지고, 원래 모습으로 돌아와요.<br>또 하고 싶으면 가면을 다시 사야 해요.` }
 ];
 function openThiefTour(buy){ ttStep = 0; ttBuy = !!buy; renderThiefTour(); openSheet("sheet-thief"); }
 function renderThiefTour(){
@@ -2407,17 +2410,16 @@ $("tt-next").onclick = () => {
   if (ttStep < TT.length - 1) { ttStep++; renderThiefTour(); return; }
   closeSheets();
   if (ttBuy && me) openBuy({ key: "x:" + Date.now(), price: PRICE_FX.thief, name: "사탕도둑 가면", kind: "가면", title: "🦹 사탕도둑 가면 사기", verbs: ["사려면", "살까요", "사기"],
-    preview: maskImg(200), extra: `하루에 한 번만 살 수 있어요. 성공하면 사라지는 1회용이에요.`, patch: { effect: "thief" }, done: "사탕도둑 가면을 샀어요! 🦹 샤라락~" });
+    preview: maskImg(200), extra: `공격은 하루에 1회만 가능해요. 성공하면 사라지는 1회용이에요.`, patch: { effect: "thief" }, done: "사탕도둑 가면을 샀어요! 🦹 샤라락~" });
 };
 $("btn-thief-help").onclick = () => openThiefTour(false);
 // 사탕도둑 칩: 가면이 있으면 쓰기/벗기, 없으면 설명 슬라이드 → 사기 (하루 1번)
 function thiefChip(curFx){
-  const armed = thiefArmed(me), today1 = thiefBoughtToday(me), on = armed && curFx === "thief", b = document.createElement("button");
+  const armed = thiefArmed(me), on = armed && curFx === "thief", b = document.createElement("button");
   b.type = "button"; b.className = "chip fx-chip" + (armed ? "" : " locked"); b.setAttribute("aria-pressed", on);
-  b.innerHTML = `<img class="fx-img" alt="" src="data:image/webp;base64,${DECO.thMask}"><span>사탕도둑</span><small>${armed ? (on ? "쓰는 중" : "쓰기") : today1 ? "내일 또 살 수 있어요" : "🍬 " + PRICE_FX.thief + "개"}</small>`;
+  b.innerHTML = `<img class="fx-img" alt="" src="data:image/webp;base64,${DECO.thMask}"><span>사탕도둑</span><small>${armed ? (on ? (attackedToday(me) ? "오늘 공격 끝" : "쓰는 중") : "쓰기") : "🍬 " + PRICE_FX.thief + "개"}</small>`;
   b.onclick = () => {
     if (armed) { if (!on) { setMine({ effect: "thief" }); toast("🦹 도둑으로 변신! 이제 이웃집 문을 두드리면 몰래 사탕을 훔치러 가요"); } return; }
-    if (today1) { toast("사탕도둑 가면은 하루에 한 번만 살 수 있어요. 내일 다시 사 주세요!"); return; }
     openThiefTour(true);
   };
   return b;
@@ -2811,6 +2813,7 @@ async function knockOn(id, btn){
   if (raid) {
     const pr = pendingRaid();
     if (pr) { toast(`이미 ${players[pr[0]].nick}네를 털러 갔어요 🦹\n문을 열어줄 때까지 기다려요!`); return false; }
+    if (attackedToday(me)) { toast("공격은 하루에 1회만 가능해요. 내일 다시 털러 가요!\n그냥 놀러 가려면 효과를 '없음'으로 바꿔 주세요."); return false; }
     if (!confirm(`🦹 사탕도둑 가면을 쓰고 ${t.nick}네 문을 두드릴까요?\n${t.nick}${josa(t.nick, "이", "가")} 문을 열면 누적 사탕 ${EARN.thief}개를 훔쳐요!`)) return false;
   }
   if (btn) btn.disabled = true;
@@ -2835,7 +2838,7 @@ $("btn-copy").onclick = async () => {
 };
 
 // ===== 문 장면 =====
-let doorTarget = null, doorPhase = "closed", doorRaid = false;
+let doorTarget = null, doorPhase = "closed", doorRaid = false, raidBang = "";
 // 도둑 손님: 문을 열면 아무도 없고, 오늘 털린 횟수가 남았으면 누적 사탕을 도둑맞아요 (도둑 문서 gifts에 th:1, 실패는 th:0)
 async function resolveRaid(){
   const vid = doorTarget && doorTarget.id; if (!vid || !me) return;
@@ -2941,13 +2944,13 @@ function openDoor(preview){
   $("knock-word").className = "knock-word"; $("knock-word").innerHTML = "<span>똑</span><span>똑</span><span>똑</span>";
   requestAnimationFrame(() => house.classList.add("knock"));
   acts.innerHTML = "";
-  if (doorRaid) { $("v-char").innerHTML = ""; $("sfx").textContent = ""; }
+  if (doorRaid) $("sfx").textContent = "";
   const b = document.createElement("button"); b.className = "big"; b.textContent = "문 열기";
   b.onclick = () => {
     doorPhase = "open"; house.classList.remove("knock"); house.classList.add("open");
     if ($("sfx").textContent) $("sfx").classList.add("on");
     $("knock-word").textContent = ""; acts.innerHTML = "";
-    if (doorRaid) { setTimeout(resolveRaid, 1550); return; }
+    if (doorRaid) { $("v-char").innerHTML = ""; setTimeout(resolveRaid, 1550); return; }
     setTimeout(() => { $("bubble").textContent = phraseOf(doorTarget); $("bubble").classList.add("on"); renderDoorActions(); }, 1550);
   };
   acts.appendChild(b);
@@ -3006,9 +3009,11 @@ function renderDoorActions(){
   if (doorRaid || (tg && tg.th !== undefined)) {
     $("who-tag").textContent = ""; $("v-char").innerHTML = ""; $("bubble").className = "bubble";
     acts.innerHTML = "";
-    const n = document.createElement("p"); n.className = "raid-note";
-    n.innerHTML = !tg ? "…" : tg.th ? `🍂 …아무도 없네?<br><b>🦹 사탕도둑이 다녀갔어요!</b><br>${thiefAmt(tg.n) ? `누적 사탕 ${thiefAmt(tg.n)}개를 도둑맞았어요 😱` : "다행히 훔쳐 갈 사탕이 없었어요 😅"}` : `🍂 …아무도 없네?<br>바람 소리였나 봐요.`;
-    acts.append(n, backBtn()); return;
+    const n = document.createElement("p"), nm = esc(t.nick || ""); n.className = "raid-note";
+    n.innerHTML = !tg ? "…" : `🍂 …아무도 없네?<br><b>아니, ${nm}${josa(t.nick || "", "이", "가")} 사탕도둑이었다니! 🦹</b><br>` + (tg.th ? (thiefAmt(tg.n) ? `누적 사탕 ${thiefAmt(tg.n)}개를 도둑맞았어요 😱` : "다행히 훔쳐 갈 사탕이 없었어요 😅") : `오늘 이미 ${THIEF_DAY_MAX}번 공격받아서 효과가 없었어요 🛡️`);
+    acts.append(n, backBtn());
+    if (tg && raidBang !== doorTarget.id + tg.t) { raidBang = doorTarget.id + tg.t; const bang = document.createElement("div"); bang.className = "raid-bang"; bang.textContent = "❗"; $("house").parentElement.appendChild(bang); setTimeout(() => bang.remove(), 1900); }
+    return;
   }
   setWhoTag(t);
   renderBasket(earnedOf(doorTarget.id));
