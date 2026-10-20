@@ -216,11 +216,11 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .ph-row .ph-main small{display:block;font-size:.78rem;color:var(--paper-muted)}
 .ph-row .phrase-bub{margin-top:4px;font-size:.95rem}
 .ph-row button{flex:none}
-.raid-bang{position:absolute;left:50%;top:22%;width:46%;display:flex;flex-direction:column;align-items:center;gap:14px;transform:translateX(-50%);z-index:8;pointer-events:none}
-.raid-bang .rb-mark{font-size:6rem;line-height:1;transform:scale(0);animation:rbang .9s cubic-bezier(.3,1.7,.5,1) forwards;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
+.raid-bang{position:absolute;inset:0;z-index:8;pointer-events:none}
+.raid-bang .rb-mark{position:absolute;left:50%;top:20%;margin-left:-.5em;font-size:6rem;line-height:1;transform:scale(0);animation:rbang .9s cubic-bezier(.3,1.7,.5,1) forwards;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
 @keyframes rbang{0%{transform:scale(0) rotate(-20deg)}30%{transform:scale(1.25) rotate(8deg)}50%{transform:scale(1) rotate(-4deg)}100%{transform:scale(1) rotate(0)}}
-.raid-mask{display:block;width:100%;animation:rmask .7s ease-out}
-@keyframes rmask{0%{opacity:0;transform:translateY(-40px) rotate(-12deg)}100%{opacity:1;transform:none}}
+.raid-mask{position:absolute;left:50%;bottom:3%;width:38%;transform:translateX(-50%) rotate(-7deg) scaleY(.82);filter:drop-shadow(0 6px 3px rgba(60,26,16,.35));animation:rmask .8s cubic-bezier(.3,1.4,.5,1)}
+@keyframes rmask{0%{opacity:0;transform:translateX(-50%) translateY(-160px) rotate(25deg)}70%{opacity:1}100%{opacity:1;transform:translateX(-50%) rotate(-7deg) scaleY(.82)}}
 .raid-note{text-align:center;font-size:1.1rem;line-height:1.7;margin:.4em 0 1em}
 .raid-note b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.3rem;color:#d9621b}
 .th-tour{text-align:center}
