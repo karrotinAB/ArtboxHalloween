@@ -182,14 +182,15 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .map-count{color:#d9c8ea;font-size:.9rem}
 .village{position:relative;margin:0 -18px;overflow:hidden;background:linear-gradient(#3f6b45,#2f5537);border-top:4px solid var(--brown);border-bottom:4px solid var(--brown)}
 .village .vroad{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.vhill{position:absolute;left:0;right:0;top:0;z-index:2}
+.vhill{position:absolute;left:0;right:0}
 .vhill>svg{position:absolute;inset:0;width:100%;height:100%}
-.vcastle{position:absolute;height:auto;filter:drop-shadow(0 0 18px rgba(255,40,60,.35))}
-.vbat{position:absolute;width:44px;height:auto;pointer-events:none;animation:vbat 7s ease-in-out infinite}
-.vbat.b1{left:12%;top:40px}.vbat.b2{left:72%;top:22px;width:34px;animation-duration:6s;animation-delay:-2s}
-.vbat.b3{left:24%;top:150px;width:30px;animation-duration:8s;animation-delay:-4s}.vbat.b4{left:78%;top:130px;width:38px;animation-duration:6.5s;animation-delay:-1s}
+.vcastle-wrap{position:absolute;z-index:3}
+.vcastle{display:block;width:100%;height:auto;filter:drop-shadow(0 0 14px rgba(255,40,60,.4)) brightness(.92)}
+.vbat{position:absolute;width:22px;height:auto;pointer-events:none;animation:vbat 7s ease-in-out infinite;filter:brightness(1.9) drop-shadow(0 0 4px rgba(255,200,230,.45))}
+.vbat.b1{left:-70%;top:6%}.vbat.b2{left:120%;top:-4%;width:24px;animation-duration:6s;animation-delay:-2s}
+.vbat.b3{left:-50%;top:46%;width:22px;animation-duration:8s;animation-delay:-4s}.vbat.b4{left:115%;top:38%;width:26px;animation-duration:6.5s;animation-delay:-1s}
 @keyframes vbat{0%,100%{transform:translate(0,0) scaleX(1)}25%{transform:translate(22px,-14px) scaleX(1)}50%{transform:translate(40px,6px) scaleX(-1)}75%{transform:translate(14px,18px) scaleX(-1)}}
-.vsign{position:absolute;left:50%;top:268px;transform:translateX(-50%);background:#b8763f;color:#fff8ee;border:3px solid #3c1a10;border-radius:8px;font-family:"Jua",sans-serif;font-size:1.05rem;padding:.35em .9em;box-shadow:0 5px 0 #3c1a10;white-space:nowrap}
+.vsign{position:absolute;z-index:4;font-size:.95rem!important;background:#b8763f;color:#fff8ee;border:3px solid #3c1a10;border-radius:8px;font-family:"Jua",sans-serif;font-size:1.05rem;padding:.35em .9em;box-shadow:0 5px 0 #3c1a10;white-space:nowrap}
 .vsign::after{content:"";position:absolute;left:50%;top:100%;width:8px;height:34px;margin-left:-4px;background:#7a4a24;border:2px solid #3c1a10;border-top:0;z-index:-1}
 .village .vdeco{position:absolute;font-size:22px;pointer-events:none;opacity:.9}
 .vh{position:absolute;width:150px;text-align:center}
@@ -2055,10 +2056,12 @@ function renderMap(){
   const fv = id => id !== myId && isFav(id) ? 0 : 1;
   const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => fv(a[0]) - fv(b[0]) || (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
   $("map-count").textContent = `이웃 ${list.length}집`;
-  const castle = bossOpen(), HILL = castle ? 360 : 0;
-  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 180, top = 16 + HILL, H = top + list.length * ROW + 150;
+  const castle = bossOpen(), HILL = castle ? 270 : 0;
+  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 180, top = 16 + HILL + (castle ? 56 : 0), H = top + list.length * ROW + 150;
   box.style.height = H + "px";
-  const roadX = y => W / 2 + Math.sin(y / 120) * W * 0.12 + Math.sin(y / 47) * W * 0.025;
+  const roadX0 = y => W / 2 + Math.sin(y / 120) * W * 0.12 + Math.sin(y / 47) * W * 0.025;
+  // 지도 맨 위: 저 멀리 언덕 위 마왕성 (하늘만 보라색, 땅은 마을과 같은 초록) · 마을 길이 언덕을 지그재그로 올라가 성문에서 끝나요
+  const gateY = 112, roadX = roadX0;
   // 집 자리 먼저 정하고 (문 앞까지 이어지는 오솔길도 같이 그려요)
   const spots = list.map(([id, p], i) => {
     const r = hashOf(id), left = i % 2 === 0, y = top + i * ROW + (r % 30) - 8;
@@ -2067,19 +2070,34 @@ function renderMap(){
     const x = left ? Math.max(4, lo - 34 - 150 - (r % 12)) : Math.min(W - 154, hi + 34 + ((r >> 3) % 12));
     return { id, p, r, left, x, y, doorX: x + 77, doorY: y + 141 };
   });
-  let d = `M${roadX(0)} 0`; for (let y = 20; y <= H; y += 20) d += ` L${roadX(y).toFixed(1)} ${y}`;
+  const roadStart = castle ? HILL : 0;
+  let d = `M${roadX(roadStart).toFixed(1)} ${roadStart}`; for (let y = roadStart + 20; y <= H; y += 20) d += ` L${roadX(y).toFixed(1)} ${y}`;
+  if (castle) box.insertAdjacentHTML("beforeend", `<div class="vhill" style="top:0;height:${HILL + 30}px"><svg viewBox="0 0 400 300" preserveAspectRatio="none"><defs><linearGradient id="vsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1640"/><stop offset=".3" stop-color="#5a3a78"/><stop offset=".5" stop-color="#3f6b45"/></linearGradient><linearGradient id="vfar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f7d55"/><stop offset="1" stop-color="#3f6b45"/></linearGradient></defs>
+    <rect width="400" height="300" fill="url(#vsky)"/><circle cx="345" cy="38" r="16" fill="#fff3c4"/><circle cx="353" cy="33" r="14" fill="#3a2256"/>
+    <path d="M-10 300 V140 Q80 110 150 118 Q190 92 200 92 Q215 92 250 118 Q330 108 410 140 V300Z" fill="url(#vfar)"/><path d="M-10 300 V190 Q120 165 240 182 Q330 170 410 196 V300Z" fill="#3f6b45"/></svg></div>`);
+  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/></svg>`);
   if (castle) {
-    const cw = Math.min(150, W * .4), ch = cw * 560 / 358, cx = W / 2 - cw / 2;
-    box.insertAdjacentHTML("beforeend", `<div class="vhill" style="height:${HILL}px"><svg viewBox="0 0 400 360" preserveAspectRatio="none"><defs><linearGradient id="vsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1030"/><stop offset="1" stop-color="#4a2a5e"/></linearGradient></defs><rect width="400" height="360" fill="url(#vsky)"/><circle cx="340" cy="60" r="26" fill="#fff3c4"/><circle cx="352" cy="52" r="22" fill="#241536"/><path d="M0 360 V250 Q60 190 130 215 Q200 120 270 205 Q340 180 400 240 V360Z" fill="#2c1d38"/><path d="M0 360 V285 Q90 235 200 250 Q310 228 400 280 V360Z" fill="#3b2a4a"/></svg>
-      <img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}" style="left:${cx}px;width:${cw}px;top:${Math.max(4, 250 - ch)}px">
-      <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}">
-      <button type="button" class="vsign" id="vsign"><span>마왕문 두드리기 ➜</span></button></div>`);
+    // 언덕을 오르는 길: 마을 길에서 이어져 지그재그로 성문까지 (멀어질수록 좁아져요)
+    const sx = roadX(HILL), pts = [[sx, HILL + 20], [sx + (W * .74 - sx) * .35, HILL - 40], [W * .74, HILL - 66], [W * .32, HILL - 96], [W * .6, gateY + 32], [W * .5, gateY]];
+    let cur = []; for (let k = 0; k < pts.length - 1; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], [xp, yp] = pts[k - 1] || pts[k], [xn, yn] = pts[k + 2] || pts[k + 1];
+      for (let t = 0; t < 1; t += .1) { const t2 = t * t, t3 = t2 * t; cur.push([.5 * (2 * x0 + (-xp + x1) * t + (2 * xp - 5 * x0 + 4 * x1 - xn) * t2 + (-xp + 3 * x0 - 3 * x1 + xn) * t3), .5 * (2 * y0 + (-yp + y1) * t + (2 * yp - 5 * y0 + 4 * y1 - yn) * t2 + (-yp + 3 * y0 - 3 * y1 + yn) * t3)]); } }
+    cur.push(pts[pts.length - 1]);
+    const n = cur.length, segs = 8; let sv = "";
+    for (const pass of [0, 1]) for (let k = 0; k < segs; k++) { const a = Math.floor(k * n / segs), b = Math.min(n - 1, Math.floor((k + 1) * n / segs) + 1), w = 58 - k * 5.4;
+      sv += `<path d="M${cur.slice(a, b + 1).map(([x, y]) => x.toFixed(1) + " " + y.toFixed(1)).join(" L")}" stroke="${pass ? "#c9a46b" : "#2a1f33"}" stroke-width="${pass ? w * .83 : w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`; }
+    // 이음매: 마을 길 윗부분을 한 번 더 칠해서 테두리 선이 안 보이게
+    let jn = `M${roadX(HILL).toFixed(1)} ${HILL}`; for (let y = HILL + 10; y <= HILL + 70; y += 10) jn += ` L${roadX(y).toFixed(1)} ${y}`;
+    sv += `<path d="${jn}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/>`;
+    box.insertAdjacentHTML("beforeend", `<svg class="vroad" style="z-index:1" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${sv}</svg>`);
+    const cw = Math.min(54, W * .14), ch = cw * 560 / 358;
+    box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
+      <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}"></div>
+      <button type="button" class="vsign" id="vsign" style="top:${HILL + 6}px;${sx > W / 2 ? `right:${W - sx + 34}px` : `left:${sx + 34}px`}"><span>마왕문 두드리기 ➜</span></button>`);
     $("vsign").onclick = () => openDeal(!DEAL_LIVE, 0, "boss");
   }
-  box.insertAdjacentHTML("beforeend", `<svg class="vroad" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" stroke="#2a1f33" stroke-width="58" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/></svg>`);
   // 길가 장식
   const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
-  for (let i = 0; i * 220 < H; i++) { const r = hashOf("deco" + i), y = 60 + i * 220 + (r % 60), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
+  for (let i = 0; i * 220 < H - top; i++) { const r = hashOf("deco" + i), y = top + 44 + i * 220 + (r % 60), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
     box.insertAdjacentHTML("beforeend", `<span class="vdeco" style="left:${x}px;top:${y}px">${DECO_E[r % DECO_E.length]}</span>`); }
   spots.forEach(({ id, p, r, left, x, y }) => {
     const el = document.createElement("div"); el.className = "vh " + (left ? "left" : "right") + (id === myId ? " mine" : "");
@@ -2566,14 +2584,14 @@ function dealReveal(resumed, ps){
   }, resumed ? 1200 : 1500);
 }
 // 실패: 문이 쾅 닫히고 결과 안내
-function dealSlam(){
+function dealSlam(kind){
   const d = $("deal"); dealBusy = true;
   $("deal-game").hidden = true; $("deal-quit").hidden = true; $("deal-bub").innerHTML = ""; $("deal-tap").hidden = true; $("deal-choices").innerHTML = "";
   d.classList.remove("playing"); d.classList.add("slam"); d.classList.remove("open");
   setTimeout(() => { d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake"); }, 260);
   setTimeout(() => {
     const o = document.createElement("div"); o.className = "deal-lost";
-    o.innerHTML = `<b>쾅!</b><b>누적 사탕 ${DM().lose}개를 잃었습니다</b><button type="button">닫기</button>`;
+    o.innerHTML = `<b>쾅!</b><b>누적 사탕 ${kind === "quit" ? DM().quit : DM().lose}개를 잃었습니다</b><button type="button">닫기</button>`;
     o.querySelector("button").onclick = e => { e.stopPropagation(); o.remove(); d.classList.remove("slam"); dealSave({ ...dealS, phase: "done" }); closeDeal(); };
     d.appendChild(o); dealBusy = false;
   }, 700);
@@ -2583,7 +2601,7 @@ function dealQuitAsk(){
   if (dealS.phase !== "quitask") dealSave({ ...dealS, back: dealS.round, phase: "quitask" });
   $("deal-quit").hidden = true; $("deal-game").hidden = true; $("deal").classList.remove("playing");
   dealSay(["거래를 시작했으면 끝을 봐야지..", `하지만 마음 좋게 ${DM().quit}개만 내면 갈 수 있게 해줄게.`], () => dealAsk([
-    [`${DM().quit}개 내고 그만둘래`, async () => { await dealRecord("quit"); dealSave({ ...dealS, phase: "done", result: "quit" }); dealSay(["흥, 현명한 건지 겁쟁이인 건지...", `사탕 ${DM().quit}개는 잘 받았다. 잘 가라.`], () => dealAsk([["닫기", closeDeal]])); }],
+    [`${DM().quit}개 내고 그만둘래`, async () => { await dealRecord("quit"); dealSave({ ...dealS, phase: "done", result: "quit" }); dealSay(["흥, 현명한 건지 겁쟁이인 건지...", `사탕 ${DM().quit}개는 잘 받았다. 잘 가라.`], () => dealSlam("quit")); }],
     ["계속할래!", () => dealRound(dealS.back || 0), true]]));
 }
 $("deal-quit").onclick = e => { e.stopPropagation(); if (!dealBusy) dealQuitAsk(); };
