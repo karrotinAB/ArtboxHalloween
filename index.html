@@ -250,6 +250,7 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .sc-days span.on{background:#d9621b}
 .sc-ev{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto;font-size:.82rem}
 .sc-ev li{display:flex;gap:6px;padding:3px 0;border-bottom:1px dashed var(--soft);align-items:baseline}
+.sc-warn{color:#c0392b;font-size:.75rem;white-space:nowrap}
 .sc-ev .tm{flex:none;color:var(--paper-muted);font-variant-numeric:tabular-nums}
 .sc-ev .tx{flex:1;min-width:0}
 .sc-ev .pt{flex:none;font-family:"Jua",sans-serif;color:#2f8a4a}
@@ -2261,6 +2262,11 @@ async function sendBonus(n){
 }
 document.querySelectorAll("#sm-bonus [data-bonus]").forEach(b => b.onclick = () => sendBonus(b.dataset.bonus));
 $("sm-bonus-send").onclick = () => sendBonus($("sm-bonus-in").value);
+// 관리자: 손님 q가 d일(또는 그 전 이틀 안)에 host 집 문을 두드린 기록이 있는지
+function knockedFor(q, host, d){
+  const v = (players[q] && players[q].visits && players[q].visits[host]) || {}, k = players[host] && players[host].knocks && players[host].knocks[q];
+  return Object.keys(v).some(x => { const y = ymdToDay(x); return y <= d && y >= d - 2; }) || (!!k && ymdToDay(k) <= d && ymdToDay(k) >= d - 2);
+}
 // 관리자: 누적 사탕이 어디서 왔는지 (earnedOf를 항목별로 나눠요)
 function scoreParts(id){
   const p = players[id] || {}, rows = [], byDay = {}, from = {};
@@ -2270,13 +2276,14 @@ function scoreParts(id){
     if (x.th !== undefined) { if (x.th) { c.th[0]++; c.th[1] += n; } return; }
     from[x.g] = (from[x.g] || 0) + 1;
     const k = x.sl && n > gotOf({ b: x.b }) ? "spk" : x.b ? "beg" : "recv"; c[k][0]++; c[k][1] += n; });
-  const g = { give: [0, 0], fly: [0, 0], favor: [0, 0], robbed: [0, 0] };
+  const g = { give: [0, 0], nok: [0, 0], fly: [0, 0], favor: [0, 0], robbed: [0, 0] };
   Object.entries(players).forEach(([q, qp]) => giftList(qp, q).forEach(x => { if (x.g !== id) return;
-    const k = x.th !== undefined ? (x.th ? "robbed" : null) : x.f ? (x.l ? "favor" : "fly") : "give"; if (!k) return;
+    let k = x.th !== undefined ? (x.th ? "robbed" : null) : x.f ? (x.l ? "favor" : "fly") : "give"; if (!k) return;
+    if (k === "give" && !knockedFor(q, id, x.d)) k = "nok";
     const n = k === "robbed" ? -thiefAmt(x.n) : k === "fly" ? -EARN.steal : k === "favor" ? EARN.favor : EARN.give; g[k][0]++; g[k][1] += n; add(x.d, n); }));
   const ph = photoBonusOf(p, id), un = fashionCount(p), inv = insiderCount(id);
   rows.push(["사탕 받음 (보통)", c.recv], ["사탕 받음 (거지왹)", c.beg], ["반짝이 당첨", c.spk], ["사탕도둑 성공", c.th],
-    ["사탕 줌", g.give], ["파리 거지왹에게 뺏김", g.fly], ["호의 보상", g.favor], ["도둑맞음", g.robbed],
+    ["사탕 줌 (두드린 손님)", g.give], ["⚠️ 사탕 줌 (두드림 기록 없음)", g.nok], ["파리 거지왹에게 뺏김", g.fly], ["호의 보상", g.favor], ["도둑맞음", g.robbed],
     ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]]);
   return { rows, byDay, from };
 }
@@ -2290,7 +2297,7 @@ function scoreEvents(id){
     push(t, `🍬 ${nk(g)}에게 사탕 받음${x.b ? " (거지왹)" : ""}${x.sl && n > gotOf({ b: x.b }) ? " ✨반짝이 당첨" : ""}`, n); });
   Object.entries(players).forEach(([q, qp]) => { if (q === id) return; walk(qp, q, (g, o, t) => { if (g !== id) return;
     if ("th" in o) { if (+o.th === 1) push(t, `🦹 ${nk(q)}에게 도둑맞음`, -thiefAmt(o.n)); return; }
-    push(t, o.f ? (o.l ? `🍀 ${nk(q)}에게 사탕 줌 (호의 보상)` : `🪰 ${nk(q)}에게 사탕 줌 (파리 거지왹에게 뺏김)`) : `🎁 ${nk(q)}에게 사탕 줌`, o.f ? (o.l ? EARN.favor : -EARN.steal) : EARN.give); }); });
+    push(t, o.f ? (o.l ? `🍀 ${nk(q)}에게 사탕 줌 (호의 보상)` : `🪰 ${nk(q)}에게 사탕 줌 (파리 거지왹에게 뺏김)`) : knockedFor(q, id, dayNo(t)) ? `🎁 ${nk(q)}에게 사탕 줌` : `🎁 ${nk(q)}에게 사탕 줌 <span class="sc-warn">⚠️ 두드림 기록 없음</span>`, o.f ? (o.l ? EARN.favor : -EARN.steal) : EARN.give); }); });
   Object.entries(p.photos || {}).forEach(([k, v]) => { if (validCombo(k) && v && players[v.with] && interacted(id, v.with)) push(v.at, `📸 ${nk(v.with)}와 사진 (처음 보는 코스튬)`, EARN.photo); });
   Object.entries(p.owned || {}).forEach(([k, v]) => { if (k.startsWith("k:") && +v > 1e12) push(+v, `👗 코스튬 열기 (${esc((costumeById(k.split(":")[2]) || {}).name || "")})`, EARN.unlock); });
   Object.values(players).forEach(q => { if (q.invitedBy === id) push(q.createdAt, `🔗 ${esc(q.nick || "")} 초대`, EARN.invite); });
