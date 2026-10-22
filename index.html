@@ -1945,7 +1945,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants(); checkBossNews();
+  checkUpdates(); checkGrants(); checkBossNews(); checkBoardNews();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -2063,6 +2063,18 @@ function checkGrants(){
 // 미니게임 출시 공지: 1등이 마왕과 만나 마왕성이 열리면 모두에게 한 번 (내 문서 seenUpdates.minigame)
 let bossNewsQueued = false;
 function showBossNews(done){ showNotice("<미니게임 출시!>", "마왕 타이슨이 마을을 찾아왔어요", [{ title: "마왕문 두드리기", text: "소문에 의하면 사탕을 받을 수도 있다던데...", preview: `<img alt="" src="data:image/webp;base64,${DECO.castle}" style="width:64px">` }], done, ["🗺️ 마을지도 가기", openMap]); }
+// 게시판 공지: 마왕 공지를 이번 접속에 보여줘야 하면 그건 먼저, 게시판 공지는 다음 접속 때
+const SESSION_START = Date.now();
+let boardNewsQueued = false;
+function showBoardNews(done){ showNotice("<새로 생겼어요!>", "마을 게시판 📌", [{ title: "내 사진 자랑하기", text: "마을 지도에 게시판이 생겼어요. 친구와 찍은 사진을 올리고 ♥를 받아 보세요! 여러 장 올려도 돼요.", preview: boardSVG() }], done, ["📌 게시판 가기", openBoard]); }
+function checkBoardNews(){
+  const seen = (me && me.seenUpdates) || {};
+  if (!me || boardNewsQueued || bossNewsQueued || seen.board) return;
+  const bossPending = DEAL_LIVE && !!dealFirst() && !(seen.minigame && seen.minigame < SESSION_START);
+  if (bossPending) return;
+  boardNewsQueued = true;
+  pushModal(() => showBoardNews(() => setMine({ seenUpdates: { board: Date.now() } })));
+}
 function checkBossNews(){
   if (!me || bossNewsQueued || !DEAL_LIVE || !dealFirst() || (me.seenUpdates || {}).minigame) return;
   bossNewsQueued = true;
