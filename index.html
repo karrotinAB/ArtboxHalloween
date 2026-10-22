@@ -2057,7 +2057,7 @@ function renderMap(){
   const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => fv(a[0]) - fv(b[0]) || (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
   $("map-count").textContent = `이웃 ${list.length}집`;
   const castle = bossOpen(), HILL = castle ? 270 : 0;
-  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 180, top = 16 + HILL + (castle ? 56 : 0), H = top + list.length * ROW + 150;
+  const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 180, top = 16 + HILL + (castle ? 20 : 0), H = top + list.length * ROW + 150;
   box.style.height = H + "px";
   const roadX0 = y => W / 2 + Math.sin(y / 120) * W * 0.12 + Math.sin(y / 47) * W * 0.025;
   // 지도 맨 위: 저 멀리 언덕 위 마왕성 (하늘만 보라색, 땅은 마을과 같은 초록) · 마을 길이 언덕을 지그재그로 올라가 성문에서 끝나요
@@ -2092,7 +2092,7 @@ function renderMap(){
     const cw = Math.min(54, W * .14), ch = cw * 560 / 358;
     box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
       <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}"></div>
-      <button type="button" class="vsign" id="vsign" style="top:${HILL + 6}px;${sx > W / 2 ? `right:${W - sx + 34}px` : `left:${sx + 34}px`}"><span>마왕문 두드리기 ➜</span></button>`);
+      <button type="button" class="vsign" id="vsign" style="top:${cur[Math.floor(n * .55)][1] - 18}px;left:${W / 2}px;transform:translateX(-50%)"><span>마왕문 두드리기 ➜</span></button>`);
     $("vsign").onclick = () => openDeal(!DEAL_LIVE, 0, "boss");
   }
   // 길가 장식
@@ -2469,7 +2469,8 @@ function dealIntro(tier){
 function bossIntro(){
   const f = dealFirst(), fn = f ? esc(f[1].nick || "") : "○○○", fr = f ? f[1].deal.result : "decline", left = Math.max(0, BOSS_DAY_MAX - bossToday());
   const firstLine = fr === "win" ? `1등 ${fn}… 내 사탕 ${EARN.dealWin}개를 가져갔지. 크윽.` : fr === "lose" ? `1등 ${fn}${josa(f ? f[1].nick : "○", "은", "는")} 내게 사탕 ${EARN.dealLose}개를 바쳤지. 크크크.` : fr === "quit" ? `1등 ${fn}${josa(f ? f[1].nick : "○", "은", "는")} 겁먹고 사탕 ${EARN.dealQuit}개를 내고 도망쳤지.` : `1등 ${fn}${josa(f ? f[1].nick : "○", "은", "는")} 내 제안을 거절한 겁쟁이였지.`;
-  return ["하하하! 또 손님이 왔군.", firstLine, "마침 심심했는데 너도 게임 하나 할래?", `이기면 사탕 ${EARN.bossWin}개를 주지.`, "그치만... 실패하면...", `네 사탕 ${EARN.bossLose}개를 내놓아야 해.`, `하루에 ${BOSS_DAY_MAX}번까지만 상대해 주지. 오늘 남은 기회는 ${left}번이다.`];
+  void firstLine;
+  return ["하하하! 또 손님이 왔군.", "내 성 문을 두드리다니 용기가 대단한데?", "마침 심심했는데 너도 게임 하나 할래?", `이기면 사탕 ${EARN.bossWin}개를 주지.`, "그치만... 실패하면...", `네 사탕 ${EARN.bossLose}개를 내놓아야 해.`, `하루에 ${BOSS_DAY_MAX}번까지만 상대해 주지. 오늘 남은 기회는 ${left}번이다.`];
 }
 const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크.", "네 것을 내놔야 해."];
 function dealSay(lines, after){ dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
@@ -2591,7 +2592,7 @@ function dealSlam(kind){
   setTimeout(() => { d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake"); }, 260);
   setTimeout(() => {
     const o = document.createElement("div"); o.className = "deal-lost";
-    o.innerHTML = `<b>쾅!</b><b>누적 사탕 ${kind === "quit" ? DM().quit : DM().lose}개를 잃었습니다</b><button type="button">닫기</button>`;
+    o.innerHTML = `${kind === "quit" ? "" : "<b>쾅!</b>"}<b>누적 사탕 ${kind === "quit" ? DM().quit : DM().lose}개를 잃었습니다</b><button type="button">닫기</button>`;
     o.querySelector("button").onclick = e => { e.stopPropagation(); o.remove(); d.classList.remove("slam"); dealSave({ ...dealS, phase: "done" }); closeDeal(); };
     d.appendChild(o); dealBusy = false;
   }, 700);
@@ -2601,7 +2602,7 @@ function dealQuitAsk(){
   if (dealS.phase !== "quitask") dealSave({ ...dealS, back: dealS.round, phase: "quitask" });
   $("deal-quit").hidden = true; $("deal-game").hidden = true; $("deal").classList.remove("playing");
   dealSay(["거래를 시작했으면 끝을 봐야지..", `하지만 마음 좋게 ${DM().quit}개만 내면 갈 수 있게 해줄게.`], () => dealAsk([
-    [`${DM().quit}개 내고 그만둘래`, async () => { await dealRecord("quit"); dealSave({ ...dealS, phase: "done", result: "quit" }); dealSay(["흥, 현명한 건지 겁쟁이인 건지...", `사탕 ${DM().quit}개는 잘 받았다. 잘 가라.`], () => dealSlam("quit")); }],
+    [`${DM().quit}개 내고 그만둘래`, async () => { await dealRecord("quit"); dealSave({ ...dealS, phase: "done", result: "quit" }); dealSlam("quit"); }],
     ["계속할래!", () => dealRound(dealS.back || 0), true]]));
 }
 $("deal-quit").onclick = e => { e.stopPropagation(); if (!dealBusy) dealQuitAsk(); };
