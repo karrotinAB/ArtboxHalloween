@@ -246,6 +246,14 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .sc-sub{font-size:.8rem;color:var(--paper-muted);margin:.6em 0 .2em}
 .sc-days{display:flex;gap:3px;align-items:flex-end;height:60px;margin-top:4px}
 .sc-days span{flex:1;background:#f0b35a;border-radius:3px 3px 0 0;position:relative;min-height:2px}
+.sc-days span{cursor:pointer}
+.sc-days span.on{background:#d9621b}
+.sc-ev{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto;font-size:.82rem}
+.sc-ev li{display:flex;gap:6px;padding:3px 0;border-bottom:1px dashed var(--soft);align-items:baseline}
+.sc-ev .tm{flex:none;color:var(--paper-muted);font-variant-numeric:tabular-nums}
+.sc-ev .tx{flex:1;min-width:0}
+.sc-ev .pt{flex:none;font-family:"Jua",sans-serif;color:#2f8a4a}
+.sc-ev .pt.neg{color:#c0392b}
 .sc-days span i{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-style:normal;font-size:.6rem;color:var(--paper-muted)}
 .sc-days span b{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:.6rem;font-weight:400}
 .sm-phrase{margin:.6em 0;font-size:.9rem}
@@ -2272,15 +2280,41 @@ function scoreParts(id){
     ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]]);
   return { rows, byDay, from };
 }
+// 관리자: 이 회원이 언제 무엇으로 사탕을 얻었는지 (시각 · 내용 · 점수)
+function scoreEvents(id){
+  const p = players[id] || {}, ev = [], nk = q => esc((players[q] || {}).nick || "?");
+  const push = (t, text, n) => { if (t) ev.push({ t, d: dayNo(t), text, n }); };
+  const walk = (doc, owner, fn) => { const seen = new Set(); Object.entries((doc && doc.gifts) || {}).forEach(([k, v]) => { const g = giverOf(k), d = giftDay(k, v), key = g + "~" + d; if (g === owner || !players[g] || seen.has(key)) return; seen.add(key); fn(g, v && typeof v === "object" ? v : {}, giftTime(v)); }); };
+  walk(p, id, (g, o, t) => { const x = { b: !!o.b, sl: !!o.sl, th: "th" in o ? +o.th : undefined, n: o.n }, n = gotOf(x);
+    if (x.th !== undefined) { if (x.th) push(t, `🦹 ${nk(g)}네 털기 성공`, n); return; }
+    push(t, `🍬 ${nk(g)}에게 사탕 받음${x.b ? " (거지왹)" : ""}${x.sl && n > gotOf({ b: x.b }) ? " ✨반짝이 당첨" : ""}`, n); });
+  Object.entries(players).forEach(([q, qp]) => { if (q === id) return; walk(qp, q, (g, o, t) => { if (g !== id) return;
+    if ("th" in o) { if (+o.th === 1) push(t, `🦹 ${nk(q)}에게 도둑맞음`, -thiefAmt(o.n)); return; }
+    push(t, o.f ? (o.l ? `🍀 ${nk(q)}에게 사탕 줌 (호의 보상)` : `🪰 ${nk(q)}에게 사탕 줌 (파리 거지왹에게 뺏김)`) : `🎁 ${nk(q)}에게 사탕 줌`, o.f ? (o.l ? EARN.favor : -EARN.steal) : EARN.give); }); });
+  Object.entries(p.photos || {}).forEach(([k, v]) => { if (validCombo(k) && v && players[v.with] && interacted(id, v.with)) push(v.at, `📸 ${nk(v.with)}와 사진 (처음 보는 코스튬)`, EARN.photo); });
+  Object.entries(p.owned || {}).forEach(([k, v]) => { if (k.startsWith("k:") && +v > 1e12) push(+v, `👗 코스튬 열기 (${esc((costumeById(k.split(":")[2]) || {}).name || "")})`, EARN.unlock); });
+  Object.values(players).forEach(q => { if (q.invitedBy === id) push(q.createdAt, `🔗 ${esc(q.nick || "")} 초대`, EARN.invite); });
+  return ev.sort((a, b) => a.t - b.t);
+}
+let scoreDay = null;
 function renderScore(id){
   const box = $("sm-score"); if (!box) return;
   const { rows, byDay, from } = scoreParts(id), total = earnedOf(id);
   let h = `<table class="sc-t">${rows.filter(([, [n]]) => n).map(([l, [n, v]]) => `<tr><td>${l}</td><td class="n">${n}번</td><td class="n">${v > 0 ? "+" : ""}${v}</td></tr>`).join("")}<tr class="sum"><td>누적 합계</td><td></td><td class="n">${total}</td></tr></table>`;
   const top = Object.entries(from).sort((a, b) => b[1] - a[1]).slice(0, 6);
   h += `<p class="sc-sub">사탕을 준 사람 ${Object.keys(from).length}명${top.length ? " · 많이 준 순서: " + top.map(([q, n]) => `${esc((players[q] || {}).nick || "?")} ${n}번`).join(", ") : ""}</p>`;
-  const t = todayNo(), days = Array.from({ length: 10 }, (_, i) => t - 9 + i), mx = Math.max(1, ...days.map(d => byDay[d] || 0));
-  h += `<p class="sc-sub">최근 10일 하루별 (받고 준 사탕 기준)</p><div class="sc-days">${days.map(d => { const v = byDay[d] || 0, dt = new Date(d * 86400e3); return `<span style="height:${Math.max(2, v / mx * 100)}%"><b>${v || ""}</b><i>${dt.getUTCDate()}</i></span>`; }).join("")}</div><div style="height:16px"></div>`;
+  const ev = scoreEvents(id), per = {}; ev.forEach(e => per[e.d] = (per[e.d] || 0) + e.n);
+  const t = todayNo(), days = Array.from({ length: 10 }, (_, i) => t - 9 + i), mx = Math.max(1, ...days.map(d => per[d] || 0));
+  if (scoreDay === null || !days.includes(scoreDay)) scoreDay = null;
+  h += `<p class="sc-sub">최근 10일 하루별 얻은 사탕 · 막대를 누르면 그날 활동이 보여요</p><div class="sc-days">${days.map(d => { const v = per[d] || 0, dt = new Date(d * 86400e3); return `<span role="button" tabindex="0" data-d="${d}" class="${scoreDay === d ? "on" : ""}" style="height:${Math.max(2, Math.max(0, v) / mx * 100)}%"><b>${v || ""}</b><i>${dt.getUTCDate()}</i></span>`; }).join("")}</div><div style="height:16px"></div><div id="sc-day"></div>`;
   box.innerHTML = h;
+  const showDay = d => {
+    scoreDay = d; box.querySelectorAll(".sc-days span").forEach(e => e.classList.toggle("on", +e.dataset.d === d));
+    const list = ev.filter(e => e.d === d), dt = new Date(d * 86400e3), sum = list.reduce((a, e) => a + e.n, 0);
+    $("sc-day").innerHTML = `<p class="sc-sub"><b>${dt.getUTCMonth() + 1}월 ${dt.getUTCDate()}일</b> · 활동 ${list.length}개 · ${sum > 0 ? "+" : ""}${sum}</p>` + (list.length ? `<ol class="sc-ev">${list.map(e => { const tm = new Date(e.t + 9 * 3600e3); return `<li><span class="tm">${String(tm.getUTCHours()).padStart(2, "0")}:${String(tm.getUTCMinutes()).padStart(2, "0")}</span><span class="tx">${e.text}</span><span class="pt ${e.n < 0 ? "neg" : ""}">${e.n > 0 ? "+" : ""}${e.n}</span></li>`; }).join("")}</ol>` : '<p class="muted" style="font-size:.85rem">이날은 활동이 없어요.</p>');
+  };
+  box.querySelectorAll(".sc-days span").forEach(e => { e.onclick = () => showDay(+e.dataset.d); e.onkeydown = k => { if (k.key === "Enter") showDay(+e.dataset.d); }; });
+  if (scoreDay !== null) showDay(scoreDay);
 }
 // 관리자: 문구 삭제 → 기본 문구로 + 그 사람 우편함에 알림 (players.phraseDel = { at, text })
 async function adminDeletePhrase(id){
@@ -2547,7 +2581,7 @@ function applyConfig(cfg){
   PRICE_CHAR.cat = 0; PRICE_CHAR.special = 0; PRICE_CHAR.boss = 0; PRICE_COS.none = 0;
 }
 let memberOpen = null;
-function openMember(id){ memberOpen = id; renderMember(); openSheet("sheet-member"); }
+function openMember(id){ memberOpen = id; scoreDay = null; renderMember(); openSheet("sheet-member"); }
 // 회원 설정: 히든 미션 뱃지 · 별이 · 갤러리
 function renderMemberExtra(p){
   const id = memberOpen, box = $("sm-extra"); box.innerHTML = "";
