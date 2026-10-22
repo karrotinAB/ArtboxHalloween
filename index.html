@@ -2375,10 +2375,14 @@ $("btn-mail").onclick = openMail;
 $("bell-talk").onclick = () => openSheet("sheet-guests");
 $("btn-find").onclick = () => { renderNeighborChips($("find-neighbors"), async id => { if (await knockOn(id)) closeSheets(); }); openSheet("sheet-find"); };
 $("code-in").addEventListener("keydown", e => { if (e.key === "Enter") $("btn-code").click(); });
-$("btn-code").onclick = () => {
+// 집번호 입력 = 그 집 문을 두드리러 가기 (이웃 목록 · 마을 지도와 같아요)
+$("btn-code").onclick = async () => {
   const c = $("code-in").value.trim().replace(/호$/, "").toUpperCase();
   if (!c) return;
-  knockCode = c; $("code-in").value = ""; closeSheets(); openDoor();
+  const t = findByCode(c);
+  if (!t) { toast(`${c}호를 찾을 수 없어요. 집번호를 다시 확인해 주세요.`); return; }
+  if (t.id === myId) { toast("우리 집이에요!"); return; }
+  if (await knockOn(t.id, $("btn-code"))) { $("code-in").value = ""; closeSheets(); }
 };
 
 // ===== 꾸미기 =====
@@ -3142,6 +3146,14 @@ function renderDoorActions(){
     acts.append(note);
     acts.append(photoBtn());
   }
+  // 사탕은 우리 집 문을 실제로 두드린 손님에게만 줄 수 있어요 (링크·집번호로 연 것만으로는 안 돼요)
+  else if (!knockedMe(doorTarget.id)) {
+    note.textContent = `${t.nick}${josa(t.nick, "이", "가")} 아직 우리 집 문을 두드리지 않았어요. 사탕은 문을 두드린 손님에게만 줄 수 있어요.`;
+    acts.append(note);
+    const k = document.createElement("button"); k.className = "big green"; k.textContent = `🚪 ${t.nick}네 문 두드리러 가기`;
+    k.onclick = async () => { if (await knockOn(doorTarget.id, k)) { knockCode = null; goHome(); } };
+    acts.append(k);
+  }
   else if (shooedToday(doorTarget.id)) {
     closeDoorOn("흥! 😤");
     note.textContent = `오늘은 ${t.nick}${josa(t.nick, "을", "를")} 쫓아냈어요 🧹 내일 또 올지도 몰라요!`;
@@ -3159,8 +3171,13 @@ function renderDoorActions(){
   }
   acts.appendChild(backBtn());
 }
+// 이 손님이 우리 집 문을 두드리고 아직 사탕을 못 받았는지
+function knockedMe(vid){
+  const d = me && me.knocks && me.knocks[vid];
+  return !!(d && players[vid] && !gaveSince(players[vid], myId, ymdToDay(d)));
+}
 async function giveCandy(btn){
-  if (!me || gaveToday(myId, doorTarget.id)) { renderDoorActions(); return; }
+  if (!me || gaveToday(myId, doorTarget.id) || !knockedMe(doorTarget.id)) { renderDoorActions(); return; }
   // 첫 사탕은 "내ID", 그다음부터는 "내ID~오늘 날짜번호" (누른 순간 기준)
   const key = gave(myId, doorTarget.id) ? `${myId}~${todayNo()}` : myId;
   btn.disabled = true; flyCandy(btn);
