@@ -190,6 +190,10 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .vbat.b1{left:-70%;top:6%}.vbat.b2{left:120%;top:-4%;width:24px;animation-duration:6s;animation-delay:-2s}
 .vbat.b3{left:-50%;top:46%;width:22px;animation-duration:8s;animation-delay:-4s}.vbat.b4{left:115%;top:38%;width:26px;animation-duration:6.5s;animation-delay:-1s}
 @keyframes vbat{0%,100%{transform:translate(0,0) scaleX(1)}25%{transform:translate(22px,-14px) scaleX(1)}50%{transform:translate(40px,6px) scaleX(-1)}75%{transform:translate(14px,18px) scaleX(-1)}}
+.vbuild{position:absolute;z-index:4;transform:translateX(-50%);width:88px;height:56px;pointer-events:none}
+.vbuild i{position:absolute;left:0;top:22px;width:88px;height:12px;background:#c9934f;border:2px solid #3c1a10;border-radius:3px;transform:rotate(24deg)}
+.vbuild i+i{transform:rotate(-24deg)}
+.vbuild b{position:absolute;left:50%;top:13px;transform:translateX(-50%) rotate(-4deg);background:#ffd23f;color:#3c1a10;border:2px solid #3c1a10;border-radius:4px;font-family:"Jua",sans-serif;font-weight:400;font-size:.8rem;padding:1px 6px;white-space:nowrap}
 .vsign{position:absolute;z-index:4;font-size:.95rem!important;background:#b8763f;color:#fff8ee;border:3px solid #3c1a10;border-radius:8px;font-family:"Jua",sans-serif;font-size:1.05rem;padding:.35em .9em;box-shadow:0 5px 0 #3c1a10;white-space:nowrap}
 .vsign::after{content:"";position:absolute;left:50%;top:100%;width:8px;height:34px;margin-left:-4px;background:#7a4a24;border:2px solid #3c1a10;border-top:0;z-index:-1}
 .village .vdeco{position:absolute;font-size:22px;pointer-events:none;opacity:.9}
@@ -1002,6 +1006,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
       <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (아직 공개 전)</button>
       <button class="big" id="adm-boss" style="margin-top:12px">🏰 마왕문 두드리기 미리보기 (일반 유저용 · 마을 지도에 성 보이기)</button>
+      <div class="row" style="gap:6px;margin-top:8px"><button class="big" id="adm-boss-build" style="flex:1;font-size:.9rem">🚧 공사중 지도</button><button class="big" id="adm-boss-news" style="flex:1;font-size:.9rem">📢 출시 공지</button></div>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
@@ -1912,7 +1917,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants();
+  checkUpdates(); checkGrants(); checkBossNews();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -1993,7 +1998,8 @@ const UPDATES = [
   { id: "kawaii", title: "숭민이 새 코스튬 '카와이숭' 🎀", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.kawaii}개로 열 수 있어요!`, preview: () => charSVG("monkey", "kawaii", "카와이숭") }
 ];
 let noticeDone = null;
-function showNotice(kicker, title, items, done){
+function showNotice(kicker, title, items, done, go){
+  noticeGo = go ? go[1] : null; $("nt-go").textContent = go ? go[0] : "꾸미기에서 보기 ✨";
   $("nt-kicker").textContent = kicker; $("nt-title").textContent = title;
   const box = $("notice"); box.innerHTML = "";
   items.forEach(it => {
@@ -2007,7 +2013,8 @@ function showNotice(kicker, title, items, done){
   openSheet("sheet-notice");
 }
 $("nt-ok").onclick = nextModal;
-$("nt-go").onclick = () => { if (noticeDone) { noticeDone(); noticeDone = null; } modalQ = []; closeSheets(); goDress(); };
+let noticeGo = null;
+$("nt-go").onclick = () => { if (noticeDone) { noticeDone(); noticeDone = null; } modalQ = []; closeSheets(); const g = noticeGo; noticeGo = null; g ? g() : goDress(); };
 // 관리자가 열어준 것: grants 키 → 이름·미리보기
 function grantInfo(k){
   if (k.startsWith("fx:")) { const e = EFFECTS.find(x => x.id === k.slice(3)); return e && { title: `효과 '${e.name}'`, preview: withFx(charSVG(me.char, me.costume, e.name), e.id) }; }
@@ -2024,6 +2031,14 @@ function checkGrants(){
   fresh.forEach(x => grantQueued[x.k] = 1);
   pushModal(() => showNotice("🎁 선물이 도착했어요!", "관리자가 열어줬어요", fresh.map(x => ({ ...x.info, text: "지금 꾸미기에서 바로 쓸 수 있어요!" })),
     () => setMine({ seenGrants: Object.fromEntries(fresh.map(x => [x.k, Date.now()])) })));
+}
+// 미니게임 출시 공지: 1등이 마왕과 만나 마왕성이 열리면 모두에게 한 번 (내 문서 seenUpdates.minigame)
+let bossNewsQueued = false;
+function showBossNews(done){ showNotice("<미니게임 출시!>", "마왕 타이슨이 마을을 찾아왔어요", [{ title: "마왕문 두드리기", text: "소문에 의하면 사탕을 받을 수도 있다던데...", preview: `<img alt="" src="data:image/webp;base64,${DECO.castle}" style="width:64px">` }], done, ["🗺️ 마을지도 가기", openMap]); }
+function checkBossNews(){
+  if (!me || bossNewsQueued || !DEAL_LIVE || !dealFirst() || (me.seenUpdates || {}).minigame) return;
+  bossNewsQueued = true;
+  pushModal(() => showBossNews(() => setMine({ seenUpdates: { minigame: Date.now() } })));
 }
 const myLoginCode = () => profiles[myId] && profiles[myId].loginCode;
 let updQueued = {};
@@ -2056,7 +2071,7 @@ function renderMap(){
   const fv = id => id !== myId && isFav(id) ? 0 : 1;
   const list = Object.entries(players).filter(([, p]) => p.code).sort((a, b) => fv(a[0]) - fv(b[0]) || (a[1].createdAt || 0) - (b[1].createdAt || 0) || a[0].localeCompare(b[0]));
   $("map-count").textContent = `이웃 ${list.length}집`;
-  const castle = bossOpen(), HILL = castle ? 270 : 0;
+  const castle = !!castleState(), building = castleState() === "build", HILL = castle ? 270 : 0;
   const W = box.clientWidth || Math.min(innerWidth, 480), ROW = 180, top = 16 + HILL + (castle ? 20 : 0), H = top + list.length * ROW + 150;
   box.style.height = H + "px";
   const roadX0 = y => W / 2 + Math.sin(y / 120) * W * 0.12 + Math.sin(y / 47) * W * 0.025;
@@ -2093,7 +2108,8 @@ function renderMap(){
     box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
       <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}"></div>
       <button type="button" class="vsign" id="vsign" style="top:${cur[Math.floor(n * .55)][1] - 18}px;left:${W / 2}px;transform:translateX(-50%)"><span>마왕문 두드리기 ➜</span></button>`);
-    $("vsign").onclick = () => openDeal(!DEAL_LIVE, 0, "boss");
+    $("vsign").onclick = () => building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE, 0, "boss");
+    if (building) box.insertAdjacentHTML("beforeend", `<div class="vbuild" style="top:${gateY - ch * .62}px;left:${W / 2}px"><i></i><i></i><b>공사중</b></div>`);
   }
   // 길가 장식
   const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
@@ -2401,8 +2417,10 @@ const DM = () => dealMode === "boss" ? { win: EARN.bossWin, lose: EARN.bossLose,
 function bossPts(p){ return Object.values((p && p.boss && p.boss.log) || {}).reduce((t, r) => t + (r === "win" ? EARN.bossWin : r === "lose" ? -EARN.bossLose : r === "quit" ? -EARN.bossQuit : 0), 0); }
 // 1등 거래가 끝난 사람(처음 한 명)
 const dealFirst = () => Object.entries(players).filter(([, q]) => q.deal && q.deal.phase === "done" && q.deal.result).sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0))[0];
-let castlePreview = false;
-const bossOpen = () => castlePreview || (DEAL_LIVE && !!dealFirst());
+// 지도의 마왕성: null(공개 전) · "build"(1등이 아직 안 만남, 공사중) · "open"
+let castlePreview = null;
+const castleState = () => castlePreview || (!DEAL_LIVE ? null : dealFirst() ? "open" : "build");
+const bossOpen = () => castleState() === "open";
 // 오늘 플레이한 횟수 (끝난 판 + 진행 중인 판)
 function bossToday(){
   const b = dealMode === "boss" && dealPrev ? bossPrevData() : (me && me.boss) || {}, t = todayNo(), log = b.log || {};
@@ -2455,7 +2473,7 @@ function gateHalf(right){
   return `url("data:image/svg+xml;utf8,${encodeURIComponent(right ? svg.replace("<svg ", '<svg transform="scale(-1 1)" ') : svg)}")`;
 }
 const dealNick = () => esc((me && me.nick) || "");
-const DEAL_INTRO = () => ["하하하!", `네가 지금 1등이라는 ${dealNick()}구나.`, "흥미롭군...", "마침 심심했는데 게임 하나 할래?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 아마 이제 진짜 영원한 1등이 될테지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
+const DEAL_INTRO = () => ["하하하!", `네가 지금 1등이라는 ${dealNick()}구나.`, "흥미롭군...", "마침 심심했는데 게임 하나 할래?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 아마 이제 진짜 영원한 1등이 될테지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 이런 좋은 제안을 하는 건 이번 한 번뿐이야."];
 // 2등·3등에게 넘어간 기회: 앞사람들이 겁쟁이였다고 말해요
 function dealIntro(tier){
   if (!tier) return DEAL_INTRO();
@@ -2463,7 +2481,7 @@ function dealIntro(tier){
   const nm = i => esc((players[dec[i]] || {}).nick || "○○○");
   const who = tier === 1 ? `1등인 ${nm(0)}${josa((players[dec[0]] || {}).nick || "○", "은", "는")} 겁쟁이더군.` : `1등인 ${nm(0)}도, 2등인 ${nm(1)}도 겁쟁이더군.`;
   const me1 = (me && me.nick) || "";
-  return ["하하하!", `${tier + 1}등 ${esc(me1)}${josa(me1 || "○", "이로군", "로군")}.`, "나와 게임 한 판 하지 않을래?", who, tier === 1 ? "나의 제안을 거절했어." : "둘 다 나의 제안을 거절했어.", "어때, 너는 도전해 볼텐가?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 너도 1등이 될 수 있을지 모르지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
+  return ["하하하!", `${tier + 1}등 ${esc(me1)}${josa(me1 || "○", "이로군", "로군")}.`, "나와 게임 한 판 하지 않을래?", who, tier === 1 ? "나의 제안을 거절했어." : "둘 다 나의 제안을 거절했어.", "어때, 너는 도전해 볼텐가?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 너도 1등이 될 수 있을지 모르지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 이런 좋은 제안을 하는 건 이번 한 번뿐이야."];
 }
 // 마왕문 (모두에게 열린 판) 대사
 function bossIntro(){
@@ -3203,7 +3221,9 @@ $("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSh
 $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
 $("adm-deal").onclick = () => openDeal(true, 0);
-$("adm-boss").onclick = () => { castlePreview = true; mapFrom = "admin"; openMap(); toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
+$("adm-boss").onclick = () => { castlePreview = "open"; mapFrom = "admin"; openMap(); toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
+$("adm-boss-build").onclick = () => { castlePreview = "build"; mapFrom = "admin"; openMap(); toast("미리보기: 1등이 마왕을 만나기 전 (공사중)"); };
+$("adm-boss-news").onclick = () => showBossNews(null);
 // 관리자: 사탕도둑 미리보기
 let tpThief = false;
 const tpLook = () => tpThief ? thiefSVG(me.char, starOn(me, myId)) : withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
