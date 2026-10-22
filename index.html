@@ -296,9 +296,20 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .deal-pumps{position:relative;width:min(88vw,380px);height:120px}
 .pump{position:absolute;top:0;width:100px;height:110px;margin-left:-50px;transition:left .32s ease-in-out,transform .32s;cursor:pointer;border:0;background:none;padding:0;box-shadow:none}
 .pump svg{width:100%;height:100%;filter:drop-shadow(0 6px 0 rgba(0,0,0,.4))}
-.pump.lift svg{transform:translateY(-38px);transition:transform .35s}
-.pump .cdy{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:2.2rem;opacity:0;transition:opacity .2s .15s}
-.pump.lift .cdy{opacity:1}
+.pump .cdy{position:absolute;left:50%;top:18px;transform:translateX(-50%);font-size:2.2rem;opacity:0;z-index:-1;pointer-events:none}
+.pump.drop .cdy{animation:cdrop .9s ease-in forwards}
+@keyframes cdrop{0%{opacity:1;transform:translate(-50%,-110px) rotate(-30deg)}70%{opacity:1;transform:translate(-50%,8px) rotate(200deg)}100%{opacity:0;transform:translate(-50%,26px) rotate(240deg)}}
+.pump.drop svg,.pump.peek svg{animation:bjig .35s .6s}
+@keyframes bjig{50%{transform:translateY(5px) scaleY(.94)}}
+.pump.peek .cdy{animation:cpop .6s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes cpop{0%{opacity:1;transform:translate(-50%,26px)}100%{opacity:1;transform:translate(-50%,-44px) rotate(-12deg)}}
+.pump.empty::after{content:"텅~";position:absolute;left:50%;top:40px;transform:translateX(-50%);font-family:"Jua",sans-serif;color:#ffd9d9;font-size:1rem;animation:cpop2 .5s ease-out forwards}
+@keyframes cpop2{0%{opacity:0;transform:translate(-50%,10px)}100%{opacity:1;transform:translate(-50%,-6px)}}
+.deal.slam .dg{transition:transform .28s cubic-bezier(.7,0,1,.6)!important}
+.deal-lost{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(10,3,8,.55);animation:dfade .5s .35s both}
+.deal-lost b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.7rem;color:#ff6b6b;text-align:center;text-shadow:0 3px 0 #000;padding:0 16px;word-break:keep-all}
+.deal-lost button{font-family:"Jua",sans-serif;background:#3a1430;color:#ffe6b0;border:2px solid #ffb54a;min-width:160px}
+@keyframes dfade{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
 .pump.pick{outline:3px dashed #ffd23f;outline-offset:4px;border-radius:30px}
 .pump:disabled{cursor:default;opacity:1;filter:none}
 .deal-rain{position:absolute;top:-40px;font-size:2rem;animation:drain 2.4s linear forwards;pointer-events:none}
@@ -2360,7 +2371,7 @@ function gateHalf(right){
 }
 const dealNick = () => esc((me && me.nick) || "");
 const DEAL_INTRO = () => ["하하하!", `네가 지금 1등이라는 ${dealNick()}구나.`, "흥미롭군...", "마침 심심했는데 게임 하나 할래?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 아마 이제 진짜 영원한 1등이 될테지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
-const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크."];
+const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크.", "네 것을 내놔야 해."];
 function dealSay(lines, after){ dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
 // 웃는 대사(하하·크크)에서 웃는 얼굴로 세 번 들썩이고 바로 무표정으로
 let laughT = 0;
@@ -2370,7 +2381,7 @@ function bossLaugh(){
   laughT = setTimeout(() => el.classList.remove("laugh"), 1150);
 }
 function dealNext(){
-  if (dealQ.length) { const t = dealQ.shift(); $("deal-bub").innerHTML = t; $("deal-tap").hidden = false; if (/하하|크크/.test(t)) bossLaugh(); return; }
+  if (dealQ.length) { const t = dealQ.shift(); $("deal-bub").innerHTML = t; $("deal-tap").hidden = false; if (/하하|크크|게임 하나 할래/.test(t)) bossLaugh(); else { clearTimeout(laughT); $("deal-boss").classList.remove("laugh"); } return; }
   $("deal-tap").hidden = true; const f = dealAfter; dealAfter = null; if (f) f();
 }
 function dealAsk(opts){
@@ -2380,7 +2391,7 @@ function dealAsk(opts){
 $("deal").addEventListener("click", e => { const bt = e.target.closest("button"); if ((bt && !bt.disabled) || dealBusy) return; if (!$("deal-choices").children.length) dealNext(); });
 function openDeal(preview){
   dealPrev = !!preview; dealS = dealLoad();
-  const d = $("deal"); d.hidden = false; d.classList.remove("open", "shake", "playing");
+  const d = $("deal"); d.hidden = false; d.classList.remove("open", "shake", "playing", "slam"); d.querySelectorAll(".deal-lost").forEach(e => e.remove());
   d.querySelector(".dg-l").style.backgroundImage = gateHalf(false); d.querySelector(".dg-r").style.backgroundImage = gateHalf(true);
   $("deal-boss").innerHTML = bossSVG(); $("deal-bub").innerHTML = ""; $("deal-choices").innerHTML = ""; $("deal-game").hidden = true;
   $("deal-x").hidden = $("deal-reset").hidden = !dealPrev; $("deal-quit").hidden = true;
@@ -2417,8 +2428,8 @@ function dealRound(r, resumed){
   const lines = r === 0 ? ["첫 번째 판이다. 호박은 두 개.", "사탕은... 여기 넣었지. 잘 봐라!"] : r === 1 ? ["이번엔 호박이 세 개다.", "눈 크게 뜨고 따라와 봐."] : ["마지막 판이다...", "여기서 멈출 수는 없지? 크크크."];
   dealSay(resumed ? ["어디까지 했더라... 그래, " + (r + 1) + "번째 판이었지.", "다시 섞는다!"] : lines, () => {
     // 보여주기: 가운데 호박에 사탕 → 섞기
-    const show = ps[Math.floor(n / 2)]; show.classList.add("lift"); dealBusy = true; $("deal-bub").innerHTML = "섞는다...!";
-    setTimeout(() => show.classList.remove("lift"), 900);
+    const show = ps[Math.floor(n / 2)]; show.classList.add("drop"); dealBusy = true; $("deal-bub").innerHTML = "사탕은... 여기 쏙! 섞는다...!";
+    setTimeout(() => show.classList.remove("drop"), 1000);
     let k = 0; const swaps = 6 + r * 4, pos = xs.slice();
     const step = () => {
       if (k++ >= swaps) { ps.forEach((b, i) => { b.disabled = false; b.onclick = () => dealPick(r, i, ps); }); $("deal-bub").innerHTML = "자, 사탕은 어디 있을까?"; dealBusy = false; return; }
@@ -2443,15 +2454,27 @@ function dealReveal(resumed, ps){
   $("deal-quit").hidden = true; $("deal-game").hidden = false; $("deal").classList.add("playing"); $("deal-round").textContent = `${st.round + 1}번째 판 · 호박 ${n}개`;
   if (!ps) { const box = $("deal-pumps"); box.innerHTML = ""; const W = box.clientWidth || 360; ps = Array.from({ length: n }, (_, i) => { const b = document.createElement("button"); b.type = "button"; b.className = "pump" + (i === st.pick ? " pick" : ""); b.style.left = W * (i + 1) / (n + 1) + "px"; b.innerHTML = pumpSVG() + '<span class="cdy">🍬</span>'; b.disabled = true; box.appendChild(b); return b; }); }
   ps.forEach((b, i) => b.querySelector(".cdy").textContent = i === st.cdy ? "🍬" : "");
-  ps[st.pick].classList.add("lift"); setTimeout(() => ps[st.cdy].classList.add("lift"), 700);
+  if (st.pick !== st.cdy) ps[st.pick].classList.add("empty"); setTimeout(() => ps[st.cdy].classList.add("peek"), st.pick === st.cdy ? 100 : 700);
   const end = lines => dealSay(lines, () => dealAsk([["닫기", () => { dealSave({ ...dealS, phase: "done" }); closeDeal(); }]]));
   setTimeout(() => {
-    if (!st.win) { $("deal").classList.remove("shake"); void $("deal").offsetWidth; $("deal").classList.add("shake");
-      return end(["크크크... 거기가 아니지.", "아쉽게 됐군.", `약속대로 네 사탕 ${EARN.dealLose}개는 내가 가져가지.`, "다음 1등은 누가 될까? 크크크..."]); }
+    if (!st.win) return dealSay(["크크크... 거기가 아니지."], dealSlam);
     if (st.round === DEAL_N.length - 1) { dealRain();
       return end(["...말도 안 돼!", "세 번 연속이라니...", `...약속은 약속이지. 사탕 ${EARN.dealWin}개다.`, "넌 이제 진짜 1등이다. 다음엔... 두고 보자."]); }
     dealSay([st.round === 0 ? "호오... 운이 좋군." : "제법인데...?", st.round === 0 ? "하지만 다음엔 쉽지 않을걸?" : "마지막 판이다. 여기서 멈출 수는 없지?"], () => dealRound(st.round + 1));
   }, resumed ? 1200 : 1500);
+}
+// 실패: 문이 쾅 닫히고 결과 안내
+function dealSlam(){
+  const d = $("deal"); dealBusy = true;
+  $("deal-game").hidden = true; $("deal-quit").hidden = true; $("deal-bub").innerHTML = ""; $("deal-tap").hidden = true; $("deal-choices").innerHTML = "";
+  d.classList.remove("playing"); d.classList.add("slam"); d.classList.remove("open");
+  setTimeout(() => { d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake"); }, 260);
+  setTimeout(() => {
+    const o = document.createElement("div"); o.className = "deal-lost";
+    o.innerHTML = `<b>쾅!</b><b>누적 사탕 ${EARN.dealLose}개를 잃었습니다</b><button type="button">닫기</button>`;
+    o.querySelector("button").onclick = e => { e.stopPropagation(); o.remove(); d.classList.remove("slam"); dealSave({ ...dealS, phase: "done" }); closeDeal(); };
+    d.appendChild(o); dealBusy = false;
+  }, 700);
 }
 function dealRain(){ for (let i = 0; i < 28; i++) { const c = document.createElement("span"); c.className = "deal-rain"; c.textContent = ["🍬", "🍭", "🍫"][i % 3]; c.style.left = Math.random() * 100 + "vw"; c.style.animationDelay = Math.random() * 1.2 + "s"; $("deal").appendChild(c); setTimeout(() => c.remove(), 4000); } }
 function dealQuitAsk(){
