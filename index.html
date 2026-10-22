@@ -264,6 +264,12 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .deal-scene{position:relative;width:min(84vw,360px);height:min(56vh,430px);margin-top:6vh}
 .deal-boss{position:absolute;left:50%;bottom:0;width:86%;transform:translateX(-50%) scale(.9);opacity:0;transition:opacity .6s .3s,transform .8s .3s cubic-bezier(.3,1.4,.5,1)}
 .deal-boss svg,.deal-boss img{width:100%;height:auto;display:block}
+.bc-box{position:absolute;inset:0;pointer-events:none;z-index:2}
+.bc{position:absolute;font-size:2.3rem;transform:scale(0);animation:bcpop .45s cubic-bezier(.3,1.8,.5,1) forwards;filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+@keyframes bcpop{0%{transform:scale(0) rotate(-40deg)}100%{transform:scale(1) rotate(0)}}
+.bc-box:not(.fall) .bc::after{content:"";}
+.bc-box.fall .bc{transform:scale(1);animation:bcfall 1.1s cubic-bezier(.5,0,1,.6) forwards}
+@keyframes bcfall{0%{transform:scale(1) translateY(0) rotate(0);opacity:1}100%{transform:scale(.8) translateY(110vh) rotate(260deg);opacity:0}}
 .deal-boss .bs-l{position:absolute;inset:0;opacity:0}
 .deal-boss.laugh .bs-l{opacity:1}
 .deal-boss.laugh .bs-n{opacity:0}
@@ -2380,8 +2386,20 @@ function bossLaugh(){
   clearTimeout(laughT); el.classList.remove("laugh"); void el.offsetWidth; el.classList.add("laugh");
   laughT = setTimeout(() => el.classList.remove("laugh"), 1150);
 }
+// "사탕 200개를 주지" → 보스 주위에 사탕이 뿅뿅뿅 · "내놓아야 해" → 우수수 떨어져 사라짐
+const BOSS_CANDY = [[8, 28], [86, 18], [-4, 58], [94, 52], [20, 6], [74, 2], [2, 86], [92, 84]];
+function bossCandy(on){
+  const sc = $("deal-scene"); let box = sc.querySelector(".bc-box");
+  if (on) { if (box) return; box = document.createElement("div"); box.className = "bc-box";
+    box.innerHTML = BOSS_CANDY.map(([x, y], i) => `<span class="bc" style="left:${x}%;top:${y}%;animation-delay:${i * .14}s">${["🍬", "🍭", "🍬", "🍫"][i % 4]}</span>`).join("");
+    sc.appendChild(box); return; }
+  if (!box) return; box.classList.add("fall");
+  box.querySelectorAll(".bc").forEach((c, i) => { c.style.animationDelay = (i * .07) + "s"; });
+  setTimeout(() => box.remove(), 1600);
+}
 function dealNext(){
-  if (dealQ.length) { const t = dealQ.shift(); $("deal-bub").innerHTML = t; $("deal-tap").hidden = false; if (/하하|크크|게임 하나 할래/.test(t)) bossLaugh(); else { clearTimeout(laughT); $("deal-boss").classList.remove("laugh"); } return; }
+  if (dealQ.length) { const t = dealQ.shift(); $("deal-bub").innerHTML = t;
+    if (t.includes(`사탕 ${EARN.dealWin}개를 주지`)) bossCandy(true); else if (t.includes("내놓아야 해")) bossCandy(false); $("deal-tap").hidden = false; if (/하하|크크|게임 하나 할래/.test(t)) bossLaugh(); else { clearTimeout(laughT); $("deal-boss").classList.remove("laugh"); } return; }
   $("deal-tap").hidden = true; const f = dealAfter; dealAfter = null; if (f) f();
 }
 function dealAsk(opts){
@@ -2391,7 +2409,7 @@ function dealAsk(opts){
 $("deal").addEventListener("click", e => { const bt = e.target.closest("button"); if ((bt && !bt.disabled) || dealBusy) return; if (!$("deal-choices").children.length) dealNext(); });
 function openDeal(preview){
   dealPrev = !!preview; dealS = dealLoad();
-  const d = $("deal"); d.hidden = false; d.classList.remove("open", "shake", "playing", "slam"); d.querySelectorAll(".deal-lost").forEach(e => e.remove());
+  const d = $("deal"); d.hidden = false; d.classList.remove("open", "shake", "playing", "slam"); d.querySelectorAll(".deal-lost, .bc-box").forEach(e => e.remove());
   d.querySelector(".dg-l").style.backgroundImage = gateHalf(false); d.querySelector(".dg-r").style.backgroundImage = gateHalf(true);
   $("deal-boss").innerHTML = bossSVG(); $("deal-bub").innerHTML = ""; $("deal-choices").innerHTML = ""; $("deal-game").hidden = true;
   $("deal-x").hidden = $("deal-reset").hidden = !dealPrev; $("deal-quit").hidden = true;
@@ -2420,7 +2438,7 @@ const pumpSVG = () => DECO.dealPump ? `<svg viewBox="0 0 100 110"><path d="M14 6
 function dealRound(r, resumed){
   const n = DEAL_N[r];
   if (!resumed || !dealS || dealS.phase !== "game" || dealS.round !== r) dealSave({ ...dealS, phase: "game", round: r, pick: null, win: null });
-  $("deal-quit").hidden = false; $("deal-game").hidden = false; $("deal").classList.add("playing");
+  $("deal-quit").hidden = false; $("deal-game").hidden = false; $("deal").classList.add("playing"); $("deal-scene").querySelectorAll(".bc-box").forEach(e => e.remove());
   $("deal-round").textContent = `${r + 1}번째 판 · 호박 ${n}개`;
   const box = $("deal-pumps"); box.innerHTML = "";
   const W = box.clientWidth || 360, xs = Array.from({ length: n }, (_, i) => W * (i + 1) / (n + 1));
