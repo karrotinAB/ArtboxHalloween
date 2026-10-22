@@ -2391,7 +2391,8 @@ function dealIntro(tier){
   const dec = dealPrev ? Object.keys(players).sort((a, b) => earnedOf(b) - earnedOf(a)).slice(0, tier) : dealDecliners().slice(0, tier);
   const nm = i => esc((players[dec[i]] || {}).nick || "○○○");
   const who = tier === 1 ? `1등인 ${nm(0)}${josa((players[dec[0]] || {}).nick || "○", "은", "는")} 겁쟁이더군.` : `1등인 ${nm(0)}도, 2등인 ${nm(1)}도 겁쟁이더군.`;
-  return ["하하하!", who, "어때, 너는 도전해 볼텐가?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 너도 1등이 될 수 있을지 모르지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
+  const me1 = (me && me.nick) || "";
+  return ["하하하!", `${tier + 1}등 ${esc(me1)}${josa(me1 || "○", "이로군", "로군")}.`, "나와 게임 한 판 하지 않을래?", who, tier === 1 ? "나의 제안을 거절했어." : "둘 다 나의 제안을 거절했어.", "어때, 너는 도전해 볼텐가?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 너도 1등이 될 수 있을지 모르지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
 }
 const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크.", "네 것을 내놔야 해."];
 function dealSay(lines, after){ dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
@@ -2415,7 +2416,7 @@ function bossCandy(on){
 }
 function dealNext(){
   if (dealQ.length) { const t = dealQ.shift(); $("deal-bub").innerHTML = t;
-    if (t.includes(`사탕 ${EARN.dealWin}개를 주지`)) bossCandy(true); else if (t.includes("내놓아야 해")) bossCandy(false); $("deal-tap").hidden = false; if (/하하|크크|게임 하나 할래/.test(t)) bossLaugh(); else { clearTimeout(laughT); $("deal-boss").classList.remove("laugh"); } return; }
+    if (t.includes(`사탕 ${EARN.dealWin}개를 주지`)) bossCandy(true); else if (t.includes("내놓아야 해")) bossCandy(false); $("deal-tap").hidden = false; if (/하하|크크|게임 하나 할래|게임 한 판/.test(t)) bossLaugh(); else { clearTimeout(laughT); $("deal-boss").classList.remove("laugh"); } return; }
   $("deal-tap").hidden = true; const f = dealAfter; dealAfter = null; if (f) f();
 }
 function dealAsk(opts){
