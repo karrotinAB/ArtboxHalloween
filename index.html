@@ -1005,9 +1005,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="adm-free" style="margin-top:12px">전체 미리보기 (모든 캐릭터·코스튬·보스·별이)</button>
       <button class="big" id="adm-badges" style="margin-top:12px">히든 미션 뱃지 창 미리보기 (모두 달성)</button>
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
-      <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (아직 공개 전)</button>
+      <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (기록 안 남음)</button>
       <button class="big" id="adm-boss" style="margin-top:12px">🏰 마왕문 두드리기 미리보기 (일반 유저용 · 마을 지도에 성 보이기)</button>
-      <div class="row" style="gap:6px;margin-top:8px"><button class="big" id="adm-boss-build" style="flex:1;font-size:.9rem">🚧 공사중 지도</button><button class="big" id="adm-boss-news" style="flex:1;font-size:.9rem">📢 출시 공지</button></div>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
@@ -1647,7 +1646,10 @@ try {
   if (openedFrom) localStorage.setItem("openedFrom", openedFrom); else openedFrom = localStorage.getItem("openedFrom") || "";
 } catch {}
 
-function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); maybeTour(); maybeNews(); setTimeout(flushModal, 300); setTimeout(() => { if (tourStep < 0 && !modalQ.length && $("deal").hidden) maybeDeal(); }, 900); }
+function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); maybeTour();
+  // 1등 보스 거래(또는 하다 만 마왕문 게임)가 있으면 다른 알림보다 먼저 보여줘요
+  if (tourStep < 0 && $("deal").hidden && maybeDeal()) return;
+  maybeNews(); setTimeout(flushModal, 300); }
 function goDress(){ if (tourStep < 0) closeSheets(); browseLook = null; renderDress(); show("dress"); maybeTour(); setTimeout(flushModal, 300); }
 
 // ===== 첫 화면 =====
@@ -2065,7 +2067,7 @@ function doorSVG(code, seed, mailLeft, dc, mc){
     + `<rect x="30" y="117" width="84" height="5" rx="2" fill="${B}"/>` + mail + bush(mailLeft ? 116 : 22, 108, seed % 2 ? 1 : 0.85) + (seed % 3 ? bush(mailLeft ? 40 : 102, 112, 0.6) : "") + `</svg>`;
 }
 let mapFrom = null;
-function openMap(){ mapFrom = current; closeSheets(); show("map"); renderMap(); }
+function openMap(e, keepPreview){ if (!keepPreview) castlePreview = null; mapFrom = current; closeSheets(); show("map"); renderMap(); }
 function renderMap(){
   const box = $("village"); box.innerHTML = "";
   // 즐겨찾기한 이웃은 지도 맨 위에
@@ -2109,7 +2111,7 @@ function renderMap(){
     box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap${building ? " gray" : ""}" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
       <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}"></div>
       <button type="button" class="vsign" id="vsign" style="top:${cur[Math.floor(n * .72)][1] - 16}px;left:${W / 2}px;transform:translateX(-50%)"><span>마왕문 두드리기 ➜</span></button>`);
-    $("vsign").onclick = () => building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE, 0, "boss");
+    $("vsign").onclick = () => building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE || !!castlePreview, 0, "boss");
     if (building) box.insertAdjacentHTML("beforeend", `<div class="vbuild" style="top:${gateY - ch * .62}px;left:${W / 2}px"><i></i><i></i><b>공사중</b></div>`);
   }
   // 길가 장식
@@ -2400,7 +2402,7 @@ function knockedFor(q, host, d){
 // ===== 1등에게만 오는 보스의 거래 (호박 속 사탕 찾기 3판: 2개 → 3개 → 3개) =====
 // players.deal = { phase, round, pick, at, win, result } · 결과는 누적에 반영 (승 +200 / 패 -100 / 포기 -50)
 // 사이트 공개 전에는 DEAL_LIVE = false → 관리자 실험 탭 미리보기에서만 열려요 (기록은 이 기기에만)
-const DEAL_LIVE = false;
+const DEAL_LIVE = true;
 const DEAL_N = [2, 3, 3];
 // 거절하면 다음 등수로 기회가 넘어가요 (3등까지). 단계별 최종 승리 확률: 1등 그대로(약 5.6%) · 2등 30% · 3등 50%
 const DEAL_WIN = [null, 0.3, 0.5];
@@ -3222,9 +3224,7 @@ $("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSh
 $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
 $("adm-deal").onclick = () => openDeal(true, 0);
-$("adm-boss").onclick = () => { castlePreview = "open"; mapFrom = "admin"; openMap(); toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
-$("adm-boss-build").onclick = () => { castlePreview = "build"; mapFrom = "admin"; openMap(); toast("미리보기: 1등이 마왕을 만나기 전 (공사중)"); };
-$("adm-boss-news").onclick = () => showBossNews(null);
+$("adm-boss").onclick = () => { castlePreview = "open"; openMap(null, true); mapFrom = "admin"; toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
 // 관리자: 사탕도둑 미리보기
 let tpThief = false;
 const tpLook = () => tpThief ? thiefSVG(me.char, starOn(me, myId)) : withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
