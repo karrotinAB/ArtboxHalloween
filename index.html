@@ -190,11 +190,12 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .vbat.b1{left:-70%;top:6%}.vbat.b2{left:120%;top:-4%;width:24px;animation-duration:6s;animation-delay:-2s}
 .vbat.b3{left:-50%;top:46%;width:22px;animation-duration:8s;animation-delay:-4s}.vbat.b4{left:115%;top:38%;width:26px;animation-duration:6.5s;animation-delay:-1s}
 @keyframes vbat{0%,100%{transform:translate(0,0) scaleX(1)}25%{transform:translate(22px,-14px) scaleX(1)}50%{transform:translate(40px,6px) scaleX(-1)}75%{transform:translate(14px,18px) scaleX(-1)}}
+.vcastle-wrap.gray .vcastle{filter:grayscale(1) brightness(2.3) contrast(.8)}
 .vbuild{position:absolute;z-index:4;transform:translateX(-50%);width:88px;height:56px;pointer-events:none}
 .vbuild i{position:absolute;left:0;top:22px;width:88px;height:12px;background:#c9934f;border:2px solid #3c1a10;border-radius:3px;transform:rotate(24deg)}
 .vbuild i+i{transform:rotate(-24deg)}
 .vbuild b{position:absolute;left:50%;top:13px;transform:translateX(-50%) rotate(-4deg);background:#ffd23f;color:#3c1a10;border:2px solid #3c1a10;border-radius:4px;font-family:"Jua",sans-serif;font-weight:400;font-size:.8rem;padding:1px 6px;white-space:nowrap}
-.vsign{position:absolute;z-index:4;font-size:.95rem!important;background:#b8763f;color:#fff8ee;border:3px solid #3c1a10;border-radius:8px;font-family:"Jua",sans-serif;font-size:1.05rem;padding:.35em .9em;box-shadow:0 5px 0 #3c1a10;white-space:nowrap}
+.vsign{position:absolute;z-index:4;font-size:.8rem!important;padding:.3em .75em!important;background:#b8763f;color:#fff8ee;border:3px solid #3c1a10;border-radius:8px;font-family:"Jua",sans-serif;font-size:1.05rem;padding:.35em .9em;box-shadow:0 5px 0 #3c1a10;white-space:nowrap}
 .vsign::after{content:"";position:absolute;left:50%;top:100%;width:8px;height:34px;margin-left:-4px;background:#7a4a24;border:2px solid #3c1a10;border-top:0;z-index:-1}
 .village .vdeco{position:absolute;font-size:22px;pointer-events:none;opacity:.9}
 .vh{position:absolute;width:150px;text-align:center}
@@ -2105,9 +2106,9 @@ function renderMap(){
     sv += `<path d="${jn}" stroke="#c9a46b" stroke-width="48" fill="none" stroke-linecap="round"/>`;
     box.insertAdjacentHTML("beforeend", `<svg class="vroad" style="z-index:1" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${sv}</svg>`);
     const cw = Math.min(54, W * .14), ch = cw * 560 / 358;
-    box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
+    box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap${building ? " gray" : ""}" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
       <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}"></div>
-      <button type="button" class="vsign" id="vsign" style="top:${cur[Math.floor(n * .55)][1] - 18}px;left:${W / 2}px;transform:translateX(-50%)"><span>마왕문 두드리기 ➜</span></button>`);
+      <button type="button" class="vsign" id="vsign" style="top:${cur[Math.floor(n * .72)][1] - 16}px;left:${W / 2}px;transform:translateX(-50%)"><span>마왕문 두드리기 ➜</span></button>`);
     $("vsign").onclick = () => building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE, 0, "boss");
     if (building) box.insertAdjacentHTML("beforeend", `<div class="vbuild" style="top:${gateY - ch * .62}px;left:${W / 2}px"><i></i><i></i><b>공사중</b></div>`);
   }
