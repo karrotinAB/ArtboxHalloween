@@ -990,7 +990,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="adm-free" style="margin-top:12px">전체 미리보기 (모든 캐릭터·코스튬·보스·별이)</button>
       <button class="big" id="adm-badges" style="margin-top:12px">히든 미션 뱃지 창 미리보기 (모두 달성)</button>
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
-      <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (아직 공개 전)</button>
+      <p class="house-h" style="margin:14px 0 4px">🎃 보스 거래 미리보기 (아직 공개 전)</p>
+      <div class="row" style="gap:6px"><button class="big" id="adm-deal" style="flex:1;font-size:.95rem">1등 버전</button><button class="big" id="adm-deal2" style="flex:1;font-size:.95rem">2등 (30%)</button><button class="big" id="adm-deal3" style="flex:1;font-size:.95rem">3등 (50%)</button></div>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
@@ -2347,6 +2348,13 @@ function knockedFor(q, host, d){
 // 사이트 공개 전에는 DEAL_LIVE = false → 관리자 실험 탭 미리보기에서만 열려요 (기록은 이 기기에만)
 const DEAL_LIVE = false;
 const DEAL_N = [2, 3, 3];
+// 거절하면 다음 등수로 기회가 넘어가요 (3등까지). 단계별 최종 승리 확률: 1등 그대로(약 5.6%) · 2등 30% · 3등 50%
+const DEAL_WIN = [null, 0.3, 0.5];
+const roundChance = (tier, n) => DEAL_WIN[tier] ? Math.pow(DEAL_WIN[tier], 1 / DEAL_N.length) : 1 / n;
+// 거절한 사람들 (먼저 거절한 순서)
+const dealDecliners = () => Object.entries(players).filter(([, q]) => q.deal && q.deal.result === "decline").sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0)).map(([id]) => id);
+const dealTier = () => Math.min(dealDecliners().length, 2);
+let dealPrevTier = 0;
 function dealPts(p){ const r = p && p.deal && p.deal.result; return r === "win" ? EARN.dealWin : r === "lose" ? -EARN.dealLose : r === "quit" ? -EARN.dealQuit : 0; }
 let dealPrev = false, dealS = null, dealQ = [], dealAfter = null, dealBusy = false;
 const dealLoad = () => { if (dealPrev) { try { return JSON.parse(localStorage.getItem("dealPreview") || "null"); } catch { return null; } } return me && me.deal ? { ...me.deal } : null; };
@@ -2377,6 +2385,14 @@ function gateHalf(right){
 }
 const dealNick = () => esc((me && me.nick) || "");
 const DEAL_INTRO = () => ["하하하!", `네가 지금 1등이라는 ${dealNick()}구나.`, "흥미롭군...", "마침 심심했는데 게임 하나 할래?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 아마 이제 진짜 영원한 1등이 될테지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
+// 2등·3등에게 넘어간 기회: 앞사람들이 겁쟁이였다고 말해요
+function dealIntro(tier){
+  if (!tier) return DEAL_INTRO();
+  const dec = dealPrev ? Object.keys(players).sort((a, b) => earnedOf(b) - earnedOf(a)).slice(0, tier) : dealDecliners().slice(0, tier);
+  const nm = i => esc((players[dec[i]] || {}).nick || "○○○");
+  const who = tier === 1 ? `1등인 ${nm(0)}${josa((players[dec[0]] || {}).nick || "○", "은", "는")} 겁쟁이더군.` : `1등인 ${nm(0)}도, 2등인 ${nm(1)}도 겁쟁이더군.`;
+  return ["하하하!", who, "어때, 너는 도전해 볼텐가?", `이기면 내가 거래로 사탕 ${EARN.dealWin}개를 주지.`, "그럼 너도 1등이 될 수 있을지 모르지.", "그치만... 실패하면...", `네 사탕 ${EARN.dealLose}개를 내놓아야 해.`, "어때? 도박을 해볼텐가? 기회는 오늘 한 번뿐이야."];
+}
 const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크.", "네 것을 내놔야 해."];
 function dealSay(lines, after){ dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
 // 웃는 대사(하하·크크)에서 웃는 얼굴로 세 번 들썩이고 바로 무표정으로
@@ -2407,8 +2423,10 @@ function dealAsk(opts){
   opts.forEach(([label, go, hot]) => { const b = document.createElement("button"); b.textContent = label; if (hot) b.className = "hot"; b.onclick = e => { e.stopPropagation(); box.innerHTML = ""; go(); }; box.appendChild(b); });
 }
 $("deal").addEventListener("click", e => { const bt = e.target.closest("button"); if ((bt && !bt.disabled) || dealBusy) return; if (!$("deal-choices").children.length) dealNext(); });
-function openDeal(preview){
-  dealPrev = !!preview; dealS = dealLoad();
+function openDeal(preview, tier){
+  dealPrev = !!preview; if (dealPrev && tier != null) dealPrevTier = tier;
+  dealS = dealLoad();
+  if (dealPrev && dealS && (dealS.tier || 0) !== dealPrevTier) { try { localStorage.removeItem("dealPreview"); } catch {} dealS = null; }
   const d = $("deal"); d.hidden = false; d.classList.remove("open", "shake", "playing", "slam"); d.querySelectorAll(".deal-lost, .bc-box").forEach(e => e.remove());
   d.querySelector(".dg-l").style.backgroundImage = gateHalf(false); d.querySelector(".dg-r").style.backgroundImage = gateHalf(true);
   $("deal-boss").innerHTML = bossSVG(); $("deal-bub").innerHTML = ""; $("deal-choices").innerHTML = ""; $("deal-game").hidden = true;
@@ -2425,8 +2443,8 @@ function dealResume(){
   if (st.phase === "game") return dealRound(st.round || 0, true);
   if (st.phase === "reveal") return dealReveal(true);
   if (st.phase === "quitask") return dealQuitAsk();
-  if (!dealS) dealSave({ phase: "intro", at: Date.now() });
-  dealSay(DEAL_INTRO(), dealMain);
+  if (!dealS) dealSave({ phase: "intro", at: Date.now(), tier: dealPrev ? dealPrevTier : dealTier() });
+  dealSay(dealIntro(dealS.tier || 0), dealMain);
 }
 function dealMain(){
   dealAsk([["해볼게!", () => dealSay(["좋아. 그럼 시작하지...!"], () => dealRound(0)), true], ["무슨 게임이야?", () => dealSay(DEAL_RULES, dealMain)], ["됐어!", () => dealSay(["정말로? 진짜로?", "다시 생각해봐."], () => dealAsk([
@@ -2461,7 +2479,7 @@ function dealRound(r, resumed){
 // 고르는 순간 결과를 정하고 바로 저장해요 (중간에 꺼도 다시 뽑을 수 없어요)
 async function dealPick(r, i, ps){
   ps.forEach(b => b.disabled = true); ps[i].classList.add("pick");
-  const n = DEAL_N[r], win = Math.random() < 1 / n;
+  const n = DEAL_N[r], win = Math.random() < roundChance(dealS.tier || 0, n);
   let cdy = i; if (!win) { cdy = Math.floor(Math.random() * (n - 1)); if (cdy >= i) cdy++; }
   const last = r === DEAL_N.length - 1;
   await dealSave({ ...dealS, phase: "reveal", round: r, pick: i, cdy, win, result: !win ? "lose" : last ? "win" : null });
@@ -2504,13 +2522,14 @@ function dealQuitAsk(){
 }
 $("deal-quit").onclick = e => { e.stopPropagation(); if (!dealBusy) dealQuitAsk(); };
 $("deal-x").onclick = e => { e.stopPropagation(); closeDeal(); };
-$("deal-reset").onclick = e => { e.stopPropagation(); try { localStorage.removeItem("dealPreview"); } catch {} openDeal(true); };
+$("deal-reset").onclick = e => { e.stopPropagation(); try { localStorage.removeItem("dealPreview"); } catch {} openDeal(true, dealPrevTier); };
 // 공개 후: 1등이 로그인하면 한 번 (진행 중이던 거래는 1등이 아니어도 이어서)
 function maybeDeal(){
   if (!DEAL_LIVE || !me || !$("deal").hidden) return false;
   const st = me.deal;
   if (st && st.phase === "done") return false;
-  if (st || (leaderId() === myId && earnedOf(myId) > 0)) { openDeal(false); return true; }
+  const dec = dealDecliners().length;
+  if (st || (dec < 3 && earnedOf(myId) > 0 && leagueRank(myId) === dec + 1 && !dealDecliners().includes(myId))) { openDeal(false); return true; }
   return false;
 }
 // 관리자: 누적 사탕이 어디서 왔는지 (earnedOf를 항목별로 나눠요)
@@ -3097,7 +3116,9 @@ $("adm-door").onclick = () => { previewFrom = "admin"; freeMode = false; startPr
 $("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSheet("sheet-badges"); };
 $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
-$("adm-deal").onclick = () => openDeal(true);
+$("adm-deal").onclick = () => openDeal(true, 0);
+$("adm-deal2").onclick = () => openDeal(true, 1);
+$("adm-deal3").onclick = () => openDeal(true, 2);
 // 관리자: 사탕도둑 미리보기
 let tpThief = false;
 const tpLook = () => tpThief ? thiefSVG(me.char, starOn(me, myId)) : withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
