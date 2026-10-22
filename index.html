@@ -610,6 +610,21 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .sm-icon img{width:44px;height:44px;border-radius:50%}
 .sm-dot{display:block;width:40px;height:40px;border-radius:50%;background:#d6cedd;border:3px solid #bdb3c6}
 .gallery-title{text-align:center;margin:4px 0 18px}
+.board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px;padding:4px 2px 30px}
+.post{position:relative;background:#fffdf7;border-radius:6px;box-shadow:0 8px 0 rgba(0,0,0,.25);padding:0 0 8px;overflow:hidden}
+.post:nth-child(odd){transform:rotate(-1.2deg)}.post:nth-child(even){transform:rotate(1.2deg)}
+.post::before{content:"📌";position:absolute;left:50%;top:-4px;transform:translateX(-50%);font-size:1.3rem;z-index:2}
+.post img{display:block;width:100%;aspect-ratio:900/1080;object-fit:cover;cursor:zoom-in}
+.post .pm{display:flex;align-items:center;gap:6px;padding:6px 8px 0;color:#3c1a10}
+.post .pm b{flex:1;min-width:0;font-family:"Jua",sans-serif;font-weight:400;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.post .like{flex:none;background:#fff;border:2px solid #f29bbf;color:#d94b7b;border-radius:999px;padding:.15em .6em;font-size:.85rem;box-shadow:none}
+.post .like.on{background:#f29bbf;color:#fff}
+.post .del{position:absolute;right:4px;top:4px;z-index:2;background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:999px;font-size:.7rem;padding:.2em .6em;box-shadow:none}
+.board .muted{grid-column:1/-1;text-align:center;margin-top:6vh}
+.pick-bar{position:sticky;top:0;z-index:5;background:#ffd23f;color:#3c1a10;font-family:"Jua",sans-serif;text-align:center;border-radius:12px;padding:.5em;margin:0 0 12px;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+.vboard{position:absolute;z-index:3;width:104px;border:0;background:none;padding:0;box-shadow:none;cursor:pointer}
+.vboard svg{width:100%;height:auto;display:block;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
+.vboard span{display:block;margin:-2px auto 0;width:max-content;background:#fff8ee;color:#3c1a10;border:2px solid #3c1a10;border-radius:999px;font-family:"Jua",sans-serif;font-size:.8rem;padding:.1em .7em}
 .album{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 16px;padding:4px 4px 24px}
 .album button{display:block;width:100%;padding:0;border-radius:6px;background:#fffdf7;box-shadow:0 8px 0 rgba(0,0,0,.25);aspect-ratio:900/1080;overflow:hidden}
 .album button:nth-child(odd){transform:rotate(-1.5deg)}.album button:nth-child(even){transform:rotate(1.5deg)}
@@ -757,10 +772,20 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="village" id="village"></div>
   </section>
 
+  <!-- 마을 게시판 -->
+  <section class="view" id="v-board">
+    <div class="topbar"><button class="ghost" id="btn-board-back">← 마을 지도로</button><span class="map-count" id="board-count"></span></div>
+    <h2 class="map-title">📌 내 사진 자랑하기</h2>
+    <p class="map-sub">마음에 드는 사진에 ♥를 눌러 주세요</p>
+    <button class="big green" id="btn-board-pick" style="margin:6px 0 16px">📷 내 사진첩 가기</button>
+    <div class="board" id="board"></div>
+  </section>
+
   <!-- 갤러리 -->
   <section class="view" id="v-gallery">
     <div class="topbar"><button class="ghost" id="btn-gallery-back">← 우리 집으로</button><span></span></div>
     <h2 class="gallery-title" id="gallery-title">우리 집에 온 친구와 찍은 사진</h2>
+    <div class="pick-bar" id="pick-bar" hidden>게시판에 올릴 사진을 골라 주세요 👆</div>
     <div class="album" id="album"></div>
   </section>
 
@@ -2114,6 +2139,10 @@ function renderMap(){
     $("vsign").onclick = () => building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE || !!castlePreview, 0, "boss");
     if (building) box.insertAdjacentHTML("beforeend", `<div class="vbuild" style="top:${gateY - ch * .62}px;left:${W / 2}px"><i></i><i></i><b>공사중</b></div>`);
   }
+  // 마을 게시판 (길 오른쪽, 마왕성 언덕 아래)
+  { const by = (castle ? HILL : 0) + 14, bx = Math.min(W - 112, roadX(by + 60) + 40), np = boardPosts().length;
+    box.insertAdjacentHTML("beforeend", `<button type="button" class="vboard" id="vboard" style="left:${bx}px;top:${by}px" aria-label="마을 게시판">${boardSVG()}<span>마을 게시판${np ? ` · ${np}` : ""}</span></button>`);
+    $("vboard").onclick = openBoard; }
   // 길가 장식
   const DECO_E = ["🎃", "🌲", "🍂", "🕯️", "🌳", "🦇", "🍄"];
   for (let i = 0; i * 220 < H - top; i++) { const r = hashOf("deco" + i), y = top + 44 + i * 220 + (r % 60), x = (r >> 4) % 2 ? roadX(y) + 34 + (r % 18) : roadX(y) - 56 - (r % 18);
@@ -2217,7 +2246,7 @@ async function mergeAccounts(P, D){
   Object.entries(d.gifts || {}).forEach(([k, v]) => { const g = giverOf(k); if (g === P || g === D) return; const key = g + "~" + giftKeyDay(k, v); if (seen.has(key)) return; seen.add(key); pg[p.gifts && p.gifts[k] !== undefined ? `${g}~${giftKeyDay(k, v)}` : k] = v; });
   const pk = {}; Object.entries(d.knocks || {}).forEach(([k, v]) => { if (k !== P && k !== D && (!p.knocks || !p.knocks[k] || p.knocks[k] < v)) pk[k] = v; });
   const merged = { gifts: pg, knocks: pk };
-  for (const f of ["owned", "grants", "photos", "badges", "visits", "shoo", "shooAt", "seenUpdates", "seenGrants", "bonus", "seenBonus", "favs"]) {
+  for (const f of ["owned", "grants", "photos", "badges", "visits", "shoo", "shooAt", "seenUpdates", "seenGrants", "bonus", "seenBonus", "favs", "posts", "likes"]) {
     const src = { ...(d[f] || {}) }; delete src[P]; delete src[D];
     Object.keys(src).forEach(k => { if (p[f] && p[f][k] !== undefined && f !== "visits") delete src[k]; });
     if (Object.keys(src).length) merged[f] = src;
@@ -3750,7 +3779,7 @@ function renderAlbum(){
     const b = document.createElement("button"); b.type = "button";
     b.setAttribute("aria-label", `${s.a.nick}와 ${s.b.nick}의 사진 크게 보기`);
     const img = document.createElement("img"); img.alt = ""; b.appendChild(img);
-    b.onclick = () => openShot(s);
+    b.onclick = () => pickMode ? postShot(s) : openShot(s);
     box.appendChild(b); thumbFor(s, img);
   });
 }
@@ -3790,8 +3819,8 @@ function openGallery(ownerId){
   $("btn-gallery-back").textContent = o ? "← 관리자 화면으로" : "← 우리 집으로";
   renderAlbum(); show("gallery");
 }
-$("btn-gallery").onclick = () => openGallery(null);
-$("btn-gallery-back").onclick = () => { if (galleryOwner) { const id = galleryOwner; galleryOwner = null; openAdmin(); openMember(id); } else goHome(); };
+$("btn-gallery").onclick = () => { pickMode = false; $("pick-bar").hidden = true; openGallery(null); };
+$("btn-gallery-back").onclick = () => { if (pickMode) { pickMode = false; $("pick-bar").hidden = true; openBoard(); return; } if (galleryOwner) { const id = galleryOwner; galleryOwner = null; openAdmin(); openMember(id); } else goHome(); };
 // 찰칵 효과는 한 번만: 끝나면 꺼 둬야 갤러리에서 사진 화면을 다시 열 때 재생되지 않아요
 $("flash").addEventListener("animationend", () => $("flash").classList.remove("go"));
 async function openShot(s){
@@ -3814,7 +3843,70 @@ $("btn-save-photo").onclick = async () => {
   try { await downloadsApi.save({ filename: `trick-or-treat_${photoPair.a.nick}_${photoPair.b.nick}.png`, data: photoBlob }); }
   catch (e) { if (e && e.code !== "declined") toast("저장하지 못했어요. 사진을 길게 눌러 저장해 주세요."); }
 };
-$("btn-photo-back").onclick = () => { if (photoFrom === "gallery") { photoFrom = null; openGallery(); window.scrollTo(0, galleryScroll); return; } if (previewMode && leavePreview()) return; if (me) goHome(); else openRegister(false); };
+$("btn-photo-back").onclick = () => { if (photoFrom === "board") { photoFrom = null; openBoard(); return; } if (photoFrom === "gallery") { photoFrom = null; openGallery(); window.scrollTo(0, galleryScroll); return; } if (previewMode && leavePreview()) return; if (me) goHome(); else openRegister(false); };
+
+// ===== 마을 게시판: 사진첩 사진 자랑하기 =====
+// 올린 사진: 내 문서 posts = { 올린시각: { a, b, at, key } } · 좋아요: 누른 사람 문서 likes = { "주인id~올린시각": 시각 }
+function boardSVG(){
+  const B = "#3c1a10";
+  return `<svg viewBox="0 0 120 112" aria-hidden="true"><rect x="27" y="76" width="9" height="34" fill="#8a5a32" stroke="${B}" stroke-width="3"/><rect x="84" y="76" width="9" height="34" fill="#8a5a32" stroke="${B}" stroke-width="3"/>
+    <rect x="18" y="30" width="84" height="50" rx="2" fill="#b8763f" stroke="${B}" stroke-width="3.5"/><line x1="18" y1="44" x2="32" y2="44" stroke="${B}" stroke-width="3"/><line x1="18" y1="64" x2="32" y2="64" stroke="${B}" stroke-width="3"/><line x1="88" y1="44" x2="102" y2="44" stroke="${B}" stroke-width="3"/><line x1="88" y1="64" x2="102" y2="64" stroke="${B}" stroke-width="3"/>
+    <rect x="32" y="36" width="56" height="38" fill="#fff4dc" stroke="${B}" stroke-width="3"/>
+    <rect x="37" y="41" width="14" height="17" fill="#fff" stroke="${B}" stroke-width="1.5" transform="rotate(-6 44 49)"/><rect x="38.5" y="43" width="11" height="10" fill="#7a55a8" transform="rotate(-6 44 49)"/>
+    <rect x="55" y="42" width="14" height="17" fill="#fff" stroke="${B}" stroke-width="1.5" transform="rotate(5 62 50)"/><rect x="56.5" y="44" width="11" height="10" fill="#e67c16" transform="rotate(5 62 50)"/>
+    <rect x="72" y="45" width="12" height="15" fill="#fff" stroke="${B}" stroke-width="1.5" transform="rotate(-3 78 52)"/><rect x="73.5" y="47" width="9" height="8" fill="#4f8a4a" transform="rotate(-3 78 52)"/>
+    <circle cx="44" cy="41" r="2" fill="#d9534a"/><circle cx="62" cy="42" r="2" fill="#f2c14e"/><circle cx="78" cy="45" r="2" fill="#5f8fc4"/>
+    <path d="M10 30 L22 8 H98 L110 30Z" fill="#7a2f2a" stroke="${B}" stroke-width="3.5" stroke-linejoin="round"/><line x1="26" y1="14" x2="48" y2="14" stroke="#c9534a" stroke-width="3" stroke-linecap="round"/><line x1="72" y1="14" x2="94" y2="14" stroke="#c9534a" stroke-width="3" stroke-linecap="round"/><line x1="40" y1="21" x2="80" y2="21" stroke="#c9534a" stroke-width="3" stroke-linecap="round"/></svg>`;
+}
+function boardPosts(){
+  const out = [];
+  Object.entries(players).forEach(([id, p]) => Object.entries(p.posts || {}).forEach(([k, v]) => { if (v && v.a && v.b) out.push({ id, p, k, ...v }); }));
+  return out.sort((x, y) => +y.k - +x.k);
+}
+const likeKey = (id, k) => id + "~" + k;
+const likesOf = (id, k) => Object.values(players).filter(q => q.likes && q.likes[likeKey(id, k)]).length;
+let boardFrom = null, pickMode = false;
+function openBoard(){ boardFrom = current; pickMode = false; renderBoard(); show("board"); }
+function renderBoard(){
+  const list = boardPosts(), box = $("board"); box.innerHTML = "";
+  $("board-count").textContent = list.length ? `사진 ${list.length}장` : "";
+  if (!list.length) { box.innerHTML = '<p class="muted">아직 올라온 사진이 없어요.<br>첫 번째로 사진을 자랑해 보세요! 📸</p>'; return; }
+  list.forEach(s => {
+    const el = document.createElement("div"); el.className = "post";
+    const img = document.createElement("img"); img.alt = `${s.a.nick}와 ${s.b.nick}의 사진`; el.appendChild(img);
+    img.onclick = () => { openShot({ a: s.a, b: s.b, at: s.at, key: s.key }); photoFrom = "board"; };
+    const n = likesOf(s.id, s.k), mine = s.id === myId, on = !!(me && me.likes && me.likes[likeKey(s.id, s.k)]);
+    el.insertAdjacentHTML("beforeend", `<div class="pm"><b></b><button type="button" class="like${on ? " on" : ""}">${on ? "♥" : "♡"} ${n}</button></div>`);
+    el.querySelector("b").textContent = s.p.nick + (mine ? " (나)" : "");
+    el.querySelector(".like").onclick = () => toggleLike(s, on);
+    if (mine || (adminUnlocked && isServerAdmin)) { const d = document.createElement("button"); d.type = "button"; d.className = "del"; d.textContent = mine ? "내리기" : "삭제"; d.onclick = () => removePost(s); el.appendChild(d); }
+    box.appendChild(el); thumbFor({ ...s, key: s.key || ("post" + s.k) }, img);
+  });
+}
+async function toggleLike(s, on){
+  if (!me) return;
+  if (s.id === myId) { toast("내 사진에는 좋아요를 누를 수 없어요 😊"); return; }
+  const k = likeKey(s.id, s.k);
+  try { if (on) await db.doc("players/" + myId).remove([["likes", k]]); else await db.doc("players/" + myId).update({ likes: { [k]: Date.now() } });
+    me.likes = { ...(me.likes || {}) }; if (on) delete me.likes[k]; else me.likes[k] = Date.now(); renderBoard(); }
+  catch { toast("저장하지 못했어요. 다시 눌러 주세요."); }
+}
+async function removePost(s){
+  const mine = s.id === myId;
+  if (!confirm(mine ? "이 사진을 게시판에서 내릴까요?" : `${s.p.nick}의 사진을 게시판에서 삭제할까요?`)) return;
+  try { await db.doc("players/" + s.id).remove([["posts", s.k]]); toast(mine ? "사진을 내렸어요" : "삭제했어요"); }
+  catch { toast("지우지 못했어요."); }
+}
+async function postShot(s){
+  if (!me) return;
+  const dup = Object.values(me.posts || {}).some(v => v && v.key === s.key);
+  if (dup) { toast("이미 게시판에 올린 사진이에요"); return; }
+  if (!confirm("이 사진을 마을 게시판에 올릴까요?")) return;
+  try { await db.doc("players/" + myId).update({ posts: { [String(Date.now())]: { a: s.a, b: s.b, at: s.at || Date.now(), key: s.key } } }); pickMode = false; $("pick-bar").hidden = true; toast("게시판에 사진을 올렸어요! 📌"); openBoard(); }
+  catch { toast("올리지 못했어요. 다시 눌러 주세요."); }
+}
+$("btn-board-pick").onclick = () => { pickMode = true; albumSig = null; openGallery(null); $("pick-bar").hidden = false; $("btn-gallery-back").textContent = "← 게시판으로"; };
+$("btn-board-back").onclick = () => { show("map"); renderMap(); };
 
 // ===== 데이터 흐름 =====
 let ownFixDone = false;
@@ -3854,6 +3946,7 @@ function onData(){
   else if (current === "home") renderHome();
   else if (current === "gallery") renderAlbum();
   else if (current === "map") renderMap();
+  else if (current === "board") renderBoard();
   else if (current === "dress") renderDress();
   else if (current === "admin") { renderAdmin(); if (!$("sheet-member").hidden) renderMember(); }
   else if (current === "door" && !previewMode) renderDoorActions();
