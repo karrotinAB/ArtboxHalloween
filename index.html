@@ -191,6 +191,8 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .vbat.b3{left:-50%;top:46%;width:22px;animation-duration:8s;animation-delay:-4s}.vbat.b4{left:115%;top:38%;width:26px;animation-duration:6.5s;animation-delay:-1s}
 @keyframes vbat{0%,100%{transform:translate(0,0) scaleX(1)}25%{transform:translate(22px,-14px) scaleX(1)}50%{transform:translate(40px,6px) scaleX(-1)}75%{transform:translate(14px,18px) scaleX(-1)}}
 .vcastle-wrap.gray .vcastle{filter:grayscale(1) brightness(2.3) contrast(.8)}
+.deal-stat{margin-top:14px;padding:10px 12px;border:2px dashed #b48ad6;border-radius:14px;background:#f7f0ff;font-size:.88rem;line-height:1.6}
+.deal-stat button{margin-top:6px}
 .vbuild{position:absolute;z-index:4;transform:translateX(-50%);width:88px;height:56px;pointer-events:none}
 .vbuild i{position:absolute;left:0;top:22px;width:88px;height:12px;background:#c9934f;border:2px solid #3c1a10;border-radius:3px;transform:rotate(24deg)}
 .vbuild i+i{transform:rotate(-24deg)}
@@ -1030,6 +1032,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big green" id="adm-free" style="margin-top:12px">전체 미리보기 (모든 캐릭터·코스튬·보스·별이)</button>
       <button class="big" id="adm-badges" style="margin-top:12px">히든 미션 뱃지 창 미리보기 (모두 달성)</button>
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
+      <div class="deal-stat" id="deal-stat"></div>
       <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (기록 안 남음)</button>
       <button class="big" id="adm-boss" style="margin-top:12px">🏰 마왕문 두드리기 미리보기 (일반 유저용 · 마을 지도에 성 보이기)</button>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
@@ -2680,6 +2683,18 @@ function maybeDeal(){
   if (st || (leaderId() === myId && earnedOf(myId) > 0)) { openDeal(false); return true; }
   return false;
 }
+// 관리자: 보스 거래 상태
+function renderDealStat(){
+  const box = $("deal-stat"); if (!box) return;
+  const lid = leaderId(), lp = players[lid] || {}, f = dealFirst(), st = lp.deal;
+  const ph = !st ? "아직 접속 안 함 (홈 화면에 들어오면 떠요)" : st.phase === "done" ? `끝남 (${({ decline: "거절", win: "승리", lose: "패배", quit: "포기" })[st.result] || st.result})` : `보는 중 · 아직 선택 안 함 (${st.phase})`;
+  box.innerHTML = `<b>🏰 마왕성 상태: ${f ? "열림" : "공사중"}</b><br>지금 1등: <b></b> · ${ph}${f ? `<br>처음 연 사람: ${esc(f[1].nick || "")}` : ""}`;
+  box.querySelectorAll("b")[1].textContent = lp.nick || "-";
+  if (!f) { const bt = document.createElement("button"); bt.className = "ghost"; bt.textContent = "관리자 권한으로 마왕성 바로 열기"; bt.onclick = async () => {
+    if (needAdmin() || !confirm("1등과 상관없이 마왕성을 지금 열까요?\n모두에게 미니게임 출시 공지가 떠요. (1등 거래 기회는 그대로 남아요)")) return;
+    try { await db.doc("players/" + myId).update({ deal: { phase: "done", result: "open", at: Date.now() } }); toast("마왕성을 열었어요 🏰"); renderDealStat(); } catch { toast("열지 못했어요."); } };
+    box.appendChild(document.createElement("br")); box.appendChild(bt); }
+}
 // 관리자: 누적 사탕이 어디서 왔는지 (earnedOf를 항목별로 나눠요)
 function scoreParts(id){
   const p = players[id] || {}, rows = [], byDay = {}, from = {};
@@ -3203,7 +3218,7 @@ function renderJoins(){
   if (!inviters.length) box.innerHTML = '<p class="muted">아직 초대 링크로 들어온 사람이 없어요.</p>';
 }
 function renderAdmin(){
-  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases();
+  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases(); renderDealStat();
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
@@ -3955,7 +3970,7 @@ function onData(){
     return;
   }
   if (current === "register" && me && pendingNav === "dress") { pendingNav = null; if (knockCode) openDoor(); else goDress(); }
-  else if (current === "home") renderHome();
+  else if (current === "home") { renderHome(); if (tourStep < 0 && $("deal").hidden && !modalQ.length && document.querySelectorAll(".sheet-bg:not([hidden])").length === 0) maybeDeal(); }
   else if (current === "gallery") renderAlbum();
   else if (current === "map") renderMap();
   else if (current === "board") renderBoard();
