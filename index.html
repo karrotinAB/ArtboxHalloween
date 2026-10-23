@@ -1574,7 +1574,12 @@ function spentOf(p){
 }
 // 관리자가 준 사탕 선물 (players.bonus = { 시각: 개수 }) · 보유 사탕에만 더하고 누적(리그)에는 안 들어가요
 const bonusOf = p => Object.values((p && p.bonus) || {}).reduce((n, v) => n + (Number(v) > 0 ? Math.round(Number(v)) : 0), 0);
-function balanceOf(id){ return earnedOf(id) - spentOf(players[id]) + bonusOf(players[id]); }
+// 마왕 게임(1등 거래·마왕문)에서 잃은 사탕은 누적에서만 빠지고 보유 사탕은 그대로예요
+function bossLossOf(id){
+  const p = players[id] || {}, d = dealPts(p), b = Object.values((p.boss && p.boss.log) || {}).reduce((t, r) => t + (r === "lose" ? EARN.bossLose : r === "quit" ? EARN.bossQuit : 0), 0);
+  return (d < 0 ? -d : 0) + b;
+}
+function balanceOf(id){ return earnedOf(id) + bossLossOf(id) - spentOf(players[id]) + bonusOf(players[id]); }
 const granted = (p, c) => !!(p && p.grants && p.grants[c] === true);
 // 히든 미션 보상 캐릭터(mission)는 사탕으로 살 수 없고 미션을 달성하면 열려요
 const ownsChar = (p, c) => c === "cat" || granted(p, c) || (CHARS[c] && CHARS[c].adminOnly ? (freeMode && p !== me) : CHARS[c] && CHARS[c].mission ? (freeMode && p !== me) || missionDoneP(p, CHARS[c].mission) : !!(p && p.owned && p.owned["c:" + c]));
@@ -3990,7 +3995,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23d";
+const APP_BUILD = "2026-10-23e";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
