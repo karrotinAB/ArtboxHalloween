@@ -192,6 +192,7 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 @keyframes vbat{0%,100%{transform:translate(0,0) scaleX(1)}25%{transform:translate(22px,-14px) scaleX(1)}50%{transform:translate(40px,6px) scaleX(-1)}75%{transform:translate(14px,18px) scaleX(-1)}}
 .vcastle-wrap.gray .vcastle{filter:grayscale(1) brightness(2.3) contrast(.8)}
 .deal-stat{margin-top:14px;padding:10px 12px;border:2px dashed #b48ad6;border-radius:14px;background:#f7f0ff;font-size:.88rem;line-height:1.6}
+.boss-stat{margin-top:10px;padding-top:10px;border-top:1px dashed #b48ad6}
 .deal-stat button{margin-top:6px}
 .vbuild{position:absolute;z-index:4;transform:translateX(-50%);width:88px;height:56px;pointer-events:none}
 .vbuild i{position:absolute;left:0;top:22px;width:88px;height:12px;background:#c9934f;border:2px solid #3c1a10;border-radius:3px;transform:rotate(24deg)}
@@ -2705,6 +2706,16 @@ function renderDealStat(){
   const ph = !st ? "아직 접속 안 함 (홈 화면에 들어오면 떠요)" : st.phase === "done" ? `끝남 (${({ decline: "거절", win: "승리", lose: "패배", quit: "포기" })[st.result] || st.result})` : `보는 중 · 아직 선택 안 함 (${st.phase})`;
   box.innerHTML = `<b>🏰 마왕성 상태: ${f ? "열림" : "공사중"}</b><br>지금 1등: <b></b> · ${ph}${f ? `<br>처음 연 사람: ${esc(f[1].nick || "")}` : ""}`;
   box.querySelectorAll("b")[1].textContent = lp.nick || "-";
+  // 마왕문 통계 (지금까지 끝난 판 전부)
+  const rows = [], t = { win: 0, lose: 0, quit: 0 };
+  Object.entries(players).forEach(([id, q]) => { const c = { win: 0, lose: 0, quit: 0 }; Object.values((q.boss && q.boss.log) || {}).forEach(r => { if (c[r] != null) { c[r]++; t[r]++; } }); const n = c.win + c.lose + c.quit; if (n) rows.push({ nick: q.nick || "", ...c, n }); });
+  const all = t.win + t.lose + t.quit, pct = (a, b) => b ? Math.round(a / b * 1000) / 10 + "%" : "-";
+  const st2 = document.createElement("div"); st2.className = "boss-stat";
+  st2.innerHTML = `<b>🎃 마왕문 게임 통계</b><br>총 ${all}판 · 참여 ${rows.length}명<br>✅ 우승 ${t.win} (${pct(t.win, all)}) · ❌ 실패 ${t.lose} (${pct(t.lose, all)}) · 🏳️ 포기 ${t.quit} (${pct(t.quit, all)})<br><small>포기 빼고 승률: ${pct(t.win, t.win + t.lose)}</small>` +
+    (rows.length ? `<table class="sc-t">${rows.sort((a, b) => b.n - a.n).map(r => `<tr><td>${esc(r.nick)}</td><td class="n">${r.n}판</td><td class="n">✅${r.win}</td><td class="n">❌${r.lose}</td><td class="n">🏳️${r.quit}</td></tr>`).join("")}</table>` : "");
+  const deals = Object.values(players).filter(q => q.deal && q.deal.phase === "done" && q.deal.result && q.deal.result !== "open");
+  if (deals.length) st2.insertAdjacentHTML("beforeend", `<br><b>👑 1등 200개 거래</b><br>${deals.map(q => `${esc(q.nick || "")}: ${({ decline: "거절", win: "승리", lose: "패배", quit: "포기" })[q.deal.result] || q.deal.result}`).join(" · ")}`);
+  box.appendChild(st2);
   if (!f) { const bt = document.createElement("button"); bt.className = "ghost"; bt.textContent = "관리자 권한으로 마왕성 바로 열기"; bt.onclick = async () => {
     if (needAdmin() || !confirm("1등과 상관없이 마왕성을 지금 열까요?\n모두에게 미니게임 출시 공지가 떠요. (1등 거래 기회는 그대로 남아요)")) return;
     try { await db.doc("players/" + myId).update({ deal: { phase: "done", result: "open", at: Date.now() } }); toast("마왕성을 열었어요 🏰"); renderDealStat(); } catch { toast("열지 못했어요."); } };
@@ -3998,7 +4009,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23g";
+const APP_BUILD = "2026-10-23h";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
