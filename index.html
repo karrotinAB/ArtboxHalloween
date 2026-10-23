@@ -342,6 +342,8 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 @keyframes drain{to{transform:translateY(110vh) rotate(540deg)}}
 .sm-phrase{margin:.6em 0;font-size:.9rem}
 .mail-gift{display:flex;align-items:center;justify-content:center;font-size:2rem;width:100%;height:100%}
+.bonus-earn{display:inline-flex;align-items:center;gap:6px;margin:0 0 6px;font-size:.88rem;cursor:pointer}
+.bonus-earn input{-webkit-appearance:checkbox;appearance:auto;width:20px;height:20px;min-height:0;padding:0;margin:0;border:0;box-shadow:none;accent-color:#d9621b;flex:none}
 .sm-bonus{margin:.8em 0;padding:10px 12px;border:2px dashed #f0b35a;border-radius:14px;background:#fff8ec}
 .sm-phrase:empty{display:none}
 .sm-phrase button{margin-left:6px}
@@ -920,7 +922,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="sm-phrase" id="sm-phrase"></div>
       <div class="sm-bonus" id="sm-bonus">
         <b>🎁 사탕 선물하기</b> <small class="muted" id="sm-bonus-sum"></small>
-        <p class="muted" style="margin:.2em 0 .4em;font-size:.82rem">쓸 수 있는 사탕(보유)에만 더해지고 누적·리그 순위에는 영향이 없어요. 받는 사람 우편함에 선물 소식이 도착해요.</p>
+        <p class="muted" style="margin:.2em 0 .4em;font-size:.82rem">기본은 쓸 수 있는 사탕(보유)에만 더해져요. '누적에도 반영'을 체크하면 누적·리그 순위에도 더해져요. 받는 사람 우편함에 선물 소식이 도착해요.</p>
+        <label class="bonus-earn"><input type="checkbox" id="sm-bonus-earn"> 누적에도 반영</label>
         <div class="row" style="gap:6px;flex-wrap:wrap"><button class="ghost" data-bonus="5">+5</button><button class="ghost" data-bonus="10">+10</button><button class="ghost" data-bonus="20">+20</button><input id="sm-bonus-in" type="number" min="1" max="999" inputmode="numeric" placeholder="개수" style="width:6em"><button class="green" id="sm-bonus-send">보내기</button></div>
       </div>
       <div id="sm-extra"></div>
@@ -1571,18 +1574,22 @@ const gotOf = x => x.th !== undefined ? (x.th ? thiefAmt(x.n) : 0) : Math.max(x.
 const receivedOf = (p, id) => giftList(p, id).reduce((n, x) => n + gotOf(x), 0);
 function validCombo(key){ const i = key.indexOf("-"), c = key.slice(0, i), k = key.slice(i + 1); return !!CHARS[c] && artCostumes(c).some(x => x.id === k); }
 const photoBonusOf = (p, id) => Object.entries((p && p.photos) || {}).filter(([k, v]) => validCombo(k) && v && players[v.with] && interacted(id, v.with)).length;
-function earnedOf(id){ const p = players[id]; return dealPts(p) + bossPts(p) + receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p) + EARN.invite * insiderCount(id); }
+function earnedOf(id){ const p = players[id]; return bonusEarnOf(p) + dealPts(p) + bossPts(p) + receivedOf(p, id) + (givenPts[id] || 0) + EARN.photo * photoBonusOf(p, id) + EARN.unlock * fashionCount(p) + EARN.invite * insiderCount(id); }
 function spentOf(p){
   return Object.keys((p && p.owned) || {}).reduce((sum, k) => { const [t, a, b] = k.split(":"); return sum + (t === "c" ? (PRICE_CHAR[a] || 0) : t === "e" ? (PRICE_FX[a] || 0) : t === "x" ? PRICE_FX.thief : t === "p" ? PRICE_HOUSE.phrase : t === "d" || t === "m" ? (a === "orange" ? 0 : PRICE_HOUSE.color) : (PRICE_COS[b] || 0)); }, 0);
 }
 // 관리자가 준 사탕 선물 (players.bonus = { 시각: 개수 }) · 보유 사탕에만 더하고 누적(리그)에는 안 들어가요
-const bonusOf = p => Object.values((p && p.bonus) || {}).reduce((n, v) => n + (Number(v) > 0 ? Math.round(Number(v)) : 0), 0);
+// 선물 하나: 숫자(보유에만) 또는 { n, e: 1 } (누적에도 반영)
+const bonusN = v => { const n = Math.round(Number(v && typeof v === "object" ? v.n : v)); return n > 0 ? n : 0; };
+const bonusE = v => !!(v && typeof v === "object" && v.e);
+const bonusOf = p => Object.values((p && p.bonus) || {}).reduce((n, v) => n + bonusN(v), 0);
+const bonusEarnOf = p => Object.values((p && p.bonus) || {}).reduce((n, v) => n + (bonusE(v) ? bonusN(v) : 0), 0);
 // 마왕 게임(1등 거래·마왕문)에서 잃은 사탕은 누적에서만 빠지고 보유 사탕은 그대로예요
 function bossLossOf(id){
   const p = players[id] || {}, d = dealPts(p), b = Object.values((p.boss && p.boss.log) || {}).reduce((t, r) => t + (r === "lose" ? EARN.bossLose : r === "quit" ? EARN.bossQuit : 0), 0);
   return (d < 0 ? -d : 0) + b;
 }
-function balanceOf(id){ return earnedOf(id) + bossLossOf(id) - spentOf(players[id]) + bonusOf(players[id]); }
+function balanceOf(id){ return earnedOf(id) + bossLossOf(id) - spentOf(players[id]) + bonusOf(players[id]) - bonusEarnOf(players[id]); }
 const granted = (p, c) => !!(p && p.grants && p.grants[c] === true);
 // 히든 미션 보상 캐릭터(mission)는 사탕으로 살 수 없고 미션을 달성하면 열려요
 const ownsChar = (p, c) => c === "cat" || granted(p, c) || (CHARS[c] && CHARS[c].adminOnly ? (freeMode && p !== me) : CHARS[c] && CHARS[c].mission ? (freeMode && p !== me) || missionDoneP(p, CHARS[c].mission) : !!(p && p.owned && p.owned["c:" + c]));
@@ -1854,8 +1861,8 @@ function mailItems(){
   if (me.phraseDel && me.phraseDel.at) out.push({ t: me.phraseDel.at, pic: '<span class="mail-gift">💬</span>', text: "내 문구가 기본 문구(Trick or Treat!)로 바뀌었어요", sub: `관리자가 "${me.phraseDel.text || ""}" 문구를 지웠어요` });
   // 관리자가 보낸 사탕 선물
   Object.entries(me.bonus || {}).forEach(([k, v]) => {
-    const n = Math.round(Number(v)); if (!(n > 0)) return;
-    out.push({ t: Number(k) || 0, pic: '<span class="mail-gift">🎁</span>', text: `관리자가 사탕 ${n}개를 선물했어요! 🍬`, sub: "쓸 수 있는 사탕 +" + n + " · 리그 누적 제외" });
+    const n = bonusN(v); if (!(n > 0)) return;
+    out.push({ t: Number(k) || 0, pic: '<span class="mail-gift">🎁</span>', text: `관리자가 사탕 ${n}개를 선물했어요! 🍬`, sub: bonusE(v) ? `보유 사탕 +${n} · 누적에도 +${n}` : "쓸 수 있는 사탕 +" + n + " · 리그 누적 제외" });
   });
   return out.sort((a, b) => b.t - a.t).slice(0, 60);
 }
@@ -2440,8 +2447,9 @@ async function sendBonus(n){
   const id = memberOpen, p = players[id]; n = Math.round(Number(n));
   if (!p || needAdmin()) return;
   if (!(n > 0 && n <= 999)) { toast("1~999 사이 숫자를 넣어 주세요"); return; }
-  if (!confirm(`${p.nick}에게 사탕 ${n}개를 선물할까요?`)) return;
-  try { await db.doc("players/" + id).update({ bonus: { [String(Date.now())]: n } }); $("sm-bonus-in").value = ""; toast(`${p.nick}에게 사탕 ${n}개를 보냈어요 🎁`); }
+  const earn = $("sm-bonus-earn").checked;
+  if (!confirm(`${p.nick}에게 사탕 ${n}개를 선물할까요?\n${earn ? "보유 + 누적(리그 순위)에 모두 더해져요." : "보유 사탕에만 더해져요 (누적 제외)."}`)) return;
+  try { await db.doc("players/" + id).update({ bonus: { [String(Date.now())]: earn ? { n, e: 1 } : n } }); $("sm-bonus-in").value = ""; toast(`${p.nick}에게 사탕 ${n}개를 보냈어요 🎁${earn ? " (누적 반영)" : ""}`); }
   catch { toast("보내지 못했어요. 관리자 등록을 확인해 주세요."); }
 }
 document.querySelectorAll("#sm-bonus [data-bonus]").forEach(b => b.onclick = () => sendBonus(b.dataset.bonus));
@@ -2738,7 +2746,7 @@ function scoreParts(id){
   const ph = photoBonusOf(p, id), un = fashionCount(p), inv = insiderCount(id);
   rows.push(["사탕 받음 (보통)", c.recv], ["사탕 받음 (거지왹)", c.beg], ["반짝이 당첨", c.spk], ["사탕도둑 성공", c.th],
     ["사탕 줌 (두드린 손님)", g.give], ["⚠️ 사탕 줌 (두드림 기록 없음)", g.nok], ["파리 거지왹에게 뺏김", g.fly], ["호의 보상", g.favor], ["도둑맞음", g.robbed],
-    ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]], ["🎃 보스 거래", [p.deal && p.deal.result && p.deal.result !== "decline" ? 1 : 0, dealPts(p)]]);
+    ["🎁 관리자 선물 (누적 반영)", [Object.values(p.bonus || {}).filter(bonusE).length, bonusEarnOf(p)]], ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]], ["🎃 보스 거래", [p.deal && p.deal.result && p.deal.result !== "decline" ? 1 : 0, dealPts(p)]]);
   return { rows, byDay, from };
 }
 // 관리자: 이 회원이 언제 무엇으로 사탕을 얻었는지 (시각 · 내용 · 점수)
@@ -3084,7 +3092,7 @@ function renderMember(){
   renderMemberWarn(memberOpen);
   renderMemberPhrase(memberOpen);
   renderScore(memberOpen);
-  const bs = bonusOf(p); $("sm-bonus-sum").textContent = bs ? `지금까지 ${bs}개 선물함` : "";
+  const bs = bonusOf(p), be = bonusEarnOf(p); $("sm-bonus-sum").textContent = bs ? `지금까지 ${bs}개 선물함${be ? ` (누적 반영 ${be}개)` : ""}` : "";
   fillMergePick();
   const lc = (profiles[memberOpen] || {}).loginCode, cr = $("sm-code");
   cr.innerHTML = `고유번호: <b>${lc || "아직 없음"}</b> `;
@@ -4009,7 +4017,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23h";
+const APP_BUILD = "2026-10-23i";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
