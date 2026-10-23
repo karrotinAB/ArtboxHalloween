@@ -2475,12 +2475,12 @@ function bossToday(){
   if (b.cur && b.cur.started && !log[b.cur.at] && dayNo(b.cur.at) === t) n++;
   return n;
 }
-// 마왕문 최종 승리 확률: 1등이 200개 거래를 거절했으면 그 1등은 10%, 나머지는 45% · 그 밖(패배 등)엔 모두 30%
-// 관리자가 먼저 연 경우("open")는 빼고, 실제로 거래를 받은 1등의 결과로 정해요
+// 마왕문 최종 승리 확률: 다른 유저는 늘 45% · 1등 거래를 받은 사람은 10% (그 거래에서 패배했을 때만 45%)
+// 관리자가 먼저 연 기록("open")은 빼고, 거래를 받은 1등(진행 중 포함)을 찾아요
 function bossWinRate(){
-  const f = Object.entries(players).filter(([, q]) => q.deal && q.deal.phase === "done" && q.deal.result && q.deal.result !== "open").sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0))[0];
-  if (f && f[1].deal.result === "decline") return f[0] === myId ? 0.1 : 0.45;
-  return BOSS_WIN;
+  const f = Object.entries(players).filter(([, q]) => q.deal && q.deal.result !== "open" && q.deal.phase).sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0))[0];
+  if (f && f[0] === myId) return f[1].deal.phase === "done" && f[1].deal.result === "lose" ? 0.45 : 0.1;
+  return 0.45;
 }
 const bossPrevData = () => { try { return JSON.parse(localStorage.getItem("bossPreview") || "{}"); } catch { return {}; } };
 function dealPts(p){ const r = p && p.deal && p.deal.result; return r === "win" ? EARN.dealWin : r === "lose" ? -EARN.dealLose : r === "quit" ? -EARN.dealQuit : 0; }
@@ -3990,7 +3990,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23c";
+const APP_BUILD = "2026-10-23d";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
