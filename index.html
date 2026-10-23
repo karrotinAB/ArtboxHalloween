@@ -1427,7 +1427,7 @@ function charSVG(type, costumeId, label, hold){
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const $ = id => document.getElementById(id);
 let current = "intro";
-function show(v){ document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + v)); current = v; window.scrollTo(0,0); if (v === "dress") fitNote(); }
+function show(v){ if (buildPending && (v === "home" || v === "dress")) setTimeout(applyNewBuild, 400); document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + v)); current = v; window.scrollTo(0,0); if (v === "dress") fitNote(); }
 // 똑똑 버튼 아래 안내 문구를 버튼 너비에 딱 맞게 한 줄로 (화면 폭에 따라 글자 크기 조절)
 function fitNote(){
   const p = $("tomorrow-note"), t = p && p.firstElementChild; if (!t || !p.clientWidth) return;
@@ -3981,6 +3981,31 @@ function onData(){
   if (!$("sheet-player").hidden) renderPlayer();
 }
 
+// ===== 새 버전 자동 적용 =====
+// 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
+const APP_BUILD = "2026-10-23a";
+let buildChecking = false, buildPending = false;
+const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
+function applyNewBuild(){
+  if (busyForReload()) { buildPending = true; return; }
+  const back = current === "dress" ? "dress" : current === "home" ? "home" : "";
+  try { history.replaceState(null, "", location.pathname + location.search.replace(/[?&]v=\d+/, "") + (back ? "#" + back : "")); } catch {}
+  location.reload();
+}
+async function checkBuild(){
+  if (buildChecking || offline) return;
+  if (buildPending) { applyNewBuild(); return; }
+  buildChecking = true;
+  try {
+    const r = await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" });
+    const m = (await r.text()).match(/const APP_BUILD = "([^"]+)"/);
+    if (m && m[1] !== APP_BUILD) { buildPending = true; applyNewBuild(); }
+  } catch {}
+  buildChecking = false;
+}
+setInterval(checkBuild, 3 * 60e3);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkBuild(); });
+window.addEventListener("focus", checkBuild);
 async function init(){
   if (knockCode) show("loading");
   if (!window.claude || !window.claude.use) { offline = true; if (startWaiting || knockCode) show("offline"); return; }
