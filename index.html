@@ -307,6 +307,8 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .deal-bub:empty{visibility:hidden}
 .deal-tap{margin-top:8px;font-size:.8rem;opacity:.75;animation:dtap 1.2s infinite}
 @keyframes dtap{50%{opacity:.25}}
+.deal-note{margin:6px 0 0;font-size:.78rem;color:#e8cfe0;opacity:.85;text-align:center}
+.deal-note[hidden]{display:none}
 .deal-choices{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:10px}
 .deal-choices button{font-family:"Jua",sans-serif;font-size:1.1rem;background:#3a1430;color:#ffe6b0;border:2px solid #ffb54a;box-shadow:0 4px 0 #120509}
 .deal-choices button.hot{background:#d9621b;color:#fff;border-color:#fff2c4}
@@ -897,7 +899,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="deal-gate" id="deal-gate"><div class="dg dg-l"></div><div class="dg dg-r"></div><div class="dg-arch"></div></div>
     </div>
     <div class="deal-game" id="deal-game" hidden><p class="deal-round" id="deal-round"></p><div class="deal-pumps" id="deal-pumps"></div></div>
-    <div class="deal-talk" id="deal-talk"><div class="deal-bub" id="deal-bub"></div><div class="deal-tap" id="deal-tap">▼ 화면을 눌러요</div><div class="deal-choices" id="deal-choices"></div></div>
+    <div class="deal-talk" id="deal-talk"><div class="deal-bub" id="deal-bub"></div><div class="deal-tap" id="deal-tap">▼ 화면을 눌러요</div><p class="deal-note" id="deal-note" hidden></p><div class="deal-choices" id="deal-choices"></div></div>
     <button class="deal-quit" id="deal-quit" hidden>그만두기</button>
   </div>
   <div class="sheet-bg" id="sheet-pw" hidden>
@@ -2550,7 +2552,7 @@ function bossIntro(){
   return ["하하하! 또 손님이 왔군.", "내 성 문을 두드리다니 용기가 대단한데?", "마침 심심했는데 너도 게임 하나 할래?", `이기면 사탕 ${EARN.bossWin}개를 주지.`, "그치만... 실패하면...", `네 사탕 ${EARN.bossLose}개를 내놓아야 해.`, `하루에 ${BOSS_DAY_MAX}번까지만 상대해 주지. 오늘 남은 기회는 ${left}번이다.`];
 }
 const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크.", "네 것을 내놔야 해."];
-function dealSay(lines, after){ dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
+function dealSay(lines, after){ $("deal-note").hidden = true; dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
 // 웃는 대사(하하·크크)에서 웃는 얼굴로 세 번 들썩이고 바로 무표정으로
 let laughT = 0;
 function bossLaugh(){
@@ -2574,7 +2576,8 @@ function dealNext(){
     if (/사탕 \d+개를 주지/.test(t)) bossCandy(true); else if (t.includes("내놓아야 해")) bossCandy(false); $("deal-tap").hidden = false; if (/하하|크크|게임 하나 할래|게임 한 판/.test(t)) bossLaugh(); else { clearTimeout(laughT); $("deal-boss").classList.remove("laugh"); } return; }
   $("deal-tap").hidden = true; const f = dealAfter; dealAfter = null; if (f) f();
 }
-function dealAsk(opts){
+function dealAsk(opts, note){
+  const nt = $("deal-note"); nt.textContent = note || ""; nt.hidden = !note;
   $("deal-tap").hidden = true; const box = $("deal-choices"); box.innerHTML = "";
   opts.forEach(([label, go, hot]) => { const b = document.createElement("button"); b.textContent = label; if (hot) b.className = "hot"; b.onclick = e => { e.stopPropagation(); box.innerHTML = ""; go(); }; box.appendChild(b); });
 }
@@ -2607,10 +2610,10 @@ function dealResume(){
 const dealGo = () => { if (dealMode === "boss") dealSave({ ...dealS, at: Date.now(), started: true, rate: bossWinRate() }); dealRound(0); };
 function dealMain(){
   if (dealMode === "boss") return dealAsk([["해볼게!", () => dealSay(["좋아. 그럼 시작하지...!"], dealGo), true], ["무슨 게임이야?", () => dealSay(DEAL_RULES, dealMain)],
-    ["됐어!", () => { dealSave({ phase: "done" }); dealSay(["흥... 겁쟁이로군.", "마음이 바뀌면 언제든 다시 와라. 크크크."], () => dealAsk([["닫기", closeDeal]])); }]]);
+    ["됐어!", () => { dealSave({ phase: "done" }); dealSay(["흥... 겁쟁이로군.", "마음이 바뀌면 언제든 다시 와라. 크크크."], () => dealAsk([["닫기", closeDeal]])); }]], "*해당 게임 결과는 누적 갯수에 영향을 줍니다");
   dealAsk([["해볼게!", () => dealSay(["좋아. 그럼 시작하지...!"], dealGo), true], ["무슨 게임이야?", () => dealSay(DEAL_RULES, dealMain)], ["됐어!", () => dealSay(["정말로? 진짜로?", "다시 생각해봐."], () => dealAsk([
     ["아 됐다니까!", () => { dealSave({ ...dealS, phase: "done", result: "decline" }); dealSay(["흥... 겁쟁이로군.", "그럼 잘 가라. 1등 자리, 잘 지켜 보라고."], () => dealAsk([["닫기", closeDeal]])); }],
-    ["흠.. 해볼까?", () => dealSay(["크크... 그럴 줄 알았지.", "좋아. 시작하지...!"], dealGo), true]]))]]);
+    ["흠.. 해볼까?", () => dealSay(["크크... 그럴 줄 알았지.", "좋아. 시작하지...!"], dealGo), true]], "*해당 게임 결과는 누적 갯수에 영향을 줍니다"))]], "*해당 게임 결과는 누적 갯수에 영향을 줍니다");
 }
 // 호박 그리기 · 섞기
 const pumpSVG = () => DECO.dealPump ? `<svg viewBox="0 0 100 110"><path d="M16 62 C16 4 84 4 84 62" stroke="#120509" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M21 60 C22 13 78 13 79 60" stroke="#f2a12e" stroke-width="1.8" fill="none"/><image href="data:image/webp;base64,${DECO.dealPump}" x="0" y="44.6" width="100" height="65.4"/></svg>` : `<svg viewBox="0 0 100 100"><path d="M48 12 q2 -10 10 -10" stroke="#3d6b2a" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="58" rx="46" ry="38" fill="#ea7a17" stroke="#2a0f08" stroke-width="5"/><path d="M50 22 V94 M28 26 Q16 58 28 92 M72 26 Q84 58 72 92" stroke="#c45c0c" stroke-width="4" fill="none"/><path d="M30 50 l10 -8 6 10Z M70 50 l-10 -8 -6 10Z" fill="#2a0f08"/><path d="M30 70 Q50 84 70 70 l-6 4 -4 -4 -5 5 -5 -5 -5 5 -5 -5 -4 4Z" fill="#2a0f08"/></svg>`;
@@ -3995,7 +3998,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23e";
+const APP_BUILD = "2026-10-23f";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
