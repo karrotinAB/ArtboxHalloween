@@ -2450,7 +2450,7 @@ const DEAL_LIVE = true;
 const DEAL_N = [2, 3, 3];
 // 거절하면 다음 등수로 기회가 넘어가요 (3등까지). 단계별 최종 승리 확률: 1등 그대로(약 5.6%) · 2등 30% · 3등 50%
 const DEAL_WIN = [null, 0.3, 0.5];
-const roundChance = (tier, n) => dealMode === "boss" ? Math.pow(BOSS_WIN, 1 / DEAL_N.length) : DEAL_WIN[tier] ? Math.pow(DEAL_WIN[tier], 1 / DEAL_N.length) : 1 / n;
+const roundChance = (tier, n) => dealMode === "boss" ? Math.pow((dealS && dealS.rate) || bossWinRate(), 1 / DEAL_N.length) : DEAL_WIN[tier] ? Math.pow(DEAL_WIN[tier], 1 / DEAL_N.length) : 1 / n;
 // 거절한 사람들 (먼저 거절한 순서)
 const dealDecliners = () => Object.entries(players).filter(([, q]) => q.deal && q.deal.result === "decline").sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0)).map(([id]) => id);
 // 2·3등에게 넘기기는 빼기로 했어요 (항상 1등만)
@@ -2474,6 +2474,12 @@ function bossToday(){
   let n = Object.keys(log).filter(k => dayNo(+k) === t).length;
   if (b.cur && b.cur.started && !log[b.cur.at] && dayNo(b.cur.at) === t) n++;
   return n;
+}
+// 마왕문 최종 승리 확률: 1등이 200개 거래를 거절했으면 그 1등은 10%, 나머지는 45% · 그 밖(패배 등)엔 모두 30%
+function bossWinRate(){
+  const f = dealFirst();
+  if (f && f[1].deal.result === "decline") return f[0] === myId ? 0.1 : 0.45;
+  return BOSS_WIN;
 }
 const bossPrevData = () => { try { return JSON.parse(localStorage.getItem("bossPreview") || "{}"); } catch { return {}; } };
 function dealPts(p){ const r = p && p.deal && p.deal.result; return r === "win" ? EARN.dealWin : r === "lose" ? -EARN.dealLose : r === "quit" ? -EARN.dealQuit : 0; }
@@ -2592,7 +2598,7 @@ function dealResume(){
   if (!dealS) dealSave({ phase: "intro", at: Date.now(), tier: dealPrev ? dealPrevTier : dealTier() });
   dealSay(dealMode === "boss" ? bossIntro() : dealIntro(dealS.tier || 0), dealMain);
 }
-const dealGo = () => { if (dealMode === "boss") dealSave({ ...dealS, at: Date.now(), started: true }); dealRound(0); };
+const dealGo = () => { if (dealMode === "boss") dealSave({ ...dealS, at: Date.now(), started: true, rate: bossWinRate() }); dealRound(0); };
 function dealMain(){
   if (dealMode === "boss") return dealAsk([["해볼게!", () => dealSay(["좋아. 그럼 시작하지...!"], dealGo), true], ["무슨 게임이야?", () => dealSay(DEAL_RULES, dealMain)],
     ["됐어!", () => { dealSave({ phase: "done" }); dealSay(["흥... 겁쟁이로군.", "마음이 바뀌면 언제든 다시 와라. 크크크."], () => dealAsk([["닫기", closeDeal]])); }]]);
@@ -3983,7 +3989,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23a";
+const APP_BUILD = "2026-10-23b";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
