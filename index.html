@@ -115,6 +115,8 @@ hr.soft{border:0;border-top:1.5px dashed var(--soft);margin:.3em 0 1.5em}
 .mycode input{font-family:"Jua",sans-serif;font-size:1.3rem;letter-spacing:.12em;text-align:center}
 .mycode p,#code-login p{font-size:.85rem;margin:.5em 0 0;line-height:1.5}
 .relogin{margin-top:4px;text-align:center}
+#known-list button{display:block;width:100%;margin-top:8px;text-align:left}
+#known-list button small{display:block;color:var(--paper-muted);font-size:.8rem}
 .relogin .ghost-dark{color:#fff3c4;font-size:1rem}
 #code-login{text-align:left;margin-top:10px}
 #f-login{text-transform:uppercase;letter-spacing:.12em}
@@ -743,6 +745,10 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
         <p class="muted">처음 참가한 기기의 '내 정보 수정'에서 확인할 수 있어요. 모르면 관리자에게 물어보세요. (숫자 4개 + 알파벳 1개)</p>
         <div class="findrow"><input id="f-login" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="예: 1234K" aria-label="고유번호"><button id="btn-login" class="green">들어가기</button></div>
         <p class="muted center" id="login-msg"></p>
+        <b style="margin-top:14px">고유번호를 모르겠어요</b>
+        <p class="muted">이 기기(브라우저)에서 예전에 들어왔던 계정이면 이름으로 찾을 수 있어요.</p>
+        <div class="findrow"><input id="f-known" autocomplete="off" placeholder="내 이름 또는 별명" aria-label="이름으로 찾기"><button id="btn-known" class="ghost">찾기</button></div>
+        <div id="known-list"></div>
       </div>
     <button class="ghost" id="btn-reg-cancel">돌아가기</button>
     <p class="muted center" id="reg-msg"></p>
@@ -1746,8 +1752,8 @@ function watchProfiles(all){
   if (profilesSub === "all" || (profilesSub && !all)) return;
   profilesSub = all ? "all" : true;
   const done = () => { if (current === "admin") renderAdmin(); };
-  if (all) db.collection("profiles").limit(1000).onSnapshot(snap => { snap.docs.forEach(d => { profiles[d.id] = d.data(); }); profileLoaded = true; ensureLoginCode(); done(); }, () => {});
-  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); profileLoaded = true; checkWarnGate(); ensureLoginCode(); if (editMode && current === "register") showMyCode(); }, () => {});
+  if (all) db.collection("profiles").limit(1000).onSnapshot(snap => { snap.docs.forEach(d => { profiles[d.id] = d.data(); }); profileLoaded = true; ensureLoginCode(); rememberAccount(); done(); }, () => {});
+  else db.doc("profiles/" + myId).onSnapshot(snap => { if (snap.exists) profiles[myId] = snap.data(); profileLoaded = true; checkWarnGate(); ensureLoginCode(); rememberAccount(); if (editMode && current === "register") showMyCode(); }, () => {});
 }
 
 // ===== 등록 / 정보 수정 =====
@@ -2256,6 +2262,25 @@ $("btn-login").onclick = async () => {
   } catch { msg.textContent = "들어가지 못했어요. 잠시 뒤 다시 시도해 주세요."; }
   finally { $("btn-login").disabled = false; }
 };
+// 이 기기에서 들어왔던 계정 기억 (localStorage · 고유번호로 다시 연결할 때 써요)
+function rememberAccount(){
+  const c = me && profiles[myId] && profiles[myId].loginCode; if (!c) return;
+  try { const k = JSON.parse(localStorage.getItem("knownAccounts") || "{}"), pf = profileOf(myId);
+    k[myId] = { nick: me.nick, name: pf.name || "", dept: pf.dept || "", code: c, house: me.code, at: Date.now() };
+    localStorage.setItem("knownAccounts", JSON.stringify(k)); } catch {}
+}
+function findKnown(){
+  const q = normName($("f-known").value), box = $("known-list"); box.innerHTML = "";
+  if (!q) { box.innerHTML = '<p class="muted">이름이나 별명을 적어 주세요.</p>'; return; }
+  let k = {}; try { k = JSON.parse(localStorage.getItem("knownAccounts") || "{}"); } catch {}
+  const hit = Object.values(k).filter(a => normName(a.name).includes(q) || normName(a.nick).includes(q)).sort((a, b) => b.at - a.at);
+  if (!hit.length) { box.innerHTML = '<p class="muted">이 기기에서 그 이름으로 들어온 기록이 없어요.<br>다른 기기의 \'내 정보 수정\'에서 고유번호를 확인하거나, 관리자에게 물어봐 주세요.</p>'; return; }
+  hit.forEach(a => { const b = document.createElement("button"); b.type = "button"; b.className = "ghost";
+    b.innerHTML = `<b></b><small></small>`; b.querySelector("b").textContent = `${a.nick} (${a.house}호)`; b.querySelector("small").textContent = `${a.dept} · ${a.name} · 이 계정으로 들어가기`;
+    b.onclick = () => { $("f-login").value = a.code; $("btn-login").click(); }; box.appendChild(b); });
+}
+$("btn-known").onclick = findKnown;
+$("f-known").addEventListener("keydown", e => { if (e.key === "Enter") findKnown(); });
 // ===== 관리자: 같은 사람의 계정 두 개 합치기 (D → P) =====
 // 사탕은 "주는사람ID" / "주는사람ID~날짜" 키로 기록되므로, D가 준 사탕·노크는 다른 사람 문서에서 P 이름으로 바꿔요
 function fillMergePick(){
@@ -4062,7 +4087,7 @@ function onData(){
   if (newsChecked) trackTop();
   if (newsChecked) checkGrants();
   if (me && !migratedSelf) { migratedSelf = true; watchProfiles(false); moveProfile(myId); }
-  ensureLoginCode();
+  ensureLoginCode(); rememberAccount();
   if (me && !isHouseNo(me.code) && !migrating) {
     migrating = true;
     db.doc("players/" + myId).update({ code: newHouseNo() }).catch(() => { migrating = false; });
@@ -4089,7 +4114,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-24d";
+const APP_BUILD = "2026-10-24e";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
