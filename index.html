@@ -2057,6 +2057,8 @@ $("nw-ok").onclick = nextModal;
 // ===== 알림: 관리자가 열어준 것 · 새 코스튬/효과 업데이트 =====
 // 새로 나온 것만 여기에 추가해요 (id는 한 번 정하면 바꾸지 않기). 이미 본 건 내 문서 seenUpdates에 기록돼요.
 const UPDATES = [
+  { id: "panda", title: "숭민이 새 코스튬 '판다숭' 🐼", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.panda}개로 열 수 있어요!`, preview: () => charSVG("monkey", "panda", "판다숭") },
+  { id: "hood", title: "숭민이 새 코스튬 '빨간망토' 🧺", text: () => `숭민이 옷장에서 사탕 ${PRICE_COS.hood}개로 열 수 있어요!`, preview: () => charSVG("monkey", "hood", "빨간망토") },
   { id: "sparkle", title: "새 효과 '반짝이' ✨", text: () => `사탕 ${PRICE_FX.sparkle}개로 열 수 있어요. 쓰고 사탕을 받으면 50% 확률로 사탕 ${EARN.sparkle}개!`, preview: () => withFx(charSVG(me.char, me.costume, "반짝이"), "sparkle") },
   { id: "map", title: "마을 지도가 생겼어요 🗺️", text: () => "홈의 표지판(이웃집 찾아가기)에서 '마을 지도 보기'를 눌러 보세요. 길을 따라 모든 이웃집을 구경하고 바로 방문할 수 있어요!", preview: () => doorSVG(me.code, 1, true) },
   { id: "invite7", title: () => `친구 초대하면 사탕 ${EARN.invite}개! 🍬`, text: () => `꾸미기 화면의 '링크 만들기'로 만든 링크로 동료가 참가하면 사탕 ${EARN.invite}개를 받아요.`, preview: () => `<span style="font-size:64px;line-height:1">🍬</span>` },
@@ -4123,7 +4125,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-24f";
+const APP_BUILD = "2026-10-24g";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
