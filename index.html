@@ -2466,7 +2466,14 @@ const DEAL_LIVE = true;
 const DEAL_N = [2, 3, 3];
 // 거절하면 다음 등수로 기회가 넘어가요 (3등까지). 단계별 최종 승리 확률: 1등 그대로(약 5.6%) · 2등 30% · 3등 50%
 const DEAL_WIN = [null, 0.3, 0.5];
-const roundChance = (tier, n) => dealMode === "boss" ? Math.pow((dealS && dealS.rate) || bossWinRate(), 1 / DEAL_N.length) : DEAL_WIN[tier] ? Math.pow(DEAL_WIN[tier], 1 / DEAL_N.length) : 1 / n;
+// 판별 확률: 1·2판은 대부분 통과(92% · 85%)하고 마지막 판에서 승부가 갈려요 (최종 확률은 그대로)
+const ROUND_EASY = [0.92, 0.85];
+function dealFinalP(tier){ return dealMode === "boss" ? ((dealS && dealS.rate) || bossWinRate()) : DEAL_WIN[tier] || 1 / DEAL_N.reduce((a, n) => a * n, 1); }
+function roundChance(tier, n, r){
+  const P = dealFinalP(tier), easy = ROUND_EASY.reduce((a, x) => a * x, 1);
+  if (r < ROUND_EASY.length) return P >= easy ? Math.pow(P, 1 / DEAL_N.length) : ROUND_EASY[r];
+  return P >= easy ? Math.pow(P, 1 / DEAL_N.length) : P / easy;
+}
 // 거절한 사람들 (먼저 거절한 순서)
 const dealDecliners = () => Object.entries(players).filter(([, q]) => q.deal && q.deal.result === "decline").sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0)).map(([id]) => id);
 // 2·3등에게 넘기기는 빼기로 했어요 (항상 1등만)
@@ -2652,7 +2659,7 @@ function dealRound(r, resumed){
 // 고르는 순간 결과를 정하고 바로 저장해요 (중간에 꺼도 다시 뽑을 수 없어요)
 async function dealPick(r, i, ps){
   ps.forEach(b => b.disabled = true); ps[i].classList.add("pick");
-  const n = DEAL_N[r], win = Math.random() < roundChance(dealS.tier || 0, n);
+  const n = DEAL_N[r], win = Math.random() < roundChance(dealS.tier || 0, n, r);
   let cdy = i; if (!win) { cdy = Math.floor(Math.random() * (n - 1)); if (cdy >= i) cdy++; }
   const last = r === DEAL_N.length - 1;
   await dealSave({ ...dealS, phase: "reveal", round: r, pick: i, cdy, win, result: !win ? "lose" : last ? "win" : null });
@@ -4017,7 +4024,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-23i";
+const APP_BUILD = "2026-10-24a";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
