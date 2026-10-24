@@ -2696,7 +2696,7 @@ function dealSlam(kind){
   setTimeout(() => {
     const o = document.createElement("div"); o.className = "deal-lost";
     const lostN = dealMode === "boss" ? (dealLastLost != null ? dealLastLost : bossLost(me, String(dealS.at), kind === "quit" ? "quit" : "lose")) : (dealS.lost != null ? dealS.lost : kind === "quit" ? DM().quit : DM().lose);
-    o.innerHTML = `${kind === "quit" ? "" : "<b>쾅!</b>"}<b>누적 사탕 ${lostN}개를 잃었습니다</b><button type="button">닫기</button>`;
+    o.innerHTML = `${kind === "quit" ? "" : "<b>쾅!</b>"}<b>${lostN ? `누적 사탕 ${lostN}개를 잃었습니다` : "가져갈 누적 사탕이 없어서 잃은 사탕은 없어요"}</b><button type="button">닫기</button>`;
     o.querySelector("button").onclick = e => { e.stopPropagation(); o.remove(); d.classList.remove("slam"); dealSave({ ...dealS, phase: "done" }); closeDeal(); };
     d.appendChild(o); dealBusy = false;
   }, 700);
