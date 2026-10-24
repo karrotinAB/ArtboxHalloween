@@ -227,6 +227,16 @@ button.ghost.map-btn{white-space:nowrap;background:#ffe2b8;border-color:#e8b97f;
 .fav-star{color:#f5b301;margin-right:3px}
 #league li{cursor:pointer}
 #sp-fav.on{background:#fff3c4;color:#8a5a00}
+.dup-dot{display:inline-block;min-width:1.2em;margin-left:3px;padding:0 .3em;border-radius:999px;background:#e5484d;color:#fff;font-size:.7rem;line-height:1.4}
+.dup-dot[hidden]{display:none}
+.dup-g{border:2px solid var(--soft);border-radius:14px;padding:8px 10px;margin:0 0 12px;background:#fffaf2}
+.dup-g h3{margin:0 0 6px;font-family:"Jua",sans-serif;font-weight:400;font-size:1.05rem}
+.dup-r{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--soft);font-size:.85rem}
+.dup-r input{-webkit-appearance:radio;appearance:auto;width:18px;height:18px;min-height:0;padding:0;margin:0;border:0;box-shadow:none;accent-color:#d9621b;flex:none}
+.dup-r .dm{flex:1;min-width:0}
+.dup-r .dm b{font-family:"Jua",sans-serif;font-weight:400;font-size:.95rem}
+.dup-r .dm small{display:block;color:var(--paper-muted)}
+.dup-g .dup-go{margin-top:8px;width:100%}
 .ph-row{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px dashed var(--soft)}
 .ph-row svg{width:34px;flex:none}
 .ph-row .ph-main{flex:1;min-width:0}
@@ -1016,6 +1026,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button role="tab" data-tab="members" aria-selected="false">회원·순위</button>
       <button role="tab" data-tab="joins" aria-selected="false">가입·초대</button>
       <button role="tab" data-tab="phrases" aria-selected="false">문구</button>
+      <button role="tab" data-tab="dups" aria-selected="false">같은 이름<span class="dup-dot" id="dup-dot" hidden></span></button>
       <button role="tab" data-tab="prices" aria-selected="false">가격·규칙</button>
       <button role="tab" data-tab="reset" aria-selected="false">초기화</button>
     </div>
@@ -1058,6 +1069,11 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <h2 style="margin-top:1.2em">누가 누구를 데려왔나 <small class="muted" id="jn-inv-count"></small></h2>
       <p class="muted" style="margin-top:-.3em;font-size:.85rem">초대 링크로 데려온 사람이 많은 순서예요.</p>
       <div id="jn-inv"></div>
+    </div>
+    <div class="card" data-pane="dups" hidden>
+      <h2>👥 이름이 같은 사람 <small class="muted" id="dup-count"></small></h2>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">등록한 이름(띄어쓰기 무시)이 같은 계정끼리 묶었어요. 같은 사람이면 남길 계정을 고르고 나머지를 합치세요.</p>
+      <div id="dup-list"></div>
     </div>
     <div class="card" data-pane="phrases" hidden>
       <h2>💬 바꾼 문구 <small class="muted" id="ph-count"></small></h2>
@@ -2722,6 +2738,46 @@ function maybeDeal(){
   if (st || (leaderId() === myId && earnedOf(myId) > 0)) { openDeal(false); return true; }
   return false;
 }
+// 관리자: 이름이 같은 계정 찾기 · 바로 합치기
+const normName = v => String(v || "").replace(/\s+/g, "").toLowerCase();
+function dupGroups(){
+  const g = {};
+  Object.keys(players).forEach(id => { const n = normName(profileOf(id).name); if (n && n !== "?") (g[n] = g[n] || []).push(id); });
+  return Object.values(g).filter(a => a.length > 1);
+}
+function renderDups(){
+  const groups = dupGroups(), dot = $("dup-dot");
+  dot.hidden = !groups.length; dot.textContent = groups.length;
+  if (groups.length > dupWarned && adminUnlocked) { dupWarned = groups.length; setTimeout(() => toast(`👥 이름이 같은 계정이 ${groups.length}쌍 있어요.\n'같은 이름' 탭에서 확인해 주세요`), 400); }
+  if (groups.length < dupWarned) dupWarned = groups.length;
+  $("dup-count").textContent = groups.length ? `${groups.length}쌍` : "";
+  const box = $("dup-list"); box.innerHTML = "";
+  if (!groups.length) { box.innerHTML = '<p class="muted">이름이 같은 계정이 없어요 👍</p>'; return; }
+  groups.forEach((ids, gi) => {
+    ids.sort((a, b) => earnedOf(b) - earnedOf(a));
+    const el = document.createElement("div"); el.className = "dup-g";
+    el.innerHTML = `<h3></h3>`; el.querySelector("h3").textContent = `👤 ${profileOf(ids[0]).name} (${ids.length}개 계정)`;
+    ids.forEach((id, i) => { const q = players[id], pf = profileOf(id), lc = (profiles[id] || {}).loginCode, d = q.createdAt ? new Date(q.createdAt) : null;
+      const r = document.createElement("label"); r.className = "dup-r";
+      r.innerHTML = `<input type="radio" name="dupkeep${gi}" value="${id}"${i === 0 ? " checked" : ""}><span class="dm"><b></b><small></small></span><button type="button" class="ghost">회원 창</button>`;
+      r.querySelector("b").textContent = `${q.nick} · ${q.code}호`;
+      r.querySelector("small").textContent = `${pf.dept || "부서 없음"} · ${pf.name || ""} · 고유번호 ${lc || "없음"} · 누적 ${earnedOf(id)} · 가입 ${d ? `${d.getMonth() + 1}/${d.getDate()}` : "?"}`;
+      r.querySelector("button").onclick = e => { e.preventDefault(); openMember(id); };
+      el.appendChild(r); });
+    const go = document.createElement("button"); go.type = "button"; go.className = "dup-go green"; go.textContent = "선택한 계정으로 합치기";
+    go.onclick = async () => {
+      if (needAdmin()) return;
+      const P = el.querySelector(`input[name="dupkeep${gi}"]:checked`).value, rest = ids.filter(x => x !== P), p = players[P];
+      const ok = prompt(`'${p.nick}'(${p.code}호)만 남기고\n${rest.map(x => `'${players[x].nick}'(${players[x].code}호, 누적 ${earnedOf(x)})`).join(", ")}의 모든 기록을 옮긴 뒤 지워요.\n되돌릴 수 없어요.\n\n계속하려면 '합치기'라고 입력하세요.`);
+      if (ok === null || ok.trim() !== "합치기") return;
+      go.disabled = true;
+      try { for (const D of rest) await mergeAccounts(P, D); toast(`합쳤어요! ${p.nick} 누적 ${earnedOf(P)}`); }
+      catch { toast("합치지 못했어요. 다시 시도해 주세요."); }
+      go.disabled = false;
+    };
+    el.appendChild(go); box.appendChild(el);
+  });
+}
 // 관리자: 보스 거래 상태
 function renderDealStat(){
   const box = $("deal-stat"); if (!box) return;
@@ -3054,6 +3110,7 @@ function renderNeighborChips(nb, onPick){
 }
 const ADMIN_PIN = "0930";
 let adminUnlocked = false;
+let dupWarned = 0;
 function openAdmin(){ if (!adminUnlocked) return; closeSheets(); renderAdmin(); show("admin"); }
 const DEFAULTS = { char: { ...PRICE_CHAR }, cos: { ...PRICE_COS }, fx: { ...PRICE_FX }, earn: { ...EARN }, house: { ...PRICE_HOUSE } };
 function applyConfig(cfg){
@@ -3267,7 +3324,7 @@ function renderJoins(){
   if (!inviters.length) box.innerHTML = '<p class="muted">아직 초대 링크로 들어온 사람이 없어요.</p>';
 }
 function renderAdmin(){
-  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases(); renderDealStat();
+  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases(); renderDealStat(); renderDups();
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
@@ -4032,7 +4089,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-24c";
+const APP_BUILD = "2026-10-24d";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
