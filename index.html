@@ -629,14 +629,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .sm-icon img{width:44px;height:44px;border-radius:50%}
 .sm-dot{display:block;width:40px;height:40px;border-radius:50%;background:#d6cedd;border:3px solid #bdb3c6}
 .gallery-title{text-align:center;margin:4px 0 18px}
-.board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px;padding:4px 2px 30px}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 9px;padding:4px 2px 30px}
 .post{position:relative;background:#fffdf7;border-radius:6px;box-shadow:0 8px 0 rgba(0,0,0,.25);padding:0 0 8px;overflow:hidden}
 .post:nth-child(odd){transform:rotate(-1.2deg)}.post:nth-child(even){transform:rotate(1.2deg)}
-.post::before{content:"📌";position:absolute;left:50%;top:-4px;transform:translateX(-50%);font-size:1.3rem;z-index:2}
+.post::before{content:"📌";position:absolute;left:50%;top:-4px;transform:translateX(-50%);font-size:1rem;z-index:2}
 .post img{display:block;width:100%;aspect-ratio:900/1080;object-fit:cover;cursor:zoom-in}
-.post .pm{display:flex;align-items:center;gap:6px;padding:6px 8px 0;color:#3c1a10}
-.post .pm b{flex:1;min-width:0;font-family:"Jua",sans-serif;font-weight:400;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.post .like{flex:none;background:#fff;border:2px solid #f29bbf;color:#d94b7b;border-radius:999px;padding:.15em .6em;font-size:.85rem;box-shadow:none}
+.post .pm{display:flex;align-items:center;gap:4px;padding:5px 5px 0;color:#3c1a10}
+.post .pm b{flex:1;min-width:0;font-family:"Jua",sans-serif;font-weight:400;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.post .like{flex:none;background:#fff;border:2px solid #f29bbf;color:#d94b7b;border-radius:999px;padding:.1em .45em;font-size:.72rem;box-shadow:none}
 .post .like.on{background:#f29bbf;color:#fff}
 .post .del{position:absolute;right:4px;top:4px;z-index:2;background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:999px;font-size:.7rem;padding:.2em .6em;box-shadow:none}
 .board .muted{grid-column:1/-1;text-align:center;margin-top:6vh}
@@ -4126,7 +4126,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-24h";
+const APP_BUILD = "2026-10-25a";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
