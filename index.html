@@ -2936,10 +2936,19 @@ function scoreParts(id){
   const ph = photoBonusOf(p, id), un = fashionCount(p), inv = insiderCount(id);
   rows.push(["사탕 받음 (보통)", c.recv], ["사탕 받음 (거지왹)", c.beg], ["반짝이 당첨", c.spk], ["사탕도둑 성공", c.th],
     ["사탕 줌 (두드린 손님)", g.give], ["⚠️ 사탕 줌 (두드림 기록 없음)", g.nok], ["파리 거지왹에게 뺏김", g.fly], ["호의 보상", g.favor], ["도둑맞음", g.robbed],
-    ["🎁 관리자 선물 (누적 반영)", [Object.values(p.bonus || {}).filter(bonusE).length, bonusEarnOf(p)]], ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]], ["🎃 보스 거래", [p.deal && p.deal.result && p.deal.result !== "decline" ? 1 : 0, dealPts(p)]], ["🏰 마왕문 게임 (10/31 특별 게임·선물 포함)", [Object.keys((p.boss && p.boss.log) || {}).length + (p.boss && p.boss.sp && p.boss.sp.r !== "decline" ? 1 : 0), bossPts(p)]]);
+    ["🎁 관리자 선물 (누적 반영)", [Object.values(p.bonus || {}).filter(bonusE).length, bonusEarnOf(p)]], ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]], ["🎃 보스 거래", [p.deal && p.deal.result && p.deal.result !== "decline" ? 1 : 0, dealPts(p)]], ...bossRows(p));
   return { rows, byDay, from };
 }
 // 관리자: 이 회원이 언제 무엇으로 사탕을 얻었는지 (시각 · 내용 · 점수)
+// 마왕게임 기록 (판별 결과 · 10/31 특별 게임 · 최다 플레이어 선물)
+const BOSS_R = { win: "우승", lose: "패배", quit: "포기" };
+function bossRows(p){
+  const b = (p && p.boss) || {}, log = Object.entries(b.log || {}), s = b.sp;
+  const rows = ["win", "lose", "quit"].map(r => { const l = log.filter(([, x]) => x === r); return [`🏰 마왕게임 ${BOSS_R[r]}`, [l.length, l.reduce((t, [k]) => t + (r === "win" ? EARN.bossWin : -bossLost(p, k, r)), 0)]]; });
+  if (s && s.r !== "decline") rows.push([`🎃 10/31 특별 게임 ${BOSS_R[s.r] || s.r}`, [1, s.r === "win" ? HW.win : -hwLost(p)]]);
+  if (b.hwGift) rows.push(["👑 마왕성 단골 선물", [1, HW.gift]]);
+  return rows;
+}
 function scoreEvents(id){
   const p = players[id] || {}, ev = [], nk = q => esc((players[q] || {}).nick || "?");
   const push = (t, text, n) => { if (t) ev.push({ t, d: dayNo(t), text, n }); };
@@ -2953,6 +2962,11 @@ function scoreEvents(id){
   Object.entries(p.photos || {}).forEach(([k, v]) => { if (validCombo(k) && v && players[v.with] && interacted(id, v.with)) push(v.at, `📸 ${nk(v.with)}와 사진 (처음 보는 코스튬)`, EARN.photo); });
   Object.entries(p.owned || {}).forEach(([k, v]) => { if (k.startsWith("k:") && +v > 1e12) push(+v, `👗 코스튬 열기 (${esc((costumeById(k.split(":")[2]) || {}).name || "")})`, EARN.unlock); });
   Object.values(players).forEach(q => { if (q.invitedBy === id) push(q.createdAt, `🔗 ${esc(q.nick || "")} 초대`, EARN.invite); });
+  const bs = p.boss || {};
+  Object.entries(bs.log || {}).forEach(([k, r]) => push(+k, `🏰 마왕게임 ${BOSS_R[r] || r}`, r === "win" ? EARN.bossWin : -bossLost(p, k, r)));
+  if (bs.sp) push(+bs.sp.at, `🎃 10/31 특별 게임 ${bs.sp.r === "decline" ? "거절" : BOSS_R[bs.sp.r] || bs.sp.r}`, bs.sp.r === "win" ? HW.win : -hwLost(p));
+  if (bs.hwGift) push(+bs.hwGift, "👑 마왕성 단골 선물", HW.gift);
+  if (p.deal && p.deal.result && p.deal.result !== "open") push(+p.deal.at, `👑 1등 보스 거래 ${p.deal.result === "decline" ? "거절" : BOSS_R[p.deal.result] || p.deal.result}`, dealPts(p));
   return ev.sort((a, b) => a.t - b.t);
 }
 let scoreDay = null;
@@ -4212,7 +4226,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26b";
+const APP_BUILD = "2026-10-26c";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
