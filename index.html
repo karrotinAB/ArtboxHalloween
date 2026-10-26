@@ -1163,7 +1163,9 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p id="fin-phase" style="font-weight:700"></p>
       <div id="fin-adm"></div>
       <button class="big" id="adm-fin-reveal" style="margin-top:12px">🙋 실명 공개 질문 미리보기</button>
+      <button class="big" id="adm-fin-revealbox" style="margin-top:12px">🙋 '내 정보 수정'의 실명 공개 칸 미리보기</button>
       <button class="big" id="adm-fin-look" style="margin-top:12px">👗 결과 발표 모습 고르기 공지 미리보기</button>
+      <button class="big" id="adm-fin-lookbox" style="margin-top:12px">👗 꾸미기의 '결과 발표에 나갈 내 모습' 칸 미리보기</button>
       <button class="big" id="adm-fin-closed" style="margin-top:12px">⏰ 게임 종료 화면 미리보기 (밤 12시 ~ 오전 8시)</button>
       <button class="big green" id="adm-fin-result" style="margin-top:12px">🏆 결과 발표 페이지 미리보기 (지금 순위로)</button>
       <button class="big" id="adm-fin-end" style="margin-top:12px">🚪 The End 안내 미리보기 (결과 발표 뒤 문 두드리기)</button>
@@ -1176,10 +1178,6 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="big" id="adm-badges" style="margin-top:12px">히든 미션 뱃지 창 미리보기 (모두 달성)</button>
       <button class="big" id="adm-toasts" style="margin-top:12px">미션 달성 알림 미리보기</button>
       <div class="deal-stat" id="deal-stat"></div>
-      <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (기록 안 남음)</button>
-      <button class="big" id="adm-boss" style="margin-top:12px">🏰 마왕문 두드리기 미리보기 (일반 유저용 · 마을 지도에 성 보이기)</button>
-      <button class="big" id="adm-hw" style="margin-top:12px">🎃 10/31 특별한 날 미리보기 (일반 유저)</button>
-      <button class="big" id="adm-hw-top" style="margin-top:12px">👑 10/31 특별한 날 미리보기 (마왕게임 최다 플레이어 · 사탕 30개 선물)</button>
       <button class="big" id="adm-hw-news" style="margin-top:12px">📢 10/31 특별한 날 공지 미리보기</button>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
@@ -1850,7 +1848,7 @@ try {
   if (openedFrom) localStorage.setItem("openedFrom", openedFrom); else openedFrom = localStorage.getItem("openedFrom") || "";
 } catch {}
 
-function goHome(){ renderHome(); show("home"); scrollLeagueToMine(); maybeTour();
+function goHome(){ revealBoxPrev = false; lookPrev = false; renderHome(); show("home"); scrollLeagueToMine(); maybeTour();
   // 1등 보스 거래(또는 하다 만 마왕문 게임)가 있으면 다른 알림보다 먼저 보여줘요
   if (tourStep < 0 && $("deal").hidden && maybeDeal()) return;
   maybeNews(); setTimeout(flushModal, 300); }
@@ -2261,8 +2259,7 @@ function checkBoardNews(){
 let hwNewsQueued = false;
 function showHwNews(done){ showNotice("<10월 31일 할로윈 특별한 날!>", "마왕의 특별한 제안 🎃", [
   { title: `사탕 ${HW.win}개가 걸린 특별 게임`, text: `오늘 하루, 마왕성에서 단 한 번! 이기면 사탕 ${HW.win}개, 지면 ${HW.lose}개를 잃어요. (중간에 그만두면 ${HW.quit}개)`, preview: `<img alt="" src="data:image/webp;base64,${DECO.castle}" style="width:64px">` },
-  { title: `오늘은 일반 게임 ${HW.max}번까지`, text: `평소 하루 ${BOSS_DAY_MAX}번이던 마왕문 게임을 오늘은 ${HW.max}번까지 할 수 있어요.`, preview: '<span style="font-size:2.6rem">🍬</span>' },
-  { title: "마왕성 단골에게는 선물이?", text: "소문에 의하면 마왕성을 가장 많이 찾아간 사람에게 마왕이 선물을 준다던데...", preview: '<span style="font-size:2.6rem">🎁</span>' }
+  { title: `오늘은 일반 게임 ${HW.max}번까지`, text: `평소 하루 ${BOSS_DAY_MAX}번이던 마왕문 게임을 오늘은 ${HW.max}번까지 할 수 있어요.`, preview: '<span style="font-size:2.6rem">🍬</span>' }
 ], done, ["🗺️ 마을지도 가기", openMap]); }
 function checkHwNews(){
   if (!me || hwNewsQueued || todayNo() !== HW_DAY || !DEAL_LIVE || !bossOpen() || (me.seenUpdates || {}).hw1031) return;
@@ -3688,12 +3685,14 @@ function checkReveal(){
   if (!me || revealQueued || !revealOpen() || me.reveal || leagueRank(myId) > 10) return;
   revealQueued = true; pushModal(() => showReveal(false));
 }
+let revealBoxPrev = false;
 function renderRevealBox(){
-  const box = $("reveal-box"); box.hidden = !(editMode && me && revealOpen()); if (box.hidden) return;
+  const box = $("reveal-box"); box.hidden = !(editMode && me && (revealOpen() || revealBoxPrev)); if (box.hidden) return;
+  if (revealBoxPrev) { $("rb-yes").classList.toggle("on", box.dataset.pv === "y"); $("rb-no").classList.toggle("on", box.dataset.pv === "n"); return; }
   const v = me.reveal; $("rb-yes").classList.toggle("on", !!(v && v.ok)); $("rb-no").classList.toggle("on", !!(v && !v.ok));
 }
-$("rb-yes").onclick = async () => { if (await saveReveal(true)) renderRevealBox(); };
-$("rb-no").onclick = async () => { if (await saveReveal(false)) renderRevealBox(); };
+$("rb-yes").onclick = async () => { if (revealBoxPrev) { $("reveal-box").dataset.pv = "y"; renderRevealBox(); toast("미리보기라 저장되지 않아요"); return; } if (await saveReveal(true)) renderRevealBox(); };
+$("rb-no").onclick = async () => { if (revealBoxPrev) { $("reveal-box").dataset.pv = "n"; renderRevealBox(); toast("미리보기라 저장되지 않아요"); return; } if (await saveReveal(false)) renderRevealBox(); };
 // 결과 발표 모습 고르기 (10/31 하루)
 let lookPrev = false;
 function showLookNews(done){
@@ -3728,6 +3727,8 @@ function renderFinalAdmin(){
 }
 $("adm-fin-reveal").onclick = () => showReveal(true);
 $("adm-fin-look").onclick = () => { lookPrev = true; showLookNews(() => {}); };
+$("adm-fin-revealbox").onclick = () => { if (!me) { toast("관리자 기기에 참가 계정이 있어야 미리 볼 수 있어요"); return; } revealBoxPrev = true; $("reveal-box").dataset.pv = ""; openRegister(true); show("register"); setTimeout(() => $("reveal-box").scrollIntoView({ block: "center" }), 100); };
+$("adm-fin-lookbox").onclick = () => { if (!me) { toast("관리자 기기에 참가 계정이 있어야 미리 볼 수 있어요"); return; } lookPrev = true; goDress(); setTimeout(() => $("final-look-box").scrollIntoView({ block: "center" }), 150); };
 $("adm-fin-closed").onclick = () => { finalPreview = "closed"; finalTick(); };
 $("adm-fin-result").onclick = () => { finalPreview = "result"; openFinal(); };
 $("adm-fin-end").onclick = () => theEnd(true);
@@ -3830,12 +3831,7 @@ $("adm-door").onclick = () => { previewFrom = "admin"; freeMode = false; startPr
 $("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSheet("sheet-badges"); };
 $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
-$("adm-deal").onclick = () => openDeal(true, 0);
-const hwPrev = kind => { hwPreview = kind; try { localStorage.removeItem("bossPreview"); } catch {} openDeal(true, 0, "boss"); };
-$("adm-hw").onclick = () => hwPrev("user");
-$("adm-hw-top").onclick = () => hwPrev("top");
 $("adm-hw-news").onclick = () => showHwNews(() => {});
-$("adm-boss").onclick = () => { hwPreview = null; castlePreview = "open"; openMap(null, true); mapFrom = "admin"; toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
 // 관리자: 사탕도둑 미리보기
 let tpThief = false;
 const tpLook = () => tpThief ? thiefSVG(me.char, starOn(me, myId)) : withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
@@ -4540,7 +4536,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26f";
+const APP_BUILD = "2026-10-26g";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
