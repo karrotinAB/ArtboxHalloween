@@ -1058,6 +1058,9 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="deal-stat" id="deal-stat"></div>
       <button class="big" id="adm-deal" style="margin-top:12px">🎃 1등 보스 거래 미리보기 (기록 안 남음)</button>
       <button class="big" id="adm-boss" style="margin-top:12px">🏰 마왕문 두드리기 미리보기 (일반 유저용 · 마을 지도에 성 보이기)</button>
+      <button class="big" id="adm-hw" style="margin-top:12px">🎃 10/31 특별한 날 미리보기 (일반 유저)</button>
+      <button class="big" id="adm-hw-top" style="margin-top:12px">👑 10/31 특별한 날 미리보기 (마왕게임 최다 플레이어 · 사탕 30개 선물)</button>
+      <button class="big" id="adm-hw-news" style="margin-top:12px">📢 10/31 특별한 날 공지 미리보기</button>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
@@ -1620,7 +1623,7 @@ const bonusEarnOf = p => Object.values((p && p.bonus) || {}).reduce((n, v) => n 
 // 마왕 게임(1등 거래·마왕문)에서 잃은 사탕은 누적에서만 빠지고 보유 사탕은 그대로예요
 function bossLossOf(id){
   const p = players[id] || {}, d = dealPts(p), b = Object.entries((p.boss && p.boss.log) || {}).reduce((t, [k, r]) => t + (r === "win" ? 0 : bossLost(p, k, r)), 0);
-  return (d < 0 ? -d : 0) + b;
+  return (d < 0 ? -d : 0) + b + hwLost(p);
 }
 function balanceOf(id){ return earnedRaw(id) + bossLossOf(id) - spentOf(players[id]) + bonusOf(players[id]) - bonusEarnOf(players[id]); }
 const granted = (p, c) => !!(p && p.grants && p.grants[c] === true);
@@ -1996,7 +1999,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants(); checkBossNews(); checkBoardNews();
+  checkUpdates(); checkGrants(); checkBossNews(); checkHwNews(); checkBoardNews();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -2127,6 +2130,18 @@ function checkBoardNews(){
   if (bossPending) return;
   boardNewsQueued = true;
   pushModal(() => showBoardNews(() => setMine({ seenUpdates: { board: Date.now() } })));
+}
+// 10/31 특별한 날 공지 (그날 접속하는 모두에게, 새로 가입한 사람 포함)
+let hwNewsQueued = false;
+function showHwNews(done){ showNotice("<10월 31일 할로윈 특별한 날!>", "마왕의 특별한 제안 🎃", [
+  { title: `사탕 ${HW.win}개가 걸린 특별 게임`, text: `오늘 하루, 마왕성에서 단 한 번! 이기면 사탕 ${HW.win}개, 지면 ${HW.lose}개를 잃어요. (중간에 그만두면 ${HW.quit}개)`, preview: `<img alt="" src="data:image/webp;base64,${DECO.castle}" style="width:64px">` },
+  { title: `오늘은 일반 게임 ${HW.max}번까지`, text: `평소 하루 ${BOSS_DAY_MAX}번이던 마왕문 게임을 오늘은 ${HW.max}번까지 할 수 있어요.`, preview: '<span style="font-size:2.6rem">🍬</span>' },
+  { title: "마왕성 단골에게는 선물이?", text: "소문에 의하면 마왕성을 가장 많이 찾아간 사람에게 마왕이 선물을 준다던데...", preview: '<span style="font-size:2.6rem">🎁</span>' }
+], done, ["🗺️ 마을지도 가기", openMap]); }
+function checkHwNews(){
+  if (!me || hwNewsQueued || todayNo() !== HW_DAY || !DEAL_LIVE || !bossOpen() || (me.seenUpdates || {}).hw1031) return;
+  hwNewsQueued = true;
+  pushModal(() => showHwNews(() => setMine({ seenUpdates: { hw1031: Date.now() } })));
 }
 function checkBossNews(){
   if (!me || bossNewsQueued || !DEAL_LIVE || !dealFirst() || (me.seenUpdates || {}).minigame) return;
@@ -2538,10 +2553,32 @@ let dealPrevTier = 0;
 // players.boss = { cur: 진행 중인 판, log: { 시작시각: "win"|"lose"|"quit" } } · 하루 2번 · 이길 확률 30%
 const BOSS_DAY_MAX = 2, BOSS_WIN = 0.3;
 let dealMode = "deal";
-const DM = () => dealMode === "boss" ? { win: EARN.bossWin, lose: EARN.bossLose, quit: EARN.bossQuit } : { win: EARN.dealWin, lose: EARN.dealLose, quit: EARN.dealQuit };
+const DM = () => dealMode === "boss" && dealS && dealS.sp ? { win: HW.win, lose: HW.lose, quit: HW.quit } : dealMode === "boss" ? { win: EARN.bossWin, lose: EARN.bossLose, quit: EARN.bossQuit } : { win: EARN.dealWin, lose: EARN.dealLose, quit: EARN.dealQuit };
 // 잃는 개수는 그때 누적만큼까지만 (boss.lost[판] · deal.lost에 실제로 잃은 개수를 남겨요)
 const bossLost = (p, k, r) => { const v = p && p.boss && p.boss.lost && p.boss.lost[k]; return v != null ? +v : r === "lose" ? EARN.bossLose : r === "quit" ? EARN.bossQuit : 0; };
-function bossPts(p){ return Object.entries((p && p.boss && p.boss.log) || {}).reduce((t, [k, r]) => t + (r === "win" ? EARN.bossWin : -bossLost(p, k, r)), 0); }
+function bossPts(p){ return Object.entries((p && p.boss && p.boss.log) || {}).reduce((t, [k, r]) => t + (r === "win" ? EARN.bossWin : -bossLost(p, k, r)), 0) + hwPts(p); }
+// 10월 31일(한국 시간) 특별한 날: 특별 게임 1번(1·2단계 100% · 3단계 30% · 승 +200 · 패 -100 · 포기 -50) · 일반 게임은 하루 5번
+// 그날 마왕성에 처음 들어오면 마왕게임을 가장 많이 한 사람(10/30까지 판 수, 동점이면 그 판 수에 먼저 도달한 사람)에게 사탕 30개 (누적+보유)
+// players.boss.sp = { r: "win"|"lose"|"quit"|"decline", at, lost } · players.boss.hwGift = 받은 시각
+const HW_DAY = Math.floor(Date.UTC(2026, 9, 31) / 86400e3);
+const HW = { win: 200, lose: 100, quit: 50, rate: 0.3, gift: 30, max: 5 };
+let hwPreview = null; // 관리자 미리보기: "user" | "top"
+const isHW = () => (dealPrev && !!hwPreview) || todayNo() === HW_DAY;
+const bossDayMax = () => isHW() ? HW.max : BOSS_DAY_MAX;
+const bossData = () => dealPrev ? bossPrevData() : (me && me.boss) || {};
+function hwLost(p){ const s = p && p.boss && p.boss.sp; return s && (s.r === "lose" || s.r === "quit") ? (s.lost != null ? +s.lost : s.r === "lose" ? HW.lose : HW.quit) : 0; }
+function hwPts(p){ const b = (p && p.boss) || {}, s = b.sp; return (b.hwGift ? HW.gift : 0) + (s && s.r === "win" ? HW.win : -hwLost(p)); }
+function hwTopId(){
+  let best = null;
+  Object.entries(players).forEach(([id, q]) => {
+    const ks = Object.keys((q.boss && q.boss.log) || {}).map(Number).filter(k => dayNo(k) < HW_DAY).sort((a, b) => a - b);
+    if (!ks.length) return; const n = ks.length, at = ks[n - 1];
+    if (!best || n > best.n || (n === best.n && at < best.at)) best = { id, n, at };
+  });
+  return best && best.id;
+}
+const isHwTop = () => dealPrev ? hwPreview === "top" : hwTopId() === myId;
+const hwPending = () => { if (!isHW()) return false; const b = bossData(); return !b.sp || (isHwTop() && !b.hwGift); };
 // 1등 거래가 끝난 사람(처음 한 명)
 const dealFirst = () => Object.entries(players).filter(([, q]) => q.deal && q.deal.phase === "done" && q.deal.result).sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0))[0];
 // 지도의 마왕성: null(공개 전) · "build"(1등이 아직 안 만남, 공사중) · "open"
@@ -2552,17 +2589,17 @@ const bossOpen = () => castleState() === "open";
 function bossToday(){
   const b = dealMode === "boss" && dealPrev ? bossPrevData() : (me && me.boss) || {}, t = todayNo(), log = b.log || {};
   let n = Object.keys(log).filter(k => dayNo(+k) === t).length;
-  if (b.cur && b.cur.started && !log[b.cur.at] && dayNo(b.cur.at) === t) n++;
+  if (b.cur && b.cur.started && !b.cur.sp && !log[b.cur.at] && dayNo(b.cur.at) === t) n++;
   return n;
 }
-// 마왕문 최종(3단계) 승리 확률: 오늘 첫 판 70% · 두 번째 판은 첫 판을 이겼으면 60%, 졌거나 그만뒀으면 80%
+// 마왕문 최종(3단계) 승리 확률: 오늘 첫 판 70% · 그다음부터는 직전 판을 이겼으면 60%, 졌거나 그만뒀으면 80% (특별 게임은 빼고 세요)
 // 1등 거래를 받은 사람은 10% (그 거래에서 패배했을 때만 다른 유저와 같게)
 // 관리자가 먼저 연 기록("open")은 빼고, 거래를 받은 1등(진행 중 포함)을 찾아요
 function bossWinRate(){
   const f = Object.entries(players).filter(([, q]) => q.deal && q.deal.result !== "open" && q.deal.phase).sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0))[0];
   const b = dealPrev ? bossPrevData() : (me && me.boss) || {}, t = todayNo();
-  const first = Object.entries(b.log || {}).filter(([k]) => dayNo(+k) === t).sort((x, y) => +x[0] - +y[0])[0];
-  const base = !first ? 0.7 : first[1] === "win" ? 0.6 : 0.8;
+  const last = Object.entries(b.log || {}).filter(([k]) => dayNo(+k) === t).sort((x, y) => +y[0] - +x[0])[0];
+  const base = !last ? 0.7 : last[1] === "win" ? 0.6 : 0.8;
   if (f && f[0] === myId) return f[1].deal.phase === "done" && f[1].deal.result === "lose" ? base : 0.1;
   return base;
 }
@@ -2578,9 +2615,18 @@ let dealLastLost = null;
 const lossCap = amt => Math.max(0, Math.min(amt, earnedOf(myId)));
 async function dealRecord(result){
   if (dealMode !== "boss") return;
-  const k = String(dealS.at), lost = result === "lose" ? lossCap(EARN.bossLose) : result === "quit" ? lossCap(EARN.bossQuit) : null; dealLastLost = lost;
+  const k = String(dealS.at), lost = result === "lose" ? lossCap(DM().lose) : result === "quit" ? lossCap(DM().quit) : null; dealLastLost = lost;
+  if (dealS.sp) return hwRecord({ r: result, at: dealS.at, ...(lost != null ? { lost } : {}) });
   if (dealPrev) { const b = bossPrevData(); b.log = { ...(b.log || {}), [k]: result }; if (lost != null) b.lost = { ...(b.lost || {}), [k]: lost }; try { localStorage.setItem("bossPreview", JSON.stringify(b)); } catch {} return; }
   try { await db.doc("players/" + myId).update({ boss: { log: { [k]: result }, ...(lost != null ? { lost: { [k]: lost } } : {}) } }); } catch { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
+}
+async function hwRecord(sp){
+  if (dealPrev) { const b = bossPrevData(); b.sp = sp; try { localStorage.setItem("bossPreview", JSON.stringify(b)); } catch {} return; }
+  try { await db.doc("players/" + myId).update({ boss: { sp } }); } catch { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
+}
+async function hwGiftSave(){
+  if (dealPrev) { const b = bossPrevData(); b.hwGift = Date.now(); try { localStorage.setItem("bossPreview", JSON.stringify(b)); } catch {} return; }
+  try { await db.doc("players/" + myId).update({ boss: { hwGift: Date.now() } }); } catch { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
 }
 async function dealSave(st){
   dealS = st;
@@ -2626,10 +2672,10 @@ function dealIntro(tier){
 }
 // 마왕문 (모두에게 열린 판) 대사
 function bossIntro(){
-  const f = dealFirst(), fn = f ? esc(f[1].nick || "") : "○○○", fr = f ? f[1].deal.result : "decline", left = Math.max(0, BOSS_DAY_MAX - bossToday());
+  const f = dealFirst(), fn = f ? esc(f[1].nick || "") : "○○○", fr = f ? f[1].deal.result : "decline", left = Math.max(0, bossDayMax() - bossToday());
   const firstLine = fr === "win" ? `1등 ${fn}… 내 사탕 ${EARN.dealWin}개를 가져갔지. 크윽.` : fr === "lose" ? `1등 ${fn}${josa(f ? f[1].nick : "○", "은", "는")} 내게 사탕 ${EARN.dealLose}개를 바쳤지. 크크크.` : fr === "quit" ? `1등 ${fn}${josa(f ? f[1].nick : "○", "은", "는")} 겁먹고 사탕 ${EARN.dealQuit}개를 내고 도망쳤지.` : `1등 ${fn}${josa(f ? f[1].nick : "○", "은", "는")} 내 제안을 거절한 겁쟁이였지.`;
   void firstLine;
-  return ["하하하! 또 손님이 왔군.", "내 성 문을 두드리다니 용기가 대단한데?", "마침 심심했는데 너도 게임 하나 할래?", `이기면 사탕 ${EARN.bossWin}개를 주지.`, "그치만... 실패하면...", `네 사탕 ${EARN.bossLose}개를 내놓아야 해.`, `하루에 ${BOSS_DAY_MAX}번까지만 상대해 주지. 오늘 남은 기회는 ${left}번이다.`];
+  return ["하하하! 또 손님이 왔군.", "내 성 문을 두드리다니 용기가 대단한데?", "마침 심심했는데 너도 게임 하나 할래?", `이기면 사탕 ${EARN.bossWin}개를 주지.`, "그치만... 실패하면...", `네 사탕 ${EARN.bossLose}개를 내놓아야 해.`, `${isHW() ? "오늘은 특별히" : "하루에"} ${bossDayMax()}번까지만 상대해 주지. 오늘 남은 기회는 ${left}번이다.`];
 }
 const DEAL_RULES = ["간단해. 내가 호박 속에 사탕을 숨길 거야.", "호박을 골라서 사탕을 찾아내면 통과.", "세 번 연속으로 찾아내면 네 승리다.", "한 번이라도 틀리면... 크크크.", "네 것을 내놔야 해."];
 function dealSay(lines, after){ $("deal-note").hidden = true; dealQ = lines.slice(); dealAfter = after; $("deal-choices").innerHTML = ""; dealNext(); }
@@ -2671,7 +2717,7 @@ function openDeal(preview, tier, mode){
   d.querySelector(".dg-l").style.backgroundImage = gateHalf(false); d.querySelector(".dg-r").style.backgroundImage = gateHalf(true);
   $("deal-boss").innerHTML = bossSVG(); $("deal-bub").innerHTML = ""; $("deal-choices").innerHTML = ""; $("deal-game").hidden = true;
   $("deal-x").hidden = $("deal-reset").hidden = !dealPrev; $("deal-quit").hidden = true;
-  if (dealMode === "boss" && !dealS && bossToday() >= BOSS_DAY_MAX) { d.classList.add("open"); dealSay(["크크크... 오늘은 충분히 놀았다.", "내일 다시 와라."], () => dealAsk([["닫기", closeDeal]])); return; }
+  if (dealMode === "boss" && !dealS && bossToday() >= bossDayMax() && !hwPending()) { d.classList.add("open"); dealSay(["크크크... 오늘은 충분히 놀았다.", "내일 다시 와라."], () => dealAsk([["닫기", closeDeal]])); return; }
   if (dealMode === "deal" && dealS && dealS.phase === "done") { d.classList.add("open"); dealSay([dealS.result === "win" ? "...이미 끝난 거래다. 넌 이겼지." : dealS.result === "decline" ? "흥, 겁쟁이와는 더 할 말이 없다." : "거래는 이미 끝났다. 크크크."], () => dealAsk([["닫기", closeDeal]])); return; }
   dealBusy = true; $("deal-bub").innerHTML = "...끼이이익";
   setTimeout(() => { d.classList.add("shake"); }, 500);
@@ -2684,10 +2730,36 @@ function dealResume(){
   if (st.phase === "game") return dealRound(st.round || 0, true);
   if (st.phase === "reveal") return dealReveal(true);
   if (st.phase === "quitask") return dealQuitAsk();
+  if (!dealS && dealMode === "boss" && isHW()) { const b = bossData(); if (isHwTop() && !b.hwGift) return hwGift(); if (!b.sp) return hwOffer(false); }
   if (!dealS) dealSave({ phase: "intro", at: Date.now(), tier: dealPrev ? dealPrevTier : dealTier() });
   dealSay(dealMode === "boss" ? bossIntro() : dealIntro(dealS.tier || 0), dealMain);
 }
-const dealGo = () => { if (dealMode === "boss") dealSave({ ...dealS, at: Date.now(), started: true, rate: bossWinRate() }); dealRound(0); };
+// 10/31: 마왕게임을 가장 많이 한 사람에게 주는 선물 → 특별 게임
+function hwGift(){
+  const nk = (me && me.nick) || "";
+  dealSay([`하하하. ${esc(nk)}${josa(nk || "○", "이구만", "구만")}.`, "너가 내 성을 가장 많이 찾아왔지.", "실패할 수도 있는데...", "용기가 대단해.", "보상을 해주지."], async () => {
+    await hwGiftSave(); dealRain();
+    dealSay([`<b>🍬 사탕 ${HW.gift}개를 받았다!</b>`, "나를 찾아와준 것에 대한 선물이야.", "자 이제 게임을 하지."], () => bossData().sp ? hwRegular() : hwOffer(true));
+  });
+}
+const HW_NOTE = "*해당 게임 결과는 누적 갯수에 영향을 줍니다";
+function hwOffer(cont){
+  dealSay([...(cont ? [] : ["하하하! 또 손님이 왔군."]), "오늘은 특별한 제안을 하지.", `오늘 단 한 번, 이기면 사탕 ${HW.win}개를 주지.`, "그치만... 실패하면...", `네 사탕 ${HW.lose}개를 내놓아야 해.`, `중간에 도망가도 ${HW.quit}개는 내놔야 하고. 크크크.`, "어때, 해볼텐가?"], hwMain);
+}
+function hwMain(){
+  dealAsk([["해볼게!", () => dealSay(["좋아. 그럼 시작하지...!"], hwGo), true], ["무슨 게임이야?", () => dealSay(DEAL_RULES, hwMain)],
+    ["됐어!", () => dealSay(["흥... 겁쟁이로군!", "정말 안 할 거야? 진짜로?", `사탕 ${HW.win}개가 걸린 판은 오늘 딱 한 번뿐이다.`], () => dealAsk([
+      ["응, 안 할래", async () => { await hwRecord({ r: "decline", at: Date.now() }); dealSay(["크크크... 겁쟁이 같으니.", "좋아. 그럼 평소처럼 놀아주지."], hwRegular); }],
+      ["흠.. 해볼까?", () => dealSay(["크크... 그럴 줄 알았지.", "좋아. 시작하지...!"], hwGo), true]], HW_NOTE))]], HW_NOTE);
+}
+async function hwGo(){ await dealSave({ phase: "intro", at: Date.now(), tier: 0, sp: true, started: true, rate: HW.rate }); dealRound(0); }
+// 특별 게임 뒤 (또는 거절 뒤) 일반 게임으로
+function hwRegular(){
+  if (bossToday() >= bossDayMax()) return dealSay(["크크크... 오늘은 충분히 놀았다.", "내일 다시 와라."], () => dealAsk([["닫기", closeDeal]]));
+  dealSave({ phase: "intro", at: Date.now(), tier: 0 });
+  dealSay(bossIntro().slice(2), dealMain);
+}
+const dealGo = () => { if (dealMode === "boss" && !(dealS && dealS.sp)) dealSave({ ...dealS, at: Date.now(), started: true, rate: bossWinRate() }); dealRound(0); };
 function dealMain(){
   if (dealMode === "boss") return dealAsk([["해볼게!", () => dealSay(["좋아. 그럼 시작하지...!"], dealGo), true], ["무슨 게임이야?", () => dealSay(DEAL_RULES, dealMain)],
     ["됐어!", () => { dealSave({ phase: "done" }); dealSay(["흥... 겁쟁이로군.", "마음이 바뀌면 언제든 다시 와라. 크크크."], () => dealAsk([["닫기", closeDeal]])); }]], "*해당 게임 결과는 누적 갯수에 영향을 줍니다");
@@ -2738,7 +2810,11 @@ function dealReveal(resumed, ps){
   if (st.pick !== st.cdy) ps[st.pick].classList.add("empty"); setTimeout(() => ps[st.cdy].classList.add("peek"), st.pick === st.cdy ? 100 : 700);
   const end = lines => dealSay(lines, () => dealAsk([["닫기", () => { dealSave({ ...dealS, phase: "done" }); closeDeal(); }]]));
   setTimeout(() => {
-    if (!st.win) return dealSay(["크크크... 거기가 아니지."], dealSlam);
+    if (!st.win) return dealSay(["크크크... 거기가 아니지.", ...(st.sp ? [`대신 오늘은 나와 게임을 할 기회를 ${HW.max}번 줄게.`] : [])], dealSlam);
+    if (st.sp && st.round === DEAL_N.length - 1) { dealRain();
+      return dealSay(["...말도 안 돼!", "세 번 연속이라니...", `...약속은 약속이지. 사탕 ${HW.win}개다.`, "운이 좋군. 승리를 빌겠다.", `오늘은 우리 집을 ${HW.max}번까지 찾아와도 돼.`, "또 볼 수 있길.."], () => {
+        dealSave({ ...dealS, phase: "done" }); const d = $("deal"); $("deal-game").hidden = true; $("deal-bub").innerHTML = ""; d.classList.remove("playing", "open"); dealBusy = true;
+        setTimeout(() => { dealBusy = false; closeDeal(); }, 1300); }); }
     if (st.round === DEAL_N.length - 1) { dealRain();
       return end(dealMode === "boss" ? ["...말도 안 돼!", "세 번 연속이라니...", `...약속은 약속이지. 사탕 ${DM().win}개다.`, "다음엔... 쉽지 않을 거다."] : ["...말도 안 돼!", "세 번 연속이라니...", `...약속은 약속이지. 사탕 ${EARN.dealWin}개다.`, "넌 이제 진짜 1등이다. 다음엔... 두고 보자."]); }
     dealSay([st.round === 0 ? "호오... 운이 좋군." : "제법인데...?", st.round === 0 ? "하지만 다음엔 쉽지 않을걸?" : "마지막 판이다. 여기서 멈출 수는 없지?"], () => dealRound(st.round + 1));
@@ -2752,7 +2828,7 @@ function dealSlam(kind){
   setTimeout(() => { d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake"); }, 260);
   setTimeout(() => {
     const o = document.createElement("div"); o.className = "deal-lost";
-    const lostN = dealMode === "boss" ? (dealLastLost != null ? dealLastLost : bossLost(me, String(dealS.at), kind === "quit" ? "quit" : "lose")) : (dealS.lost != null ? dealS.lost : kind === "quit" ? DM().quit : DM().lose);
+    const lostN = dealMode === "boss" ? (dealLastLost != null ? dealLastLost : dealS.sp ? hwLost({ boss: bossData() }) : bossLost(me, String(dealS.at), kind === "quit" ? "quit" : "lose")) : (dealS.lost != null ? dealS.lost : kind === "quit" ? DM().quit : DM().lose);
     o.innerHTML = `${kind === "quit" ? "" : "<b>쾅!</b>"}<b>${lostN ? `누적 사탕 ${lostN}개를 잃었습니다` : "가져갈 누적 사탕이 없어서 잃은 사탕은 없어요"}</b><button type="button">닫기</button>`;
     o.querySelector("button").onclick = e => { e.stopPropagation(); o.remove(); d.classList.remove("slam"); dealSave({ ...dealS, phase: "done" }); closeDeal(); };
     d.appendChild(o); dealBusy = false;
@@ -2834,6 +2910,8 @@ function renderDealStat(){
   st2.innerHTML = `<b>🎃 마왕문 게임 통계</b><br>총 ${all}판 · 참여 ${rows.length}명<br>✅ 우승 ${t.win} (${pct(t.win, all)}) · ❌ 실패 ${t.lose} (${pct(t.lose, all)}) · 🏳️ 포기 ${t.quit} (${pct(t.quit, all)})<br><small>포기 빼고 승률: ${pct(t.win, t.win + t.lose)}</small>` +
     (rows.length ? `<table class="sc-t">${rows.sort((a, b) => b.n - a.n).map(r => `<tr><td>${esc(r.nick)}</td><td class="n">${r.n}판</td><td class="n">✅${r.win}</td><td class="n">❌${r.lose}</td><td class="n">🏳️${r.quit}</td></tr>`).join("")}</table>` : "");
   const deals = Object.values(players).filter(q => q.deal && q.deal.phase === "done" && q.deal.result && q.deal.result !== "open");
+  const sps = Object.values(players).filter(q => q.boss && q.boss.sp), spc = r => sps.filter(q => q.boss.sp.r === r).length, top = hwTopId();
+  st2.insertAdjacentHTML("beforeend", `<br><b>🎃 10/31 특별 게임</b><br>${sps.length ? `✅ 우승 ${spc("win")} · ❌ 실패 ${spc("lose")} · 🏳️ 포기 ${spc("quit")} · 🙅 거절 ${spc("decline")}` : "아직 아무도 안 했어요"}<br>👑 최다 플레이어 (30개 선물): ${top ? esc(players[top].nick || "") + (players[top].boss.hwGift ? " · 받음" : " · 아직") : "-"}`);
   if (deals.length) st2.insertAdjacentHTML("beforeend", `<br><b>👑 1등 200개 거래</b><br>${deals.map(q => `${esc(q.nick || "")}: ${({ decline: "거절", win: "승리", lose: "패배", quit: "포기" })[q.deal.result] || q.deal.result}`).join(" · ")}`);
   box.appendChild(st2);
   if (!f) { const bt = document.createElement("button"); bt.className = "ghost"; bt.textContent = "관리자 권한으로 마왕성 바로 열기"; bt.onclick = async () => {
@@ -2858,7 +2936,7 @@ function scoreParts(id){
   const ph = photoBonusOf(p, id), un = fashionCount(p), inv = insiderCount(id);
   rows.push(["사탕 받음 (보통)", c.recv], ["사탕 받음 (거지왹)", c.beg], ["반짝이 당첨", c.spk], ["사탕도둑 성공", c.th],
     ["사탕 줌 (두드린 손님)", g.give], ["⚠️ 사탕 줌 (두드림 기록 없음)", g.nok], ["파리 거지왹에게 뺏김", g.fly], ["호의 보상", g.favor], ["도둑맞음", g.robbed],
-    ["🎁 관리자 선물 (누적 반영)", [Object.values(p.bonus || {}).filter(bonusE).length, bonusEarnOf(p)]], ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]], ["🎃 보스 거래", [p.deal && p.deal.result && p.deal.result !== "decline" ? 1 : 0, dealPts(p)]]);
+    ["🎁 관리자 선물 (누적 반영)", [Object.values(p.bonus || {}).filter(bonusE).length, bonusEarnOf(p)]], ["처음 보는 코스튬 사진", [ph, ph * EARN.photo]], ["코스튬 열기 보너스", [un, un * EARN.unlock]], ["친구 초대", [inv, inv * EARN.invite]], ["🎃 보스 거래", [p.deal && p.deal.result && p.deal.result !== "decline" ? 1 : 0, dealPts(p)]], ["🏰 마왕문 게임 (10/31 특별 게임·선물 포함)", [Object.keys((p.boss && p.boss.log) || {}).length + (p.boss && p.boss.sp && p.boss.sp.r !== "decline" ? 1 : 0), bossPts(p)]]);
   return { rows, byDay, from };
 }
 // 관리자: 이 회원이 언제 무엇으로 사탕을 얻었는지 (시각 · 내용 · 점수)
@@ -3427,7 +3505,11 @@ $("adm-badges").onclick = () => { badgePreviewAll = true; renderBadges(); openSh
 $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(m)));
 $("adm-flydoor").onclick = startFlyDoor;
 $("adm-deal").onclick = () => openDeal(true, 0);
-$("adm-boss").onclick = () => { castlePreview = "open"; openMap(null, true); mapFrom = "admin"; toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
+const hwPrev = kind => { hwPreview = kind; try { localStorage.removeItem("bossPreview"); } catch {} openDeal(true, 0, "boss"); };
+$("adm-hw").onclick = () => hwPrev("user");
+$("adm-hw-top").onclick = () => hwPrev("top");
+$("adm-hw-news").onclick = () => showHwNews(() => {});
+$("adm-boss").onclick = () => { hwPreview = null; castlePreview = "open"; openMap(null, true); mapFrom = "admin"; toast("미리보기: 지금 이 기기에서만 마을 지도에 성이 보여요"); };
 // 관리자: 사탕도둑 미리보기
 let tpThief = false;
 const tpLook = () => tpThief ? thiefSVG(me.char, starOn(me, myId)) : withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
@@ -4130,7 +4212,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26a";
+const APP_BUILD = "2026-10-26b";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
