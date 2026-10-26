@@ -697,6 +697,49 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140px);background:var(--paper);color:var(--brown);border:3px solid var(--brown);padding:.5em 1.2em;border-radius:24px;font-size:.95rem;z-index:60;transition:transform .3s,visibility .3s;width:max-content;max-width:min(92vw,460px);line-height:1.45;white-space:pre-line;text-align:center;visibility:hidden}
 .toast.on{transform:translate(-50%,0);visibility:visible}
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} .knock-word span{opacity:1} }
+
+/* ===== 11월 1일 결과 발표 · 게임 종료 ===== */
+.final-closed{position:fixed;inset:0;z-index:58;background:radial-gradient(ellipse at 50% 30%,#4a2470 0%,#22102f 60%,#100616 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:6px}
+.final-closed[hidden]{display:none!important}
+.final-closed .fc-pump{font-size:4.2rem;animation:float 3s ease-in-out infinite}
+.final-closed h2{font-family:"Jua",sans-serif;font-weight:400;font-size:2rem;margin:.2em 0 0}
+.final-closed p{margin:0;color:#e8dcf5;font-size:1.05rem;word-break:keep-all}
+.fc-timer{font-family:"Jua",sans-serif;font-size:3.4rem;letter-spacing:.04em;color:#ffc53d;margin:.4em 0 0;font-variant-numeric:tabular-nums;text-shadow:0 4px 0 rgba(0,0,0,.35)}
+.final-closed small{color:#bfa9d6}
+.final-closed .fc-x{margin-top:18px}
+.final-closed .secret{position:absolute;right:0;top:0;width:56px;height:56px;opacity:0}
+.fin-title{font-family:"Jua",sans-serif;font-weight:400;text-align:center;font-size:1.7rem;line-height:1.3;margin:.2em 0 .1em;color:#fff}
+.fin-sub{text-align:center;color:var(--muted);margin:0 0 18px;font-size:.95rem}
+.fin-card{background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:24px;box-shadow:0 6px 0 var(--brown);text-align:center;padding:14px 12px 16px;position:relative}
+.fin-card .ch svg{display:block;width:100%;height:auto}
+.fin-rank{font-family:"Jua",sans-serif;font-size:1.15rem;color:#d9621b}
+.fin-nick{font-family:"Jua",sans-serif;font-size:1.25rem;line-height:1.25;word-break:break-all}
+.fin-card .fin-nick{display:block;margin-top:2px}
+.fin-real{display:block;font-size:.8rem;color:var(--paper-muted);margin-top:1px}
+.fin-candy{display:inline-block;margin-top:6px;background:#ffe7b8;border:2px solid var(--brown);border-radius:999px;padding:.05em .7em;font-family:"Jua",sans-serif}
+.fin-1{margin:0 0 18px;background:linear-gradient(180deg,#fff3c4,#fff8ee 60%)}
+.fin-1 .ch{width:68%;margin:0 auto}
+.fin-1 .fin-rank{font-size:1.6rem}.fin-1 .fin-nick{font-size:1.7rem}
+.fin-crown{font-size:2.6rem;line-height:1;margin-bottom:-4px}
+.fin-23{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.fin-23 .ch{width:84%;margin:0 auto}
+.fin-list{list-style:none;margin:0 0 22px;padding:6px 12px;background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:24px;box-shadow:0 6px 0 var(--brown)}
+.fin-list li{display:grid;grid-template-columns:2.4em 56px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--soft)}
+.fin-list li:last-child{border-bottom:0}
+.fin-list .r{font-family:"Jua",sans-serif;font-size:1.1rem;text-align:center;color:#d9621b}
+.fin-list .ch svg{display:block;width:56px;height:auto}
+.fin-list .fin-nick{font-size:1rem;text-align:left}
+.fin-list .n{font-family:"Jua",sans-serif}
+.fin-crowd-t{font-family:"Jua",sans-serif;font-weight:400;text-align:center;color:#fff;margin:0 0 4px;font-size:1.2rem}
+.fin-crowd{display:flex;flex-wrap:wrap;justify-content:center;padding:6px 0 40px}
+.fin-crowd .cw{width:68px;margin:-4px -2px;text-align:center}
+.fin-crowd .cw svg{display:block;width:100%;height:auto}
+.fin-crowd .cw small{display:block;font-size:.66rem;color:#fff;text-shadow:0 1px 2px #22102f,0 0 3px #22102f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}
+.fin-look{display:flex;align-items:center;gap:12px}
+.fin-look .ch{width:64px;flex:none}.fin-look .ch svg{display:block;width:100%;height:auto}
+.rv-pick{display:flex;gap:8px;margin:8px 0 4px}.rv-pick button{flex:1}
+.rv-pick button.on{background:#7cc47f;color:#fff}
+.fin-adm td{padding:4px 3px;vertical-align:middle}.fin-adm .ch svg{width:34px;height:auto;display:block}
 </style>
 </head>
 <body>
@@ -736,6 +779,11 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <b>내 고유번호</b>
       <div class="findrow"><input id="mycode" readonly aria-label="내 고유번호"><button id="mycode-copy" class="ghost">복사</button></div>
       <p class="muted">다른 기기에서 접속할 때 '이전에 참가했었나요?'를 누르고 이 번호를 넣으면 지금 계정 그대로 들어와요. 다른 사람에게는 알려주지 마세요.</p>
+    </div>
+    <div class="card" id="reveal-box" hidden>
+      <b>🏆 결과발표식 실명 공개</b>
+      <p class="muted" style="margin:.3em 0 0">11월 1일 결과 발표에서 10등 안에 들면 별명 아래에 부서와 이름을 작게 보여줄까요? (공개를 선택한 사람만 공개 예정입니다)</p>
+      <div class="rv-pick"><button type="button" id="rb-yes">예, 공개</button><button type="button" id="rb-no">아니오</button></div>
     </div>
     <button class="big" id="btn-register">참가하기</button>
     <div class="relogin" id="relogin">
@@ -810,6 +858,14 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <h2 class="gallery-title" id="gallery-title">우리 집에 온 친구와 찍은 사진</h2>
     <div class="pick-bar" id="pick-bar" hidden>게시판에 올릴 사진을 골라 주세요 👆</div>
     <div class="album" id="album"></div>
+  </section>
+
+  <!-- 11월 1일 결과 발표 -->
+  <section class="view" id="v-final">
+    <div class="topbar"><button class="ghost" id="btn-final-back">← 우리 집으로</button><span class="map-count" id="final-tag"></span></div>
+    <h2 class="fin-title">🏆 할로윈 사탕 리그<br>최종 결과 발표</h2>
+    <p class="fin-sub">10월 31일 밤 11시 59분 59초 누적 사탕 기준</p>
+    <div id="final-body"></div>
   </section>
 
   <!-- 손님 목록 / 집번호 찾기 -->
@@ -949,6 +1005,25 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="reset-item" style="margin-top:12px"><b>이 회원 삭제</b><span>가짜 계정 등을 지워요. 이 회원이 주고받은 사탕도 순위에서 빠져요.</span><button class="danger" id="sm-delete">회원 삭제</button></div>
     </div>
   </div>
+  <div class="final-closed" id="final-closed" hidden>
+    <button class="secret" id="fc-admin" aria-label="관리자"></button>
+    <div class="fc-pump">🎃</div>
+    <h2>게임이 끝났습니다</h2>
+    <p>그동안 함께해 주셔서 고마워요!<br>최종 순위는 오전 8시 공개 예정입니다.</p>
+    <div class="fc-timer" id="fc-timer">--:--:--</div>
+    <small>결과 발표까지 남은 시간</small>
+    <button class="ghost fc-x" id="fc-x" hidden>미리보기 닫기</button>
+  </div>
+  <div class="sheet-bg" id="sheet-reveal" data-modal hidden>
+    <div class="sheet card">
+      <em class="nt-kick">🏆 11월 1일 결과발표식</em>
+      <h2 style="margin:.1em 0 .4em">실명 공개 동의</h2>
+      <p style="margin:0 0 .5em;word-break:keep-all">지금 사탕 리그 <b id="rv-rank"></b>이에요! 11월 1일 결과발표식에 내 진짜 이름과 부서가 공개되어도 되나요?</p>
+      <p class="muted" id="rv-who" style="margin:0"></p>
+      <div class="rv-pick"><button class="green" id="rv-yes">예</button><button id="rv-no">아니오</button></div>
+      <p class="muted" style="font-size:.85rem;margin:.4em 0 0">*공개를 선택한 사람만 공개 예정입니다.<br>10월 31일 밤 12시 전까지 '내 정보 수정'에서 바꿀 수 있어요.</p>
+    </div>
+  </div>
   <div class="sheet-bg" id="sheet-find" hidden>
     <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sf-title">
       <div class="sheet-head"><h2 id="sf-title">이웃집 찾아가기</h2><span class="row" style="flex-wrap:nowrap;gap:6px"><button class="ghost map-btn" id="btn-map">🗺️ 마을 지도</button><button class="ghost" data-close>닫기</button></span></div>
@@ -971,6 +1046,11 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div id="d-char"></div><div class="floor"></div>
       <button class="peek-btn" id="btn-peek">미리보기</button>
       <div class="candy-badge"><b id="d-candy">0</b><small>쓸 수 있는 사탕</small></div>
+    </div>
+    <div class="card" id="final-look-box" hidden>
+      <h2>🏆 결과 발표에 나갈 내 모습</h2>
+      <div class="fin-look"><span class="ch" id="fl-char"></span><p class="muted" id="fl-note" style="margin:0"></p></div>
+      <button class="big green" id="btn-final-look" style="margin-top:10px">지금 이 모습으로 결과 발표 나가기</button>
     </div>
 
     <div class="card">
@@ -1034,6 +1114,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button role="tab" data-tab="phrases" aria-selected="false">문구</button>
       <button role="tab" data-tab="dups" aria-selected="false">같은 이름<span class="dup-dot" id="dup-dot" hidden></span></button>
       <button role="tab" data-tab="prices" aria-selected="false">가격·규칙</button>
+      <button role="tab" data-tab="final" aria-selected="false">🏆 결과 발표</button>
       <button role="tab" data-tab="reset" aria-selected="false">초기화</button>
     </div>
     <div class="card admin-key" id="adm-key" hidden>
@@ -1047,6 +1128,17 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
         <li>문서 ID에 위 관리자 ID를 붙여넣고, 필드는 <b>ok</b> (boolean, true)로 저장</li>
         <li>이 화면을 새로 고침</li>
       </ol>
+    </div>
+    <div class="card" data-pane="final" hidden>
+      <h2>🏆 11월 1일 결과 발표</h2>
+      <p class="muted" style="margin-top:-.3em">일정 (한국 시간)<br>· 10/30 0시 ~ 10/31 밤 12시: 1~10등에게 실명 공개 질문 (안 하면 비공개)<br>· 10/31 하루: 모두에게 결과 발표 모습 고르기 (안 고르면 그때 입은 모습)<br>· 11/1 0시: 게임 종료 · 모든 기능 막힘 · 오전 8시까지 카운트다운<br>· 11/1 오전 8시: 결과 발표 공개 · 이후 문 두드리기·사탕 주기·마왕게임 막힘 (코스튬 사기는 가능)</p>
+      <p id="fin-phase" style="font-weight:700"></p>
+      <div id="fin-adm"></div>
+      <button class="big" id="adm-fin-reveal" style="margin-top:12px">🙋 실명 공개 질문 미리보기</button>
+      <button class="big" id="adm-fin-look" style="margin-top:12px">👗 결과 발표 모습 고르기 공지 미리보기</button>
+      <button class="big" id="adm-fin-closed" style="margin-top:12px">⏰ 게임 종료 화면 미리보기 (밤 12시 ~ 오전 8시)</button>
+      <button class="big green" id="adm-fin-result" style="margin-top:12px">🏆 결과 발표 페이지 미리보기 (지금 순위로)</button>
+      <button class="big" id="adm-fin-end" style="margin-top:12px">🚪 The End 안내 미리보기 (결과 발표 뒤 문 두드리기)</button>
     </div>
     <div class="card" data-pane="lab">
       <h2>실험하기</h2>
@@ -1773,6 +1865,7 @@ function openRegister(edit){
   editMode = edit;
   $("v-register").classList.toggle("edit", edit);
   $("btn-register").textContent = edit ? "저장하기" : "참가하기";
+  renderRevealBox();
   const pr = edit && me ? profileOf(myId) : { dept: "", name: "" };
   $("f-dept").value = pr.dept;
   $("f-name").value = pr.name;
@@ -1999,7 +2092,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants(); checkBossNews(); checkHwNews(); checkBoardNews();
+  checkUpdates(); checkGrants(); checkBossNews(); checkHwNews(); checkBoardNews(); checkReveal(); checkLookNews();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -2216,7 +2309,7 @@ function renderMap(){
     box.insertAdjacentHTML("beforeend", `<div class="vcastle-wrap${building ? " gray" : ""}" style="top:${gateY - ch + 4}px;left:${W / 2 - cw / 2}px;width:${cw}px"><img class="vcastle" alt="마왕성" src="data:image/webp;base64,${DECO.castle}">
       <img class="vbat b1" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b2" alt="" src="data:image/webp;base64,${DECO.bat2}"><img class="vbat b3" alt="" src="data:image/webp;base64,${DECO.bat1}"><img class="vbat b4" alt="" src="data:image/webp;base64,${DECO.bat2}"></div>
       <button type="button" class="vsign" id="vsign" style="top:${cur[Math.floor(n * .72)][1] - 16}px;left:${W / 2}px;transform:translateX(-50%)"><span>마왕문 두드리기 ➜</span></button>`);
-    $("vsign").onclick = () => building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE || !!castlePreview, 0, "boss");
+    $("vsign").onclick = () => !castlePreview && endBlock() ? 0 : building ? toast("🚧 마왕성은 아직 공사 중이에요. 곧 열려요!") : openDeal(!DEAL_LIVE || !!castlePreview, 0, "boss");
     if (building) box.insertAdjacentHTML("beforeend", `<div class="vbuild" style="top:${gateY - ch * .62}px;left:${W / 2}px"><i></i><i></i><b>공사중</b></div>`);
   }
   // 마을 게시판 (길 오른쪽, 마왕성 언덕 아래)
@@ -2847,7 +2940,7 @@ $("deal-x").onclick = e => { e.stopPropagation(); closeDeal(); };
 $("deal-reset").onclick = e => { e.stopPropagation(); try { localStorage.removeItem(dealMode === "boss" ? "bossPreview" : "dealPreview"); } catch {} openDeal(true, dealPrevTier, dealMode); };
 // 공개 후: 1등이 로그인하면 한 번 (진행 중이던 거래는 1등이 아니어도 이어서)
 function maybeDeal(){
-  if (!DEAL_LIVE || !me || !$("deal").hidden) return false;
+  if (!DEAL_LIVE || !me || !$("deal").hidden || gameOver()) return false;
   // 진행 중이던 마왕문 판이 있으면 이어서
   if (me.boss && me.boss.cur && me.boss.cur.started) { openDeal(false, 0, "boss"); return true; }
   const st = me.deal;
@@ -3108,7 +3201,7 @@ function renderDress(){
   $("star-row").hidden = !starGot;
   $("btn-star").textContent = starPref ? "켜짐" : "꺼짐"; $("btn-star").setAttribute("aria-checked", starPref);
   $("star-note").textContent = look.char !== "cat" ? "게왹이일 때만 함께 나와요" : freeMode ? "미리보기 · 저장되지 않아요" : "문 앞과 사진에 같이 나와요";
-  $("d-candy").textContent = bal;
+  $("d-candy").textContent = bal; renderFinalLookBox();
   $("invite-bonus").textContent = `내 링크로 들어오면 사탕 +${EARN.invite}!`;
   renderHouseChips(); renderPhrase();
 
@@ -3456,8 +3549,133 @@ function renderJoins(){
     box.appendChild(d); });
   if (!inviters.length) box.innerHTML = '<p class="muted">아직 초대 링크로 들어온 사람이 없어요.</p>';
 }
+
+// ===== 11월 1일 결과 발표 · 게임 종료 =====
+// 10/30 0시부터 1~10등에게 실명 공개 질문 · 10/31에 결과 발표 모습 고르기 · 11/1 0시 게임 종료(오전 8시까지 카운트다운) · 8시 결과 발표
+// players.reveal = { ok: true, dept, name, at } | { ok: false, at } · players.finalLook = { char, costume, at }
+const CONSENT_AT = Date.UTC(2026, 9, 29, 15), END_AT = Date.UTC(2026, 9, 31, 15), RESULT_AT = Date.UTC(2026, 9, 31, 23);
+let finalPreview = null; // 관리자 미리보기: "closed" | "result"
+const gameOver = () => Date.now() >= END_AT;
+const gamePhase = () => finalPreview || (Date.now() < END_AT ? "play" : Date.now() < RESULT_AT ? "closed" : "result");
+const lookDay = () => todayNo() === HW_DAY && !gameOver();
+const revealOpen = () => Date.now() >= CONSENT_AT && !gameOver();
+// 마감 뒤 생긴 사탕(코스튬 열기 보너스 · 새로 초대 · 관리자 누적 선물)은 순위에서 빼요
+function finalEarned(id){
+  const p = players[id] || {};
+  const late = Object.entries(p.owned || {}).filter(([k, v]) => k.startsWith("k:") && +v > END_AT).length;
+  const inv = Object.values(players).filter(q => q.invitedBy === id && (q.createdAt || 0) > END_AT).length;
+  const bon = Object.entries(p.bonus || {}).reduce((n, [k, v]) => n + (+k > END_AT && bonusE(v) ? bonusN(v) : 0), 0);
+  return Math.max(0, earnedRaw(id) - EARN.unlock * late - EARN.invite * inv - bon);
+}
+function finalRanks(){
+  const list = Object.keys(players).filter(id => players[id].nick).map(id => ({ id, p: players[id], n: finalEarned(id) }))
+    .sort((a, b) => b.n - a.n || (a.p.createdAt || 0) - (b.p.createdAt || 0));
+  list.forEach(x => { x.rank = 1 + list.filter(y => y.n > x.n).length; });
+  return list;
+}
+const finalLookOf = p => (p.finalLook && p.finalLook.char) ? p.finalLook : { char: p.char || "cat", costume: p.costume || "none" };
+const finalChar = p => { const l = finalLookOf(p); return charSVG(l.char, l.costume, ""); };
+const realOf = p => p.reveal && p.reveal.ok && (p.reveal.dept || p.reveal.name) ? [p.reveal.dept, p.reveal.name].filter(Boolean).join(" / ") : "";
+function renderFinal(){
+  const L = finalRanks(), top = L.filter(x => x.rank <= 10), rest = L.filter(x => x.rank > 10), box = $("final-body");
+  const nick = x => `<b class="fin-nick">${esc(x.p.nick)}${x.id === myId ? " (나)" : ""}${realOf(x.p) ? `<small class="fin-real">${esc(realOf(x.p))}</small>` : ""}</b>`;
+  const card = (x, cls, crown) => `<div class="fin-card ${cls}">${crown ? '<div class="fin-crown">👑</div>' : ""}<div class="fin-rank">${x.rank}등</div><div class="ch">${finalChar(x.p)}</div>${nick(x)}<span class="fin-candy">🍬 ${x.n}</span></div>`;
+  const first = top.filter(x => x.rank === 1), podium = top.filter(x => x.rank > 1 && x.rank <= 3), others = top.filter(x => x.rank > 3);
+  let html = first.map(x => card(x, "fin-1", true)).join("");
+  if (podium.length) html += `<div class="fin-23">${podium.map(x => card(x, "")).join("")}</div>`;
+  if (others.length) html += `<ol class="fin-list">${others.map(x => `<li><span class="r">${x.rank}</span><span class="ch">${finalChar(x.p)}</span>${nick(x)}<span class="n">🍬 ${x.n}</span></li>`).join("")}</ol>`;
+  if (rest.length) html += `<h3 class="fin-crowd-t">함께한 마을 친구들 ${rest.length}명 🎃</h3><div class="fin-crowd">${rest.map(x => `<div class="cw" style="transform:rotate(${(hashOf(x.id) % 15) - 7}deg) translateY(${hashOf(x.id + "y") % 9}px)">${finalChar(x.p)}<small>${esc(x.p.nick)}</small></div>`).join("")}</div>`;
+  box.innerHTML = html || '<p class="fin-sub">아직 참가자가 없어요.</p>';
+  $("final-tag").textContent = finalPreview === "result" ? "관리자 미리보기" : "";
+}
+let finalFrom = "home", finalShown = false;
+function openFinal(){ if (current !== "final") finalFrom = current; closeSheets(); renderFinal(); show("final"); }
+$("btn-final-back").onclick = () => { if (finalPreview === "result") { finalPreview = null; openAdmin(); return; } if (me) goHome(); else show(finalFrom === "final" ? "intro" : finalFrom || "intro"); };
+// 결과 발표 뒤 문 두드리기 등 사탕이 오가는 걸 막을 때
+function theEnd(preview){
+  if (!preview && gamePhase() === "closed") return;
+  showNotice("🎃 Happy Halloween", "할로윈이 지났어요", [{ title: "더 이상 문을 두드릴 수 없습니다", text: "할로윈이 지나 문을 두드리거나 사탕을 주고받을 수 없어요. 그동안 플레이해주셔서 감사합니다! 🧡", preview: '<span style="font-size:3rem">🚪</span>' }], () => {}, ["🏆 결과 발표 보기", openFinal]);
+}
+const endBlock = () => { if (!gameOver()) return false; theEnd(); return true; };
+// 밤 12시 ~ 오전 8시: 모든 화면을 덮는 카운트다운 (관리자는 관리자 화면에서 볼 수 있어요)
+const pad2 = n => String(n).padStart(2, "0");
+function finalTick(){
+  const ph = gamePhase(), el = $("final-closed");
+  const on = ph === "closed" && (finalPreview === "closed" || (!adminUnlocked && $("sheet-pw").hidden));
+  el.hidden = !on; $("fc-x").hidden = finalPreview !== "closed";
+  if (on) { const s = Math.max(0, Math.floor(((finalPreview ? Date.now() + 5 * 3600e3 + 23 * 6e4 + 7e3 : RESULT_AT) - Date.now()) / 1000));
+    $("fc-timer").textContent = `${pad2(Math.floor(s / 3600))}:${pad2(Math.floor(s / 60) % 60)}:${pad2(s % 60)}`; }
+  if (!finalPreview && ph === "result" && !finalShown && Object.keys(players).length && current !== "admin" && current !== "final") { finalShown = true; openFinal(); }
+}
+setInterval(finalTick, 1000);
+$("fc-x").onclick = () => { finalPreview = null; finalTick(); };
+$("fc-admin").onclick = () => { if (adminUnlocked) { openAdmin(); finalTick(); return; } $("pw-in").value = ""; $("pw-msg").textContent = ""; openSheet("sheet-pw"); finalTick(); };
+// 실명 공개 질문 (1~10등 · 10/30 0시 ~ 10/31 밤 12시)
+let revealQueued = false, revealPrev = false;
+async function saveReveal(ok){
+  const pf = profiles[myId] || profileOf(myId) || {};
+  const v = ok ? { ok: true, dept: pf.dept || "", name: pf.name || "", at: Date.now() } : { ok: false, dept: "", name: "", at: Date.now() };
+  try { await db.doc("players/" + myId).update({ reveal: v }); if (me) me.reveal = v; toast(ok ? "결과 발표에 부서와 이름을 함께 보여줄게요 🙆" : "결과 발표에는 별명만 보여줄게요 🙅"); return true; }
+  catch { toast("저장하지 못했어요. 다시 눌러 주세요."); return false; }
+}
+function showReveal(preview){
+  revealPrev = !!preview;
+  const r = preview ? 3 : leagueRank(myId), pf = profiles[myId] || {};
+  $("rv-rank").textContent = `${r}등`;
+  $("rv-who").textContent = pf.dept || pf.name ? `공개되면: ${[pf.dept, pf.name].filter(Boolean).join(" / ")}` : "";
+  openSheet("sheet-reveal");
+}
+$("rv-yes").onclick = async () => { if (revealPrev || await saveReveal(true)) nextModal(); };
+$("rv-no").onclick = async () => { if (revealPrev || await saveReveal(false)) nextModal(); };
+function checkReveal(){
+  if (!me || revealQueued || !revealOpen() || me.reveal || leagueRank(myId) > 10) return;
+  revealQueued = true; pushModal(() => showReveal(false));
+}
+function renderRevealBox(){
+  const box = $("reveal-box"); box.hidden = !(editMode && me && revealOpen()); if (box.hidden) return;
+  const v = me.reveal; $("rb-yes").classList.toggle("on", !!(v && v.ok)); $("rb-no").classList.toggle("on", !!(v && !v.ok));
+}
+$("rb-yes").onclick = async () => { if (await saveReveal(true)) renderRevealBox(); };
+$("rb-no").onclick = async () => { if (await saveReveal(false)) renderRevealBox(); };
+// 결과 발표 모습 고르기 (10/31 하루)
+let lookPrev = false;
+function showLookNews(done){
+  const l = me ? finalLookOf(me) : { char: "cat", costume: "none" };
+  showNotice("<내일 오전 8시 결과 발표!>", "결과 발표에 나갈 내 모습을 골라 주세요", [{ title: "오늘 밤 12시까지 골라요", text: "꾸미기에서 캐릭터와 코스튬을 입고 '지금 이 모습으로 결과 발표 나가기'를 눌러 주세요. 안 고르면 그때 입고 있는 모습으로 나가요. 순위 밖의 친구들도 결과 페이지에 모두 나와요!", preview: charSVG(l.char, l.costume, "") }], done, ["👗 꾸미기에서 고르기", goDress]);
+}
+let lookQueued = false;
+function checkLookNews(){
+  if (!me || lookQueued || !lookDay() || me.finalLook || (me.seenUpdates || {}).finalLook) return;
+  lookQueued = true; pushModal(() => showLookNews(() => setMine({ seenUpdates: { finalLook: Date.now() } })));
+}
+function renderFinalLookBox(){
+  const box = $("final-look-box"); box.hidden = !(me && !freeMode && (lookDay() || lookPrev)); if (box.hidden) return;
+  const l = finalLookOf(me), picked = !!(me.finalLook && me.finalLook.char), same = picked && l.char === me.char && l.costume === me.costume;
+  $("fl-char").innerHTML = charSVG(l.char, l.costume, "");
+  $("fl-note").textContent = picked ? `골라 둔 모습이에요 (${(CHARS[l.char] || {}).name || ""} · ${costumeById(l.costume).name}). 밤 12시 전까지 바꿀 수 있어요.` : "아직 안 골랐어요. 안 고르면 결과 발표 때 입고 있는 모습으로 나가요.";
+  $("btn-final-look").disabled = same; $("btn-final-look").textContent = same ? "✓ 이 모습으로 나가요" : "지금 이 모습으로 결과 발표 나가기";
+}
+$("btn-final-look").onclick = async () => {
+  if (!me) return; if (lookPrev) { toast("미리보기라 저장되지 않아요"); return; }
+  try { await setMine({ finalLook: { char: me.char, costume: me.costume, at: Date.now() } }); me.finalLook = { char: me.char, costume: me.costume }; renderFinalLookBox(); toast("이 모습으로 결과 발표에 나가요! 🏆"); }
+  catch { toast("저장하지 못했어요. 다시 눌러 주세요."); }
+};
+// 관리자: 결과 발표 탭
+function renderFinalAdmin(){
+  const ph = gamePhase(), lab = { play: "게임 진행 중", closed: "게임 종료 · 결과 발표 대기 (카운트다운)", result: "결과 발표 공개 중" }[ph];
+  $("fin-phase").textContent = `지금 상태: ${lab}`;
+  const L = finalRanks(), top = L.filter(x => x.rank <= 10), looks = L.filter(x => x.p.finalLook && x.p.finalLook.char).length;
+  const ans = p => !p.reveal ? "미응답 (비공개)" : p.reveal.ok ? `✅ 공개 · ${esc(realOf(p) || "-")}` : "🙅 비공개";
+  $("fin-adm").innerHTML = `<p class="muted" style="margin:.2em 0">결과 발표 모습 고른 사람: ${looks}/${L.length}명 · 지금 순위 기준 (마감 뒤 생긴 사탕 제외)</p>
+    <table class="sc-t fin-adm">${top.map(x => `<tr><td class="n">${x.rank}등</td><td><span class="ch">${finalChar(x.p)}</span></td><td>${esc(x.p.nick)}<br><small>${esc(profileOf(x.id).name || "")}</small></td><td><small>${ans(x.p)}<br>${x.p.finalLook && x.p.finalLook.char ? "👗 모습 고름" : "👗 안 고름"}</small></td><td class="n">${x.n}</td></tr>`).join("")}</table>`;
+}
+$("adm-fin-reveal").onclick = () => showReveal(true);
+$("adm-fin-look").onclick = () => { lookPrev = true; showLookNews(() => {}); };
+$("adm-fin-closed").onclick = () => { finalPreview = "closed"; finalTick(); };
+$("adm-fin-result").onclick = () => { finalPreview = "result"; openFinal(); };
+$("adm-fin-end").onclick = () => theEnd(true);
 function renderAdmin(){
-  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases(); renderDealStat(); renderDups();
+  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases(); renderDealStat(); renderDups(); renderFinalAdmin();
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
@@ -3620,6 +3838,7 @@ $("btn-home").onclick = goHome;
 $("btn-star").onclick = () => { if (freeMode) { freeStar = !freeStar; renderDress(); } else setMine({ withStar: me.withStar === false }); };
 // 친구네 문 두드리기 (꾸미기의 똑똑 두드리기 · 이웃집 찾아가기 · 마을 지도에서 같이 써요)
 async function knockOn(id, btn){
+  if (endBlock()) return false;
   const t = players[id];
   if (!t) { toast("누구네 문을 두드릴지 골라 주세요"); return false; }
   if (gaveToday(id, myId)) { toast(`오늘은 ${t.nick}에게 사탕을 받았어요. 내일 또 놀러 가요!`); return false; }
@@ -3891,6 +4110,7 @@ function knockedMe(vid){
   return !!(d && players[vid] && !gaveSince(players[vid], myId, ymdToDay(d)));
 }
 async function giveCandy(btn){
+  if (endBlock()) return;
   if (!me || gaveToday(myId, doorTarget.id) || !knockedMe(doorTarget.id)) { renderDoorActions(); return; }
   // 첫 사탕은 "내ID", 그다음부터는 "내ID~오늘 날짜번호" (누른 순간 기준)
   const key = gave(myId, doorTarget.id) ? `${myId}~${todayNo()}` : myId;
@@ -4226,7 +4446,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26c";
+const APP_BUILD = "2026-10-26d";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
