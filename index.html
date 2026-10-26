@@ -737,6 +737,9 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .fin-crowd .cw small{display:block;font-size:.66rem;color:#fff;text-shadow:0 1px 2px #22102f,0 0 3px #22102f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}
 .fin-look{display:flex;align-items:center;gap:12px}
 .fin-look .ch{width:64px;flex:none}.fin-look .ch svg{display:block;width:100%;height:auto}
+.help-form{display:grid;gap:6px}
+.help-req{border-top:1px dashed var(--soft);padding:10px 0}.help-req:first-child{border-top:0}
+.help-req .row{margin-top:6px}.help-req select{flex:1;min-width:0;font-size:.9rem;padding:.4em;border-radius:10px;border:2px solid var(--soft)}
 .rv-pick{display:flex;gap:8px;margin:8px 0 4px}.rv-pick button{flex:1}
 .rv-pick button.on{background:#7cc47f;color:#fff}
 .fin-adm td{padding:4px 3px;vertical-align:middle}.fin-adm .ch svg{width:34px;height:auto;display:block}
@@ -790,13 +793,18 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button class="ghost-dark" id="btn-have-code">이전에 참가했었나요? 고유번호로 들어가기</button>
       <div class="card" id="code-login" hidden>
         <b>고유번호로 들어가기</b>
-        <p class="muted">처음 참가한 기기의 '내 정보 수정'에서 확인할 수 있어요. 모르면 관리자에게 물어보세요. (숫자 4개 + 알파벳 1개)</p>
+        <p class="muted">처음 참가한 기기의 '내 정보 수정'에서 확인할 수 있어요. (숫자 4개 + 알파벳 1개)</p>
         <div class="findrow"><input id="f-login" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="예: 1234K" aria-label="고유번호"><button id="btn-login" class="green">들어가기</button></div>
         <p class="muted center" id="login-msg"></p>
         <b style="margin-top:14px">고유번호를 모르겠어요</b>
         <p class="muted">이 기기(브라우저)에서 예전에 들어왔던 계정이면 이름으로 찾을 수 있어요.</p>
         <div class="findrow"><input id="f-known" autocomplete="off" placeholder="내 이름 또는 별명" aria-label="이름으로 찾기"><button id="btn-known" class="ghost">찾기</button></div>
         <div id="known-list"></div>
+        <b style="margin-top:14px">그래도 못 찾겠어요</b>
+        <p class="muted">부서와 이름을 적어서 알려주면 관리자가 예전 계정과 연결해 드려요.</p>
+        <div class="help-form"><input id="h-dept" maxlength="20" placeholder="부서" aria-label="부서"><input id="h-name" maxlength="12" placeholder="이름" aria-label="이름"><input id="h-nick" maxlength="12" placeholder="예전 별명 (기억나면)" aria-label="예전 별명"></div>
+        <button class="green" id="btn-help" style="width:100%;margin-top:8px">관리자에게 알리기</button>
+        <p class="muted center" id="help-msg"></p>
       </div>
     <button class="ghost" id="btn-reg-cancel">돌아가기</button>
     <p class="muted center" id="reg-msg"></p>
@@ -1112,6 +1120,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <button role="tab" data-tab="members" aria-selected="false">회원·순위</button>
       <button role="tab" data-tab="joins" aria-selected="false">가입·초대</button>
       <button role="tab" data-tab="phrases" aria-selected="false">문구</button>
+      <button role="tab" data-tab="help" aria-selected="false">로그인 요청<span class="dup-dot" id="help-dot" hidden></span></button>
       <button role="tab" data-tab="dups" aria-selected="false">같은 이름<span class="dup-dot" id="dup-dot" hidden></span></button>
       <button role="tab" data-tab="prices" aria-selected="false">가격·규칙</button>
       <button role="tab" data-tab="final" aria-selected="false">🏆 결과 발표</button>
@@ -1170,6 +1179,11 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <h2 style="margin-top:1.2em">누가 누구를 데려왔나 <small class="muted" id="jn-inv-count"></small></h2>
       <p class="muted" style="margin-top:-.3em;font-size:.85rem">초대 링크로 데려온 사람이 많은 순서예요.</p>
       <div id="jn-inv"></div>
+    </div>
+    <div class="card" data-pane="help" hidden>
+      <h2>🙋 로그인 요청 <small class="muted" id="help-count"></small></h2>
+      <p class="muted" style="margin-top:-.3em;font-size:.85rem">고유번호를 몰라서 '관리자에게 알리기'를 누른 사람이에요. 예전 계정을 골라 연결하면 그 사람 기기가 바로 예전 계정으로 들어가요.</p>
+      <div id="help-list"></div>
     </div>
     <div class="card" data-pane="dups" hidden>
       <h2>👥 이름이 같은 사람 <small class="muted" id="dup-count"></small></h2>
@@ -2393,12 +2407,28 @@ function findKnown(){
   if (!q) { box.innerHTML = '<p class="muted">이름이나 별명을 적어 주세요.</p>'; return; }
   let k = {}; try { k = JSON.parse(localStorage.getItem("knownAccounts") || "{}"); } catch {}
   const hit = Object.values(k).filter(a => normName(a.name).includes(q) || normName(a.nick).includes(q)).sort((a, b) => b.at - a.at);
-  if (!hit.length) { box.innerHTML = '<p class="muted">이 기기에서 그 이름으로 들어온 기록이 없어요.<br>다른 기기의 \'내 정보 수정\'에서 고유번호를 확인하거나, 관리자에게 물어봐 주세요.</p>'; return; }
+  if (!hit.length) { box.innerHTML = '<p class="muted">이 기기에서 그 이름으로 들어온 기록이 없어요.<br>다른 기기의 \'내 정보 수정\'에서 고유번호를 확인하거나, 아래 \'관리자에게 알리기\'를 눌러 주세요.</p>'; return; }
   hit.forEach(a => { const b = document.createElement("button"); b.type = "button"; b.className = "ghost";
     b.innerHTML = `<b></b><small></small>`; b.querySelector("b").textContent = `${a.nick} (${a.house}호)`; b.querySelector("small").textContent = `${a.dept} · ${a.name} · 이 계정으로 들어가기`;
     b.onclick = () => { $("f-login").value = a.code; $("btn-login").click(); }; box.appendChild(b); });
 }
 $("btn-known").onclick = findKnown;
+// 고유번호를 모를 때: 부서·이름을 help/{기기ID}에 남기면 관리자가 예전 계정과 연결 (devices/{기기ID} → 그 계정)
+let helpWatch = false;
+function watchHelpLink(){
+  if (helpWatch || !deviceId) return; helpWatch = true;
+  db.doc("devices/" + deviceId).onSnapshot(s => { if (s && s.exists && s.data().player) { $("help-msg").textContent = "연결됐어요! 예전 계정으로 들어가요 🎃"; setTimeout(() => location.reload(), 900); } }, () => {});
+}
+$("btn-help").onclick = async () => {
+  const dept = $("h-dept").value.trim(), name = $("h-name").value.trim(), nick = $("h-nick").value.trim(), msg = $("help-msg");
+  if (!dept || !name) { msg.textContent = "부서와 이름을 모두 적어 주세요."; return; }
+  $("btn-help").disabled = true;
+  try { await db.doc("help/" + deviceId).set({ dept, name, nick, at: Date.now(), app: openedFrom || "" });
+    msg.textContent = "관리자에게 알렸어요! 연결되면 이 화면에서 자동으로 들어가져요. 창을 닫았다면 나중에 다시 열면 돼요."; watchHelpLink(); }
+  catch { msg.textContent = "알리지 못했어요. 잠시 뒤 다시 눌러 주세요."; }
+  $("btn-help").disabled = false;
+};
+$("btn-have-code").addEventListener("click", () => { if (!$("h-dept").value) $("h-dept").value = $("f-dept").value.trim(); if (!$("h-name").value) $("h-name").value = $("f-name").value.trim(); });
 $("f-known").addEventListener("keydown", e => { if (e.key === "Enter") findKnown(); });
 // ===== 관리자: 같은 사람의 계정 두 개 합치기 (D → P) =====
 // 사탕은 "주는사람ID" / "주는사람ID~날짜" 키로 기록되므로, D가 준 사탕·노크는 다른 사람 문서에서 P 이름으로 바꿔요
@@ -3674,8 +3704,45 @@ $("adm-fin-look").onclick = () => { lookPrev = true; showLookNews(() => {}); };
 $("adm-fin-closed").onclick = () => { finalPreview = "closed"; finalTick(); };
 $("adm-fin-result").onclick = () => { finalPreview = "result"; openFinal(); };
 $("adm-fin-end").onclick = () => theEnd(true);
+// 관리자: 로그인 요청 (help/{기기ID}) → 고른 계정에 기기 연결
+let helpReqs = {}, helpSub = false, helpWarned = 0;
+function watchHelp(){
+  if (helpSub) return; helpSub = true;
+  db.collection("help").limit(200).onSnapshot(snap => { helpReqs = {}; snap.docs.forEach(d => { helpReqs[d.id] = d.data(); }); renderHelp(); }, () => { helpSub = false; });
+}
+function renderHelp(){
+  const ids = Object.keys(helpReqs).sort((a, b) => (helpReqs[b].at || 0) - (helpReqs[a].at || 0)), dot = $("help-dot");
+  dot.hidden = !ids.length; dot.textContent = ids.length; $("help-count").textContent = ids.length ? `${ids.length}건` : "";
+  if (ids.length > helpWarned && adminUnlocked) { helpWarned = ids.length; setTimeout(() => toast(`🙋 로그인 요청이 ${ids.length}건 있어요.\n'로그인 요청' 탭에서 확인해 주세요`), 600); }
+  if (ids.length < helpWarned) helpWarned = ids.length;
+  const box = $("help-list"); box.innerHTML = "";
+  if (!ids.length) { box.innerHTML = '<p class="muted">들어온 요청이 없어요 👍</p>'; return; }
+  const label = id => { const p = players[id] || {}, pf = profileOf(id); return `${p.nick || "?"} · ${pf.dept || "-"} · ${pf.name || "-"} · 누적 ${earnedOf(id)}`; };
+  const all = Object.keys(players).filter(id => players[id].nick).sort((a, b) => String(profileOf(a).name || "").localeCompare(String(profileOf(b).name || ""), "ko"));
+  ids.forEach(uid => {
+    const r = helpReqs[uid], q = normName(r.name), nk = normName(r.nick);
+    const cand = all.filter(id => (q && normName(profileOf(id).name) === q) || (nk && normName(players[id].nick) === nk));
+    const el = document.createElement("div"); el.className = "help-req";
+    const dt = new Date((r.at || 0) + 9 * 3600e3);
+    el.innerHTML = `<b></b><br><small class="muted"></small><div class="cands"></div><div class="row"><select aria-label="연결할 계정"><option value="">다른 계정 직접 고르기…</option>${all.map(id => `<option value="${id}">${esc(label(id))}</option>`).join("")}</select><button type="button" class="green" data-act="pick">연결</button></div><div class="row"><button type="button" class="ghost" data-act="del">요청 지우기</button></div>`;
+    el.querySelector("b").textContent = `${r.dept || "-"} · ${r.name || "-"}${r.nick ? ` (예전 별명: ${r.nick})` : ""}`;
+    el.querySelector("small").textContent = `${dt.getUTCMonth() + 1}/${dt.getUTCDate()} ${pad2(dt.getUTCHours())}:${pad2(dt.getUTCMinutes())}${r.app ? " · " + r.app : ""} · 기기 ${uid.slice(0, 6)}…`;
+    const cb = el.querySelector(".cands");
+    if (!cand.length) cb.innerHTML = '<p class="muted" style="margin:.4em 0 0">이름이 같은 계정이 없어요. 아래에서 직접 골라 주세요.</p>';
+    cand.forEach(id => { const b = document.createElement("button"); b.type = "button"; b.className = "green"; b.style.cssText = "width:100%;margin-top:6px"; b.textContent = `이 계정에 연결: ${label(id)}`; b.onclick = () => linkHelp(uid, id); cb.appendChild(b); });
+    el.querySelector('[data-act="pick"]').onclick = () => { const v = el.querySelector("select").value; if (!v) { toast("연결할 계정을 골라 주세요"); return; } linkHelp(uid, v); };
+    el.querySelector('[data-act="del"]').onclick = async () => { if (needAdmin() || !confirm("이 요청을 지울까요?")) return; try { await db.doc("help/" + uid).delete(); } catch { toast("지우지 못했어요"); } };
+    box.appendChild(el);
+  });
+}
+async function linkHelp(uid, pid){
+  const r = helpReqs[uid] || {}, p = players[pid] || {};
+  if (needAdmin() || !confirm(`${r.dept || ""} ${r.name || ""}님의 기기를\n'${p.nick}' (${profileOf(pid).dept || "-"} · ${profileOf(pid).name || "-"}) 계정에 연결할까요?`)) return;
+  try { await db.doc("devices/" + uid).set({ player: pid, code: "admin", at: Date.now() }); await db.doc("help/" + uid).delete().catch(() => {}); toast(`연결했어요! ${p.nick} 계정으로 들어가요 🔗`); }
+  catch { toast("연결하지 못했어요. 관리자 등록을 확인해 주세요."); }
+}
 function renderAdmin(){
-  checkServerAdmin(); renderAdminKey(); renderJoins(); renderPhrases(); renderDealStat(); renderDups(); renderFinalAdmin();
+  checkServerAdmin(); renderAdminKey(); watchHelp(); renderHelp(); renderJoins(); renderPhrases(); renderDealStat(); renderDups(); renderFinalAdmin();
   const list = Object.entries(players).map(([id, p]) => ({ id, ...p, n: earnedOf(id), bal: balanceOf(id) }))
     .sort((a, b) => b.n - a.n || (a.createdAt || 0) - (b.createdAt || 0));
   $("adm-count").textContent = `${list.length}명`;
@@ -4446,7 +4513,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26d";
+const APP_BUILD = "2026-10-26e";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
