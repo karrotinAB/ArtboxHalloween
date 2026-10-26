@@ -2525,6 +2525,7 @@ const ROUND_EASY = [0.92, 0.85];
 function dealFinalP(tier){ return dealMode === "boss" ? ((dealS && dealS.rate) || bossWinRate()) : DEAL_WIN[tier] || 1 / DEAL_N.reduce((a, n) => a * n, 1); }
 function roundChance(tier, n, r){
   const P = dealFinalP(tier), easy = ROUND_EASY.reduce((a, x) => a * x, 1);
+  if (dealMode === "boss") return r < ROUND_EASY.length ? 1 : P; // 마왕문: 1·2단계는 무조건 통과, 3단계 = 최종 확률
   if (r < ROUND_EASY.length) return P >= easy ? Math.pow(P, 1 / DEAL_N.length) : ROUND_EASY[r];
   return P >= easy ? Math.pow(P, 1 / DEAL_N.length) : P / easy;
 }
@@ -2554,11 +2555,14 @@ function bossToday(){
   if (b.cur && b.cur.started && !log[b.cur.at] && dayNo(b.cur.at) === t) n++;
   return n;
 }
-// 마왕문 최종 승리 확률: 오늘 첫 판 80% · 두 번째 판 40% · 1등 거래를 받은 사람은 10% (그 거래에서 패배했을 때만 다른 유저와 같게)
+// 마왕문 최종(3단계) 승리 확률: 오늘 첫 판 70% · 두 번째 판은 첫 판을 이겼으면 60%, 졌거나 그만뒀으면 80%
+// 1등 거래를 받은 사람은 10% (그 거래에서 패배했을 때만 다른 유저와 같게)
 // 관리자가 먼저 연 기록("open")은 빼고, 거래를 받은 1등(진행 중 포함)을 찾아요
 function bossWinRate(){
   const f = Object.entries(players).filter(([, q]) => q.deal && q.deal.result !== "open" && q.deal.phase).sort((a, b) => (a[1].deal.at || 0) - (b[1].deal.at || 0))[0];
-  const base = bossToday() === 0 ? 0.8 : 0.4;
+  const b = dealPrev ? bossPrevData() : (me && me.boss) || {}, t = todayNo();
+  const first = Object.entries(b.log || {}).filter(([k]) => dayNo(+k) === t).sort((x, y) => +x[0] - +y[0])[0];
+  const base = !first ? 0.7 : first[1] === "win" ? 0.6 : 0.8;
   if (f && f[0] === myId) return f[1].deal.phase === "done" && f[1].deal.result === "lose" ? base : 0.1;
   return base;
 }
@@ -4126,7 +4130,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-25a";
+const APP_BUILD = "2026-10-26a";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
