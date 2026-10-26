@@ -704,7 +704,22 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .final-closed .fc-pump{font-size:4.2rem;animation:float 3s ease-in-out infinite}
 .final-closed h2{font-family:"Jua",sans-serif;font-weight:400;font-size:2rem;margin:.2em 0 0}
 .final-closed p{margin:0;color:#e8dcf5;font-size:1.05rem;word-break:keep-all}
-.fc-timer{font-family:"Jua",sans-serif;font-size:3.4rem;letter-spacing:.04em;color:#ffc53d;margin:.4em 0 0;font-variant-numeric:tabular-nums;text-shadow:0 4px 0 rgba(0,0,0,.35)}
+.fc-timer{display:flex;align-items:flex-start;justify-content:center;gap:6px;margin:.6em 0 .2em;font-family:"Jua",sans-serif}
+.fc-timer .fg{display:flex;flex-direction:column;align-items:center}
+.fc-timer .fg>span{display:flex;gap:4px}
+.fc-timer .fg small{margin-top:6px;font-size:.8rem;color:#bfa9d6}
+.fc-timer .sep{font-size:2.6rem;line-height:1.5;color:#ffc53d;opacity:.8}
+.flip{position:relative;display:inline-block;width:.74em;height:1.15em;font-size:3.1rem;perspective:240px;color:#ffc53d}
+.flip b{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:linear-gradient(180deg,#3a1d55,#2a1340);backface-visibility:hidden}
+.flip .up{top:0;border-radius:9px 9px 0 0;transform-origin:50% 100%;background:linear-gradient(180deg,#43215f,#341a4c)}
+.flip .dn{bottom:0;border-radius:0 0 9px 9px;transform-origin:50% 0;box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.flip i{position:absolute;left:0;right:0;height:200%;line-height:1.15em;text-align:center;font-style:normal;font-weight:400}
+.flip .up i{top:0}.flip .dn i{bottom:0}
+.flip::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:#13071d;z-index:4}
+.flip .f1{z-index:3;animation:flip1 .32s ease-in forwards}
+.flip .f2{z-index:3;transform:rotateX(90deg);animation:flip2 .32s .32s ease-out forwards}
+@keyframes flip1{to{transform:rotateX(-90deg)}}
+@keyframes flip2{to{transform:rotateX(0)}}
 .final-closed small{color:#bfa9d6}
 .final-closed .fc-x{margin-top:18px}
 .final-closed .secret{position:absolute;right:0;top:0;width:56px;height:56px;opacity:0}
@@ -723,6 +738,10 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .fin-crown{font-size:2.6rem;line-height:1;margin-bottom:-4px}
 .fin-23{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
 .fin-23 .ch{width:84%;margin:0 auto}
+.fin-23 .fin-card{display:flex;flex-direction:column;align-items:center}
+.fin-23 .fin-card>*{width:100%}
+.fin-23 .fin-candy{width:auto;margin-top:auto;position:relative;top:6px}
+.fin-23 .fin-nick{margin-bottom:12px}
 .fin-list{list-style:none;margin:0 0 22px;padding:6px 12px;background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:24px;box-shadow:0 6px 0 var(--brown)}
 .fin-list li{display:grid;grid-template-columns:2.4em 56px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--soft)}
 .fin-list li:last-child{border-bottom:0}
@@ -1018,7 +1037,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="fc-pump">🎃</div>
     <h2>게임이 끝났습니다</h2>
     <p>그동안 함께해 주셔서 고마워요!<br>최종 순위는 오전 8시 공개 예정입니다.</p>
-    <div class="fc-timer" id="fc-timer">--:--:--</div>
+    <div class="fc-timer" id="fc-timer" role="timer"><span class="fg"><span><span class="flip"></span><span class="flip"></span></span><small>시간</small></span><span class="sep">:</span><span class="fg"><span><span class="flip"></span><span class="flip"></span></span><small>분</small></span><span class="sep">:</span><span class="fg"><span><span class="flip"></span><span class="flip"></span></span><small>초</small></span></div>
     <small>결과 발표까지 남은 시간</small>
     <button class="ghost fc-x" id="fc-x" hidden>미리보기 닫기</button>
   </div>
@@ -3629,12 +3648,20 @@ function theEnd(preview){
 const endBlock = () => { if (!gameOver()) return false; theEnd(); return true; };
 // 밤 12시 ~ 오전 8시: 모든 화면을 덮는 카운트다운 (관리자는 관리자 화면에서 볼 수 있어요)
 const pad2 = n => String(n).padStart(2, "0");
+// 플립 시계: 위 반쪽(이전 숫자)이 접혀 내려가고 아래 반쪽(새 숫자)이 펼쳐져요
+function flipSet(el, d){
+  if (el.dataset.v === d) return;
+  const o = el.dataset.v == null ? d : el.dataset.v, anim = el.dataset.v != null; el.dataset.v = d;
+  el.innerHTML = `<b class="up"><i>${d}</i></b><b class="dn"><i>${anim ? o : d}</i></b>` + (anim ? `<b class="up f1"><i>${o}</i></b><b class="dn f2"><i>${d}</i></b>` : "");
+}
 function finalTick(){
   const ph = gamePhase(), el = $("final-closed");
   const on = ph === "closed" && (finalPreview === "closed" || (!adminUnlocked && $("sheet-pw").hidden));
   el.hidden = !on; $("fc-x").hidden = finalPreview !== "closed";
   if (on) { const s = Math.max(0, Math.floor(((finalPreview ? Date.now() + 5 * 3600e3 + 23 * 6e4 + 7e3 : RESULT_AT) - Date.now()) / 1000));
-    $("fc-timer").textContent = `${pad2(Math.floor(s / 3600))}:${pad2(Math.floor(s / 60) % 60)}:${pad2(s % 60)}`; }
+    const txt = `${pad2(Math.floor(s / 3600))}${pad2(Math.floor(s / 60) % 60)}${pad2(s % 60)}`;
+    $("fc-timer").setAttribute("aria-label", `결과 발표까지 ${Math.floor(s / 3600)}시간 ${Math.floor(s / 60) % 60}분 ${s % 60}초`);
+    $("fc-timer").querySelectorAll(".flip").forEach((el, i) => flipSet(el, txt[i])); }
   if (!finalPreview && ph === "result" && !finalShown && Object.keys(players).length && current !== "admin" && current !== "final") { finalShown = true; openFinal(); }
 }
 setInterval(finalTick, 1000);
@@ -4513,7 +4540,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26e";
+const APP_BUILD = "2026-10-26f";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
