@@ -2724,8 +2724,8 @@ const DM = () => dealMode === "boss" && dealS && dealS.sp ? { win: HW.win, lose:
 const bossLost = (p, k, r) => { const v = p && p.boss && p.boss.lost && p.boss.lost[k]; return v != null ? +v : r === "lose" ? EARN.bossLose : r === "quit" ? EARN.bossQuit : 0; };
 function bossPts(p){ return Object.entries((p && p.boss && p.boss.log) || {}).reduce((t, [k, r]) => t + (r === "win" ? EARN.bossWin : -bossLost(p, k, r)), 0) + hwPts(p); }
 // 10월 31일(한국 시간) 특별한 날: 특별 게임 1번(1·2단계 100% · 3단계 30% · 승 +200 · 패 -100 · 포기 -50) · 일반 게임은 하루 5번
-// 그날 마왕성에 처음 들어오면 마왕게임을 가장 많이 한 사람(10/30까지 판 수, 동점이면 그 판 수에 먼저 도달한 사람)에게 사탕 30개 (누적+보유)
-// players.boss.sp = { r: "win"|"lose"|"quit"|"decline", at, lost } · players.boss.hwGift = 받은 시각
+// 그날 마왕성에 처음 들어오면 마왕게임을 가장 많이 한 사람(10/30까지 판 수, 동점이면 그 판 수에 먼저 도달한 사람)에게 지금까지 마왕문 게임에서 잃은 사탕만큼 돌려줘요 (누적+보유)
+// players.boss.sp = { r: "win"|"lose"|"quit"|"decline", at, lost } · players.boss.hwGift = 받은 시각 · hwGiftN = 돌려받은 개수
 const HW_DAY = Math.floor(Date.UTC(2026, 9, 31) / 86400e3);
 const HW = { win: 200, lose: 100, quit: 50, rate: 0.3, topRate: 0.2, gift: 30, max: 5, refund: 100, gap: 300 };
 // 특별 게임: 시작할 때 1등이면 3단계 20% · 졌는데 그 뒤 1등과 300개 이상 차이 나면 마왕이 100개를 돌려줘요 (sp.refund)
@@ -2735,7 +2735,10 @@ const bossDayMax = () => isHW() ? HW.max : BOSS_DAY_MAX;
 const bossData = () => dealPrev ? bossPrevData() : (me && me.boss) || {};
 function hwLostRaw(p){ const s = p && p.boss && p.boss.sp; return s && (s.r === "lose" || s.r === "quit") ? (s.lost != null ? +s.lost : s.r === "lose" ? HW.lose : HW.quit) : 0; }
 function hwLost(p){ const s = p && p.boss && p.boss.sp; return Math.max(0, hwLostRaw(p) - ((s && +s.refund) || 0)); }
-function hwPts(p){ const b = (p && p.boss) || {}, s = b.sp; return (b.hwGift ? HW.gift : 0) + (s && s.r === "win" ? HW.win : -hwLost(p)); }
+// 돌려줄 개수: 그때까지 마왕문 게임(일반 판)에서 지거나 포기해서 실제로 잃은 사탕 합계
+function bossLostSum(p, before){ return Object.entries((p && p.boss && p.boss.log) || {}).reduce((t, [k, r]) => t + (r !== "win" && +k < before ? bossLost(p, k, r) : 0), 0); }
+const hwGiftN = b => b && b.hwGift ? (b.hwGiftN != null ? +b.hwGiftN : HW.gift) : 0;
+function hwPts(p){ const b = (p && p.boss) || {}, s = b.sp; return hwGiftN(b) + (s && s.r === "win" ? HW.win : -hwLost(p)); }
 function hwTopId(){
   let best = null;
   Object.entries(players).forEach(([id, q]) => {
@@ -2797,9 +2800,9 @@ async function hwRecord(sp){
   if (dealPrev) { const b = bossPrevData(); b.sp = sp; try { localStorage.setItem("bossPreview", JSON.stringify(b)); } catch {} return; }
   try { await db.doc("players/" + myId).update({ boss: { sp } }); } catch { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
 }
-async function hwGiftSave(){
-  if (dealPrev) { const b = bossPrevData(); b.hwGift = Date.now(); try { localStorage.setItem("bossPreview", JSON.stringify(b)); } catch {} return; }
-  try { await db.doc("players/" + myId).update({ boss: { hwGift: Date.now() } }); } catch { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
+async function hwGiftSave(n){
+  if (dealPrev) { const b = bossPrevData(); b.hwGift = Date.now(); b.hwGiftN = n; try { localStorage.setItem("bossPreview", JSON.stringify(b)); } catch {} return; }
+  try { await db.doc("players/" + myId).update({ boss: { hwGift: Date.now(), hwGiftN: n } }); } catch { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
 }
 async function dealSave(st){
   dealS = st;
@@ -2911,8 +2914,9 @@ function dealResume(){
 function hwGift(){
   const nk = (me && me.nick) || "";
   dealSay([`하하하. ${esc(nk)}${josa(nk || "○", "이구만", "구만")}.`, "너가 내 성을 가장 많이 찾아왔지.", "실패할 수도 있는데...", "용기가 대단해.", "보상을 해주지."], async () => {
-    await hwGiftSave(); dealRain();
-    dealSay([`<b>🍬 사탕 ${HW.gift}개를 받았다!</b>`, "나를 찾아와준 것에 대한 선물이야.", "자 이제 게임을 하지."], () => bossData().sp ? hwRegular() : hwOffer(true));
+    const n = bossLostSum(dealPrev ? { boss: bossData() } : me, Date.now());
+    await hwGiftSave(n); if (n) dealRain();
+    dealSay([...(n ? [`지금까지 나한테 잃은 사탕 ${n}개... 전부 돌려주지.`, `<b>🍬 사탕 ${n}개를 돌려받았다!</b>`] : ["...그런데 나한테 잃은 사탕이 하나도 없군?", "운이 좋은 녀석이야. 크크크."]), "나를 찾아와준 것에 대한 선물이야.", "자 이제 게임을 하지."], () => bossData().sp ? hwRegular() : hwOffer(true));
   });
 }
 const HW_NOTE = "*해당 게임 결과는 누적 갯수에 영향을 줍니다";
@@ -3086,7 +3090,7 @@ function renderDealStat(){
     (rows.length ? `<table class="sc-t">${rows.sort((a, b) => b.n - a.n).map(r => `<tr><td>${esc(r.nick)}</td><td class="n">${r.n}판</td><td class="n">✅${r.win}</td><td class="n">❌${r.lose}</td><td class="n">🏳️${r.quit}</td></tr>`).join("")}</table>` : "");
   const deals = Object.values(players).filter(q => q.deal && q.deal.phase === "done" && q.deal.result && q.deal.result !== "open");
   const sps = Object.values(players).filter(q => q.boss && q.boss.sp), spc = r => sps.filter(q => q.boss.sp.r === r).length, top = hwTopId();
-  st2.insertAdjacentHTML("beforeend", `<br><b>🎃 10/31 특별 게임</b><br>${sps.length ? `✅ 우승 ${spc("win")} · ❌ 실패 ${spc("lose")} · 🏳️ 포기 ${spc("quit")} · 🙅 거절 ${spc("decline")}` : "아직 아무도 안 했어요"}<br>👑 최다 플레이어 (30개 선물): ${top ? esc(players[top].nick || "") + (players[top].boss.hwGift ? " · 받음" : " · 아직") : "-"}`);
+  st2.insertAdjacentHTML("beforeend", `<br><b>🎃 10/31 특별 게임</b><br>${sps.length ? `✅ 우승 ${spc("win")} · ❌ 실패 ${spc("lose")} · 🏳️ 포기 ${spc("quit")} · 🙅 거절 ${spc("decline")}` : "아직 아무도 안 했어요"}<br>👑 최다 플레이어 (잃은 만큼 돌려받기): ${top ? esc(players[top].nick || "") + (players[top].boss.hwGift ? ` · ${hwGiftN(players[top].boss)}개 받음` : ` · 아직 (지금 받으면 ${bossLostSum(players[top], Date.now())}개)`) : "-"}`);
   if (deals.length) st2.insertAdjacentHTML("beforeend", `<br><b>👑 1등 200개 거래</b><br>${deals.map(q => `${esc(q.nick || "")}: ${({ decline: "거절", win: "승리", lose: "패배", quit: "포기" })[q.deal.result] || q.deal.result}`).join(" · ")}`);
   box.appendChild(st2);
   if (!f) { const bt = document.createElement("button"); bt.className = "ghost"; bt.textContent = "관리자 권한으로 마왕성 바로 열기"; bt.onclick = async () => {
@@ -3121,7 +3125,7 @@ function bossRows(p){
   const b = (p && p.boss) || {}, log = Object.entries(b.log || {}), s = b.sp;
   const rows = ["win", "lose", "quit"].map(r => { const l = log.filter(([, x]) => x === r); return [`🏰 마왕게임 ${BOSS_R[r]}`, [l.length, l.reduce((t, [k]) => t + (r === "win" ? EARN.bossWin : -bossLost(p, k, r)), 0)]]; });
   if (s && s.r !== "decline") rows.push([`🎃 10/31 특별 게임 ${BOSS_R[s.r] || s.r}${s.refund ? ` (${s.refund}개 돌려받음)` : ""}`, [1, s.r === "win" ? HW.win : -hwLost(p)]]);
-  if (b.hwGift) rows.push(["👑 마왕성 단골 선물", [1, HW.gift]]);
+  if (b.hwGift) rows.push(["👑 마왕성 단골 선물 (잃은 만큼 돌려받기)", [1, hwGiftN(b)]]);
   return rows;
 }
 function scoreEvents(id){
@@ -3141,7 +3145,7 @@ function scoreEvents(id){
   const bs = p.boss || {};
   Object.entries(bs.log || {}).forEach(([k, r]) => push(+k, `🏰 마왕게임 ${BOSS_R[r] || r}`, r === "win" ? EARN.bossWin : -bossLost(p, k, r)));
   if (bs.sp) push(+bs.sp.at, `🎃 10/31 특별 게임 ${bs.sp.r === "decline" ? "거절" : BOSS_R[bs.sp.r] || bs.sp.r}${bs.sp.refund ? ` (${bs.sp.refund}개 돌려받음)` : ""}`, bs.sp.r === "win" ? HW.win : -hwLost(p));
-  if (bs.hwGift) push(+bs.hwGift, "👑 마왕성 단골 선물", HW.gift);
+  if (bs.hwGift) push(+bs.hwGift, "👑 마왕성 단골 선물 (잃은 만큼 돌려받기)", hwGiftN(bs));
   if (p.deal && p.deal.result && p.deal.result !== "open") push(+p.deal.at, `👑 1등 보스 거래 ${p.deal.result === "decline" ? "거절" : BOSS_R[p.deal.result] || p.deal.result}`, dealPts(p));
   return ev.sort((a, b) => a.t - b.t);
 }
@@ -4643,7 +4647,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-28f";
+const APP_BUILD = "2026-10-28g";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
