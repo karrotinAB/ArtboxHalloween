@@ -699,6 +699,19 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} .knock-word span{opacity:1} }
 
 /* ===== 11월 1일 결과 발표 · 게임 종료 ===== */
+.race{background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:24px;box-shadow:0 6px 0 var(--brown);padding:14px 12px 12px;margin:10px 0 40px}
+.race-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.race-h b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.2rem}
+.race-day{font-family:"Jua",sans-serif;font-size:1.6rem;color:#d9621b;font-variant-numeric:tabular-nums}
+.race-sub{margin:.1em 0 .6em;font-size:.82rem;color:var(--paper-muted)}
+.race-box{position:relative;height:340px;overflow:hidden}
+.race-row{position:absolute;left:0;right:0;top:0;height:30px;display:flex;align-items:center;gap:6px;transition:transform .5s ease,opacity .5s ease;will-change:transform}
+.race-row .rr{width:1.6em;flex:none;text-align:right;font-family:"Jua",sans-serif;color:#d9621b}
+.race-row .ri{width:28px;flex:none}.race-row .ri svg{display:block;width:28px;height:auto}
+.race-row .rbar{position:relative;flex:none;height:22px;border-radius:0 11px 11px 0;transition:width .5s ease;min-width:4px}
+.race-row .rn{width:64px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.78rem;font-weight:700}
+.race-row .rv{flex:none;font-family:"Jua",sans-serif;font-size:.85rem;font-variant-numeric:tabular-nums}
+.race-btn{display:block;margin:10px auto 0;background:#fff3dd;color:var(--brown);border:2px solid var(--brown);border-radius:999px;padding:.35em 1.2em;font-size:.95rem;box-shadow:none}
 .fw{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:59}
 .final-closed{position:fixed;inset:0;z-index:58;background:radial-gradient(ellipse at 50% 30%,#4a2470 0%,#22102f 60%,#100616 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:6px}
 .final-closed[hidden]{display:none!important}
@@ -3104,7 +3117,7 @@ function bossRows(p){
 function scoreEvents(id){
   const p = players[id] || {}, ev = [], nk = q => esc((players[q] || {}).nick || "?");
   const push = (t, text, n) => { if (t) ev.push({ t, d: dayNo(t), text, n }); };
-  const walk = (doc, owner, fn) => { const seen = new Set(); Object.entries((doc && doc.gifts) || {}).forEach(([k, v]) => { const g = giverOf(k), d = giftDay(k, v), key = g + "~" + d; if (g === owner || !players[g] || seen.has(key)) return; seen.add(key); fn(g, v && typeof v === "object" ? v : {}, giftTime(v)); }); };
+  const walk = (doc, owner, fn) => { const seen = new Set(); Object.entries((doc && doc.gifts) || {}).forEach(([k, v]) => { const g = giverOf(k), d = giftDay(k, v), key = g + "~" + d; if (g === owner || !players[g] || seen.has(key)) return; seen.add(key); const t0 = giftTime(v); fn(g, v && typeof v === "object" ? v : {}, t0 > 1e12 ? t0 : d > 0 ? d * 86400e3 + 3 * 3600e3 : 0); }); };
   walk(p, id, (g, o, t) => { const x = { b: !!o.b, sl: !!o.sl, th: "th" in o ? +o.th : undefined, n: o.n }, n = gotOf(x);
     if (x.th !== undefined) { if (x.th) push(t, `🦹 ${nk(g)}네 털기 성공`, n); return; }
     push(t, `🍬 ${nk(g)}에게 사탕 받음${x.b ? " (거지왹)" : ""}${x.sl && n > gotOf({ b: x.b }) ? " ✨반짝이 당첨" : ""}`, n); });
@@ -3114,6 +3127,7 @@ function scoreEvents(id){
   Object.entries(p.photos || {}).forEach(([k, v]) => { if (validCombo(k) && v && players[v.with] && interacted(id, v.with)) push(v.at, `📸 ${nk(v.with)}와 사진 (처음 보는 코스튬)`, EARN.photo); });
   Object.entries(p.owned || {}).forEach(([k, v]) => { if (k.startsWith("k:") && +v > 1e12) push(+v, `👗 코스튬 열기 (${esc((costumeById(k.split(":")[2]) || {}).name || "")})`, EARN.unlock); });
   Object.values(players).forEach(q => { if (q.invitedBy === id) push(q.createdAt, `🔗 ${esc(q.nick || "")} 초대`, EARN.invite); });
+  Object.entries(p.bonus || {}).forEach(([k, v]) => { if (bonusE(v) && +k > 1e12) push(+k, "🎁 관리자 선물 (누적 반영)", bonusN(v)); });
   const bs = p.boss || {};
   Object.entries(bs.log || {}).forEach(([k, r]) => push(+k, `🏰 마왕게임 ${BOSS_R[r] || r}`, r === "win" ? EARN.bossWin : -bossLost(p, k, r)));
   if (bs.sp) push(+bs.sp.at, `🎃 10/31 특별 게임 ${bs.sp.r === "decline" ? "거절" : BOSS_R[bs.sp.r] || bs.sp.r}${bs.sp.refund ? ` (${bs.sp.refund}개 돌려받음)` : ""}`, bs.sp.r === "win" ? HW.win : -hwLost(p));
@@ -3644,8 +3658,54 @@ function renderFinal(){
   if (podium.length) html += `<div class="fin-23">${podium.map(x => card(x, "")).join("")}</div>`;
   if (others.length) html += `<ol class="fin-list">${others.map(x => `<li><span class="r">${x.rank}</span><span class="ch">${finalChar(x.p)}</span>${nick(x)}<span class="n">🍬 ${x.n}</span></li>`).join("")}</ol>`;
   if (rest.length) html += `<h3 class="fin-crowd-t">함께한 마을 친구들 ${rest.length}명 🎃</h3><div class="fin-crowd">${rest.map(x => `<div class="cw" style="transform:rotate(${(hashOf(x.id) % 15) - 7}deg) translateY(${hashOf(x.id + "y") % 9}px)">${finalChar(x.p)}<small>${esc(x.p.nick)}</small></div>`).join("")}</div>`;
+  if (L.length) html += `<div class="race"><div class="race-h"><b>📈 10월 순위 변화</b><span class="race-day" id="race-day"></span></div><p class="race-sub">하루하루 1~10등이 어떻게 바뀌었는지 볼까요?</p><div class="race-box" id="race-box"></div><button type="button" class="race-btn" id="race-play">▶ 다시 보기</button></div>`;
   box.innerHTML = html || '<p class="fin-sub">아직 참가자가 없어요.</p>';
+  if (L.length) setupRace();
   $("final-tag").textContent = finalPreview === "result" ? "관리자 미리보기" : "";
+}
+
+// ===== 결과 발표: 10월 하루별 1~10등 순위 변화 (바 차트 레이스) =====
+// 하루별 누적 = 기록에 남은 활동(사탕 주고받기·사진·코스튬·초대·마왕게임·선물)을 날짜별로 더한 값 · 시각이 없는 나머지는 가입한 날에 넣어요
+const RACE_FROM = Math.floor(Date.UTC(2026, 9, 1) / 86400e3);
+function raceFrames(){
+  const last = dayNo(END_AT - 1), ids = Object.keys(players).filter(id => players[id].nick), per = {};
+  let first = last;
+  ids.forEach(id => {
+    const daily = {}; let sum = 0;
+    scoreEvents(id).forEach(e => { if (e.t >= END_AT) return; const d = Math.max(RACE_FROM, e.d); daily[d] = (daily[d] || 0) + e.n; sum += e.n; });
+    const rest = finalEarned(id) - sum; if (rest) { const d = Math.min(last, Math.max(RACE_FROM, dayNo(players[id].createdAt || END_AT - 1))); daily[d] = (daily[d] || 0) + rest; }
+    per[id] = daily; Object.keys(daily).forEach(d => { if (daily[d] && +d < first) first = +d; });
+  });
+  const run = {}, frames = [];
+  for (let d = first; d <= last; d++) {
+    ids.forEach(id => { run[id] = (run[id] || 0) + (per[id][d] || 0); });
+    const top = ids.map(id => ({ id, n: Math.max(0, run[id]) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n || (players[a.id].createdAt || 0) - (players[b.id].createdAt || 0)).slice(0, 10);
+    frames.push({ d, top });
+  }
+  return frames;
+}
+let raceT = 0, raceObs = null;
+function setupRace(){
+  const box = $("race-box"); if (!box) return;
+  clearInterval(raceT); if (raceObs) raceObs.disconnect();
+  const frames = raceFrames(); if (!frames.length) { box.closest(".race").remove(); return; }
+  const H = 34, rows = {}, cols = ["#ffb347", "#ff8fab", "#8fd3ff", "#9be59b", "#c9a7ff", "#ffd84a", "#7fe0d0", "#ffa07a", "#b5c7ff", "#f6a6ff"];
+  const rowOf = id => rows[id] || (rows[id] = (() => { const el = document.createElement("div"); el.className = "race-row"; el.style.opacity = 0; el.style.transform = `translateY(${10 * H}px)`;
+    el.innerHTML = `<span class="rr"></span><span class="ri">${finalChar(players[id])}</span><span class="rn"></span><span class="rbar" style="background:${cols[hashOf(id) % cols.length]}"></span><span class="rv"></span>`;
+    el.querySelector(".rn").textContent = players[id].nick; box.appendChild(el); return el; })());
+  const show = i => {
+    const f = frames[i], max = Math.max(1, ...f.top.map(x => x.n)), on = new Set(f.top.map(x => x.id)), dt = new Date(f.d * 86400e3);
+    $("race-day").textContent = `${dt.getUTCMonth() + 1}/${dt.getUTCDate()}`;
+    const full = Math.max(40, box.clientWidth - 1.6 * 16 - 28 - 64 - 24 - 40);
+    f.top.forEach((x, r) => { const el = rowOf(x.id); el.style.opacity = 1; el.style.transform = `translateY(${r * H}px)`;
+      el.querySelector(".rr").textContent = r + 1; el.querySelector(".rbar").style.width = Math.max(4, x.n / max * full) + "px"; el.querySelector(".rv").textContent = x.n; });
+    Object.keys(rows).forEach(id => { if (!on.has(id)) { rows[id].style.opacity = 0; rows[id].style.transform = `translateY(${10 * H}px)`; } });
+  };
+  const play = () => { clearInterval(raceT); let i = 0; show(0); raceT = setInterval(() => { if (++i >= frames.length) { clearInterval(raceT); return; } show(i); }, 650); };
+  show(frames.length - 1);
+  $("race-play").onclick = play;
+  raceObs = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { raceObs.disconnect(); play(); } }, { threshold: .5 });
+  raceObs.observe(box);
 }
 let finalFrom = "home", finalShown = false;
 function openFinal(){ if (current !== "final") finalFrom = current; closeSheets(); renderFinal(); show("final"); fireworks(); }
@@ -4573,7 +4633,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-26i";
+const APP_BUILD = "2026-10-28a";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
