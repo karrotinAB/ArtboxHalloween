@@ -712,6 +712,8 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .race-row .rn{width:64px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.78rem;font-weight:700}
 .race-row .rv{flex:none;font-family:"Jua",sans-serif;font-size:.85rem;font-variant-numeric:tabular-nums}
 .race-btn{display:block;margin:10px auto 0;background:#fff3dd;color:var(--brown);border:2px solid var(--brown);border-radius:999px;padding:.35em 1.2em;font-size:.95rem;box-shadow:none}
+.credit{text-align:center;font-size:.72rem;letter-spacing:.06em;color:var(--muted);opacity:.75;padding:18px 0 calc(14px + env(safe-area-inset-bottom,0px))}
+.fc-credit{position:absolute;left:0;right:0;bottom:0}
 .fw{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:59}
 .final-closed{position:fixed;inset:0;z-index:58;background:radial-gradient(ellipse at 50% 30%,#4a2470 0%,#22102f 60%,#100616 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:6px}
 .final-closed[hidden]{display:none!important}
@@ -1054,6 +1056,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     <div class="fc-timer" id="fc-timer" role="timer"><span class="fg"><span><span class="flip"></span><span class="flip"></span></span><small>시간</small></span><span class="sep">:</span><span class="fg"><span><span class="flip"></span><span class="flip"></span></span><small>분</small></span><span class="sep">:</span><span class="fg"><span><span class="flip"></span><span class="flip"></span></span><small>초</small></span></div>
     <small>결과 발표까지 남은 시간</small>
     <button class="ghost fc-x" id="fc-x" hidden>미리보기 닫기</button>
+    <footer class="credit fc-credit">© 2026 made by KARROTinAB</footer>
   </div>
   <div class="sheet-bg" id="sheet-reveal" data-modal hidden>
     <div class="sheet card">
@@ -1280,6 +1283,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
     </div>
   </section>
 
+  <footer class="credit">© 2026 made by KARROTinAB</footer>
 </div>
 <div class="warn-gate" id="warn-gate" hidden>
   <div class="card warn-card">
@@ -4633,7 +4637,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-28a";
+const APP_BUILD = "2026-10-28b";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
