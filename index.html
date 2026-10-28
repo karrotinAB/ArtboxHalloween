@@ -43,7 +43,7 @@ p{margin:.4em 0}
 .muted{color:var(--muted)}
 .center{text-align:center}
 button{cursor:pointer;border:0;border-radius:999px;font-size:1.1rem;padding:.65em 1.3em;background:var(--lamp);color:var(--brown);box-shadow:0 4px 0 var(--lamp-shade);transition:transform .08s}
-button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--lamp-shade)}
+button:active,button.pressed{transform:translateY(3px);box-shadow:0 1px 0 var(--lamp-shade)}
 button.green{background:var(--green);box-shadow:0 4px 0 var(--green-shade);color:#1f3a1e}
 button.ghost{background:transparent;color:var(--ink);box-shadow:none;border:2px solid var(--line);font-size:.95rem;padding:.4em 1em}
 .card button.ghost{color:var(--brown);border-color:var(--soft)}
@@ -714,6 +714,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 .race-btn{display:block;margin:10px auto 0;background:#fff3dd;color:var(--brown);border:2px solid var(--brown);border-radius:999px;padding:.35em 1.2em;font-size:.95rem;box-shadow:none}
 .credit{text-align:center;font-size:.72rem;letter-spacing:.06em;color:var(--muted);opacity:.75;padding:18px 0 calc(14px + env(safe-area-inset-bottom,0px))}
 .fc-credit{position:absolute;left:0;right:0;bottom:0}
+#v-intro.on ~ .credit{background:var(--brown);margin:48px -18px -48px;padding-top:0}
 .fw{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:59}
 .final-closed{position:fixed;inset:0;z-index:58;background:radial-gradient(ellipse at 50% 30%,#4a2470 0%,#22102f 60%,#100616 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:6px}
 .final-closed[hidden]{display:none!important}
@@ -1881,7 +1882,10 @@ function goFromIntro(){
   if (!routed) { startWaiting = true; $("btn-start").disabled = true; $("btn-start").textContent = "여는 중…"; return; }
   if (me) goHome(); else openRegister(false);
 }
-$("btn-start").onclick = goFromIntro;
+// 누르는 느낌이 폰에서도 확실히 보이게: 눌린 모양을 잠깐 보여준 뒤 넘어가요
+$("btn-start").onclick = () => { const b = $("btn-start"); b.classList.add("pressed"); setTimeout(() => { b.classList.remove("pressed"); goFromIntro(); }, 120); };
+// iOS 사파리는 터치 리스너가 있어야 버튼의 :active(눌림) 모양을 보여줘요
+document.addEventListener("touchstart", () => {}, { passive: true });
 
 // ===== 부서·이름 (본인과 관리자만) =====
 // 부서·이름은 누구나 읽는 players가 아니라 profiles/{id}에 둬요 (Firebase 규칙으로 본인·관리자만 읽기).
@@ -4637,7 +4641,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-28d";
+const APP_BUILD = "2026-10-28e";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
