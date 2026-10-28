@@ -4637,7 +4637,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-28c";
+const APP_BUILD = "2026-10-28d";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
@@ -4652,7 +4652,7 @@ async function checkBuild(){
   buildChecking = true;
   try {
     const r = await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" });
-    const m = (await r.text()).match(/const APP_BUILD = "2026-10-28c"]+)"/);
+    const m = (await r.text()).match(/const APP_BUILD = "([^"]+)"/);
     if (m && m[1] !== APP_BUILD) { buildPending = true; applyNewBuild(); }
   } catch {}
   buildChecking = false;
