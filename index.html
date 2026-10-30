@@ -1217,6 +1217,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <div class="deal-stat" id="deal-stat"></div>
       <button class="big" id="adm-hw-news" style="margin-top:12px">📢 10/31 특별한 날 공지 미리보기</button>
       <button class="big" id="adm-sp-back" style="margin-top:12px">💌 특별 게임 패배자 알림 미리보기 (마왕성에 오면 50개 돌려받기)</button>
+      <button class="big" id="adm-sp-back-castle" style="margin-top:12px">🏰 패배자가 마왕성에 찾아갔을 때 미리보기 (50개 돌려받기)</button>
       <button class="big" id="adm-thief" style="margin-top:12px">🦹 사탕도둑 미리보기 (변신 · 설명 · 털린 집 장면)</button>
       <button class="big" id="adm-flydoor" style="margin-top:12px">파리 거지왹 손님 맞이 미리보기 (사탕 주기 · 쫓아내기)</button>
       <p class="muted" style="font-size:.85rem;margin:.8em 0 0">회원별 뱃지·별이·갤러리는 '회원 · 순위' 탭에서 회원을 눌러 확인하고 바꿀 수 있어요.</p>
@@ -3059,8 +3060,9 @@ function dealQuitAsk(){
     ["계속할래!", () => dealRound(dealS.back || 0), true]]));
 }
 $("deal-quit").onclick = e => { e.stopPropagation(); if (!dealBusy) dealQuitAsk(); };
-$("deal-x").onclick = e => { e.stopPropagation(); closeDeal(); };
-$("deal-reset").onclick = e => { e.stopPropagation(); try { localStorage.removeItem(dealMode === "boss" ? "bossPreview" : "dealPreview"); } catch {} openDeal(true, dealPrevTier, dealMode); };
+$("deal-x").onclick = e => { e.stopPropagation(); spBackOn = false; hwPreview = null; closeDeal(); };
+let spBackOn = false;
+$("deal-reset").onclick = e => { e.stopPropagation(); if (spBackOn && hwPreview) { spBackPrev(); return; } try { localStorage.removeItem(dealMode === "boss" ? "bossPreview" : "dealPreview"); } catch {} openDeal(true, dealPrevTier, dealMode); };
 // 공개 후: 1등이 로그인하면 한 번 (진행 중이던 거래는 1등이 아니어도 이어서)
 function maybeDeal(){
   if (!DEAL_LIVE || !me || !$("deal").hidden || gameOver()) return false;
@@ -4024,6 +4026,8 @@ $("adm-toasts").onclick = () => MISSIONS.forEach(m => pushModal(() => showAward(
 $("adm-flydoor").onclick = startFlyDoor;
 $("adm-hw-news").onclick = () => showHwNews(() => {});
 $("adm-sp-back").onclick = () => showSpBackNews(() => {});
+const spBackPrev = () => { hwPreview = "user"; try { localStorage.setItem("bossPreview", JSON.stringify({ sp: { r: "lose", at: Date.now() - 3600e3, lost: HW.lose } })); } catch {} openDeal(true, 0, "boss"); };
+$("adm-sp-back-castle").onclick = () => { spBackOn = true; spBackPrev(); };
 // 관리자: 사탕도둑 미리보기
 let tpThief = false;
 const tpLook = () => tpThief ? thiefSVG(me.char, starOn(me, myId)) : withStar(charSVG(me.char, me.costume, me.nick), { costume: me.costume, star: starOn(me, myId) }, "l");
@@ -4728,7 +4732,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-30e";
+const APP_BUILD = "2026-10-30f";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
