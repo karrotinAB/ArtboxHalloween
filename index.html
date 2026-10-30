@@ -1199,6 +1199,7 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
       <p id="fin-phase" style="font-weight:700"></p>
       <div id="fin-adm"></div>
       <button class="big" id="adm-fin-reveal" style="margin-top:12px">🙋 실명 공개 질문 미리보기</button>
+      <button class="big" id="adm-fin-revealcheck" style="margin-top:12px">🙋 실명 공개 확인 알림 미리보기 (공개한 사람에게)</button>
       <button class="big" id="adm-fin-revealbox" style="margin-top:12px">🙋 '내 정보 수정'의 실명 공개 칸 미리보기</button>
       <button class="big" id="adm-fin-look" style="margin-top:12px">👗 결과 발표 모습 고르기 공지 미리보기</button>
       <button class="big" id="adm-fin-lookbox" style="margin-top:12px">👗 꾸미기의 '결과 발표에 나갈 내 모습' 칸 미리보기</button>
@@ -1962,6 +1963,7 @@ $("btn-register").onclick = async () => {
   try {
     if (editMode && me) {
       await db.doc("players/" + myId).update({ nick });
+      if (me.reveal && me.reveal.ok && (me.reveal.dept !== dept || me.reveal.name !== name)) db.doc("players/" + myId).update({ reveal: { ...me.reveal, dept, name } }).catch(() => {});
       if (await saveProfile(myId, dept, name)) { profiles[myId] = { dept, name }; if (me.dept !== undefined || me.name !== undefined) db.doc("players/" + myId).remove(["dept", "name"]).catch(() => {}); }
       else await db.doc("players/" + myId).update({ dept, name });
       goHome();
@@ -2166,7 +2168,7 @@ function maybeNews(){
   if (newsChecked || !me) return;
   newsChecked = true;
   if (tourWanted()) return;
-  checkUpdates(); checkGrants(); checkBossNews(); checkHwNews(); checkBoardNews(); checkReveal(); checkLookNews();
+  checkUpdates(); checkGrants(); checkBossNews(); checkHwNews(); checkBoardNews(); checkReveal(); checkRevealCheck(); checkLookNews();
   const guests = pendingGuests(), last = me.mailSeen || 0, mails = mailItems().filter(m => m.t > last), lost = lostTop();
   trackTop();
   if (!guests.length && !mails.length && !lost) return;
@@ -3840,6 +3842,16 @@ function showReveal(preview){
 new MutationObserver(() => { if ($("sheet-reveal").hidden && me && !me.reveal) revealQueued = false; }).observe($("sheet-reveal"), { attributes: true, attributeFilter: ["hidden"] });
 $("rv-yes").onclick = async () => { if (revealPrev || await saveReveal(true)) nextModal(); };
 $("rv-no").onclick = async () => { if (revealPrev || await saveReveal(false)) nextModal(); };
+// 공개하겠다고 한 사람에게: 결과 발표에 이렇게 나가요 → 틀렸으면 내 정보 수정에서 고치기 (한 번)
+let revealCheckQueued = false;
+function showRevealCheck(done, pv){
+  const v = pv || (me && me.reveal) || {}, txt = [v.dept, v.name].filter(Boolean).join(" / ") || "(부서·이름 없음)";
+  showNotice("<11월 1일 결과발표식>", "실명 공개 확인해 주세요 🙋", [{ title: txt, text: `결과 발표에서 별명 아래에 이렇게 공개될 예정이에요. 부서나 이름이 틀렸으면 '내 정보 수정'에서 고쳐 주세요. 10월 31일 밤 12시까지 고칠 수 있어요.`, preview: '<span style="font-size:2.6rem">🏆</span>' }], done, ["✏️ 내 정보 수정에서 고치기", () => openRegister(true)]);
+}
+function checkRevealCheck(){
+  if (!me || revealCheckQueued || !revealOpen() || !(me.reveal && me.reveal.ok) || (me.seenUpdates || {}).revealCheck) return;
+  revealCheckQueued = true; pushModal(() => showRevealCheck(() => setMine({ seenUpdates: { revealCheck: Date.now() } })));
+}
 function checkReveal(){
   if (!me || revealQueued || !revealOpen() || me.reveal || leagueRank(myId) > 10) return;
   revealQueued = true; pushModal(() => showReveal(false));
@@ -3885,6 +3897,7 @@ function renderFinalAdmin(){
     <table class="sc-t fin-adm">${top.map(x => `<tr><td class="n">${x.rank}등</td><td><span class="ch">${finalChar(x.p)}</span></td><td>${esc(x.p.nick)}<br><small>${esc(profileOf(x.id).name || "")}</small></td><td><small>${ans(x.p)}<br>${x.p.finalLook && x.p.finalLook.char ? "👗 모습 고름" : "👗 안 고름"}</small></td><td class="n">${x.n}</td></tr>`).join("")}</table>`;
 }
 $("adm-fin-reveal").onclick = () => showReveal(true);
+$("adm-fin-revealcheck").onclick = () => showRevealCheck(() => {}, { dept: "마케팅팀", name: "홍길동" });
 $("adm-fin-look").onclick = () => { lookPrev = true; showLookNews(() => {}); };
 $("adm-fin-revealbox").onclick = () => { if (!me) { toast("관리자 기기에 참가 계정이 있어야 미리 볼 수 있어요"); return; } revealBoxPrev = true; $("reveal-box").dataset.pv = ""; openRegister(true); show("register"); setTimeout(() => $("reveal-box").scrollIntoView({ block: "center" }), 100); };
 $("adm-fin-lookbox").onclick = () => { if (!me) { toast("관리자 기기에 참가 계정이 있어야 미리 볼 수 있어요"); return; } lookPrev = true; goDress(); setTimeout(() => $("final-look-box").scrollIntoView({ block: "center" }), 150); };
@@ -4695,7 +4708,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-30b";
+const APP_BUILD = "2026-10-30c";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
