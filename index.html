@@ -700,6 +700,20 @@ button.soft-orange:active{box-shadow:0 1px 0 #d98a3a}
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} .knock-word span{opacity:1} }
 
 /* ===== 11월 1일 결과 발표 · 게임 종료 ===== */
+.aw-sec{margin:0 0 40px}
+.aw-card{background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:24px;box-shadow:0 6px 0 var(--brown);padding:12px 14px;margin:0 0 16px}
+.aw-top{text-align:center}
+.aw-top b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.35rem;display:block}
+.aw-top small{color:var(--paper-muted);font-size:.85rem}
+.aw-pair{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0 0;flex-wrap:wrap}
+.aw-badge{width:84px;height:84px;border-radius:50%;flex:none;display:block}
+.aw-pair .ch{width:84px;flex:none}.aw-pair .ch svg{display:block;width:100%;height:auto}
+.aw-names{text-align:center;margin-top:4px}
+.aw-names .fin-nick{display:inline;font-size:1.15rem}
+.aw-names .fin-real{display:block}
+.aw-names .aw-n{margin-top:5px}
+.aw-n{display:inline-block;margin-top:3px;background:#ffe7b8;border:2px solid var(--brown);border-radius:999px;padding:0 .6em;font-family:"Jua",sans-serif;font-size:.9rem}
+.aw-run{margin:6px 0 0;text-align:center;font-size:.82rem;color:var(--paper-muted)}
 .race{background:var(--paper);color:var(--brown);border:3px solid var(--brown);border-radius:24px;box-shadow:0 6px 0 var(--brown);padding:14px 12px 12px;margin:10px 0 40px}
 .race-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .race-h b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.2rem}
@@ -3673,6 +3687,7 @@ function renderFinal(){
   if (others.length) html += `<ol class="fin-list">${others.map(x => `<li><span class="r">${x.rank}</span><span class="ch">${finalChar(x.p)}</span>${nick(x)}<span class="n">🍬 ${x.n}</span></li>`).join("")}</ol>`;
   if (rest.length) html += `<h3 class="fin-crowd-t">함께한 마을 친구들 ${rest.length}명 🎃</h3><div class="fin-crowd">${rest.map(x => `<div class="cw" style="transform:rotate(${(hashOf(x.id) % 15) - 7}deg) translateY(${hashOf(x.id + "y") % 9}px)">${finalChar(x.p)}<small>${esc(x.p.nick)}</small></div>`).join("")}</div>`;
   if (L.length) html += `<div class="race"><div class="race-h"><b>📈 10월 순위 변화</b><span class="race-day" id="race-day"></span></div><p class="race-sub">하루하루 1~10등이 어떻게 바뀌었는지 볼까요?</p><div class="race-box" id="race-box"></div><button type="button" class="race-btn" id="race-play">▶ 다시 보기</button></div>`;
+  if (L.length) html += awardsHTML(nick);
   box.innerHTML = html || '<p class="fin-sub">아직 참가자가 없어요.</p>';
   if (L.length) setupRace();
   $("final-tag").textContent = finalPreview === "result" ? "관리자 미리보기" : "";
@@ -3720,6 +3735,37 @@ function setupRace(){
   $("race-play").onclick = play;
   raceObs = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { raceObs.disconnect(); play(); } }, { threshold: .5 });
   raceObs.observe(box);
+}
+
+// ===== 결과 발표: 뱃지 특별상 (마감 시각까지의 기록) =====
+// 똑똑왕: 문을 두드린 횟수 (열어줬는지와 상관없이 · 같은 집은 하루 1번) · 패셔니스타: 가진 코스튬 수 · 인사이더: 내 링크로 참가한 친구 수
+function knockTotal(id){
+  const p = players[id] || {}, last = dayNo(END_AT - 1); let n = 0;
+  Object.keys(players).forEach(h => { if (h === id) return; const ds = new Set();
+    Object.keys((p.visits && p.visits[h]) || {}).forEach(d => ds.add(ymdToDay(d)));
+    const k = players[h].knocks && players[h].knocks[id]; if (k) ds.add(ymdToDay(k));
+    ds.forEach(d => { if (d <= last) n++; }); });
+  return n;
+}
+const costumeTotal = id => { const p = players[id] || {}; return Object.entries(p.owned || {}).filter(([k, v]) => k.startsWith("k:") && !(+v > END_AT)).length + Object.values(p.grants || {}).filter(v => v === true).length; };
+const inviteTotal = id => Object.values(players).filter(q => q.invitedBy === id && (q.createdAt || 0) <= END_AT).length;
+const AWARDS = [
+  { id: "knock", title: "똑똑왕", how: "친구네 문을 가장 많이 두드린 사람", badge: "badgeLucky7", unit: "번 똑똑", f: knockTotal },
+  { id: "fashion", title: "패셔니스타", how: "코스튬을 가장 많이 가진 사람", badge: "badgeFashion", unit: "벌", f: costumeTotal },
+  { id: "insider", title: "인사이더", how: "친구를 가장 많이 게임에 초대한 사람", badge: "badgeInsider", unit: "명 초대", f: inviteTotal }
+];
+function awardsHTML(nick){
+  const ids = Object.keys(players).filter(id => players[id].nick);
+  const cards = AWARDS.map(a => {
+    const L = ids.map(id => ({ id, p: players[id], v: a.f(id) })).filter(x => x.v > 0).sort((x, y) => y.v - x.v || (x.p.createdAt || 0) - (y.p.createdAt || 0));
+    const top = L.length ? L.filter(x => x.v === L[0].v) : [], rest = L.filter(x => x.v < (L[0] || {}).v);
+    const r2 = rest.length ? rest.filter(x => x.v === rest[0].v) : [], rest3 = rest.filter(x => x.v < (rest[0] || {}).v), r3 = rest3.length ? rest3.filter(x => x.v === rest3[0].v) : [];
+    const run = [[2, r2], [3, r3]].filter(([, l]) => l.length).map(([n, l]) => `${n}위 ${l.map(x => esc(x.p.nick)).join(", ")} (${l[0].v})`).join(" · ");
+    const img = DECO[a.badge] ? `<img class="aw-badge" alt="" src="data:image/webp;base64,${DECO[a.badge]}">` : "";
+    return `<div class="aw-card"><div class="aw-top"><b>${a.title}</b><small>${a.how}</small></div>` +
+      (top.length ? `<div class="aw-pair">${img}${top.map(x => `<span class="ch">${finalChar(x.p)}</span>`).join("")}</div><div class="aw-names">${top.map(x => nick(x)).join(" · ")}<br><span class="aw-n">${top[0].v}${a.unit}${top.length > 1 ? " · 공동 수상" : ""}</span></div>${run ? `<p class="aw-run">${run}</p>` : ""}` : `<div class="aw-pair">${img}</div><p class="aw-run">아직 기록이 없어요</p>`) + "</div>";
+  }).join("");
+  return `<div class="aw-sec"><h3 class="fin-crowd-t">🏅 특별상</h3>${cards}</div>`;
 }
 let finalFrom = "home", finalShown = false;
 function openFinal(){ if (current !== "final") finalFrom = current; closeSheets(); renderFinal(); show("final"); fireworks(); }
@@ -4647,7 +4693,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-28g";
+const APP_BUILD = "2026-10-30a";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
