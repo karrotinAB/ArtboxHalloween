@@ -2755,7 +2755,8 @@ const bossData = () => dealPrev ? bossPrevData() : (me && me.boss) || {};
 function hwLostRaw(p){ const s = p && p.boss && p.boss.sp; return s && (s.r === "lose" || s.r === "quit") ? (s.lost != null ? +s.lost : s.r === "lose" ? HW.lose : HW.quit) : 0; }
 function hwLost(p){ const s = p && p.boss && p.boss.sp; return Math.max(0, hwLostRaw(p) - ((s && +s.refund) || 0) - ((s && +s.back) || 0)); }
 // 특별 게임에서 져서 사탕을 잃은 사람(100개 돌려받기를 못 받은 사람): 알림 → 마왕성에 오면 50개 돌려줘요 (sp.back)
-const spBackDue = b => { const s = b && b.sp; return !!s && s.r === "lose" && !s.refund && !s.back && hwLostRaw({ boss: b }) > 0; };
+// 마왕성 단골 선물(잃은 만큼 돌려받기)을 받은 사람은 제외
+const spBackDue = b => { const s = b && b.sp; return !!s && s.r === "lose" && !s.refund && !s.back && !b.hwGift && hwLostRaw({ boss: b }) > 0; };
 // 돌려줄 개수: 그때까지 마왕문 게임(일반 판)에서 지거나 포기해서 실제로 잃은 사탕 합계
 function bossLostSum(p, before){ return Object.entries((p && p.boss && p.boss.log) || {}).reduce((t, [k, r]) => t + (r !== "win" && +k < before ? bossLost(p, k, r) : 0), 0); }
 const hwGiftN = b => b && b.hwGift ? (b.hwGiftN != null ? +b.hwGiftN : HW.gift) : 0;
@@ -4727,7 +4728,7 @@ function onData(){
 
 // ===== 새 버전 자동 적용 =====
 // 배포할 때마다 APP_BUILD를 바꿔요. 열려 있는 앱이 몇 분마다(그리고 다시 볼 때) 새 파일을 확인해서 바뀌었으면 알아서 새로고침해요.
-const APP_BUILD = "2026-10-30d";
+const APP_BUILD = "2026-10-30e";
 let buildChecking = false, buildPending = false;
 const busyForReload = () => ["door", "photo", "register"].includes(current) || !$("deal").hidden || !!document.querySelector(".sheet-bg:not([hidden]) input:focus, .sheet-bg:not([hidden]) textarea:focus") || tourStep >= 0;
 function applyNewBuild(){
